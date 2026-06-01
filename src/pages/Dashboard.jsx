@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Route,
   PhoneMissed,
@@ -9,6 +10,7 @@ import {
   MoreVertical,
 } from "lucide-react";
 import BookingModal from "../components/BookingModal";
+import { useToast } from "../components/Toast";
 import { useBookings } from "../hooks/useBookings";
 import { useDrivers } from "../hooks/useDrivers";
 import { useMissedCalls } from "../hooks/useMissedCalls";
@@ -48,7 +50,7 @@ function statusClasses(status) {
   }
 }
 
-function TransferRow({ transfer }) {
+function TransferRow({ transfer, onManage }) {
   return (
     <div
       className={`rounded-3xl border p-5 transition-all duration-300 ${
@@ -115,7 +117,10 @@ function TransferRow({ transfer }) {
             </div>
           </div>
         </div>
-        <button className="rounded-2xl border border-white/10 px-4 py-3 text-sm text-slate-300 transition hover:border-amber-400/20 hover:bg-amber-400/10 hover:text-amber-200">
+        <button
+          onClick={onManage}
+          className="rounded-2xl border border-white/10 px-4 py-3 text-sm text-slate-300 transition hover:border-amber-400/20 hover:bg-amber-400/10 hover:text-amber-200"
+        >
           Manage
         </button>
       </div>
@@ -123,7 +128,21 @@ function TransferRow({ transfer }) {
   );
 }
 
-function DriverFleet() {
+function driverDotColor(status) {
+  if (status === "Available") return "bg-emerald-400";
+  if (status === "En route" || status === "Passenger onboard") return "bg-blue-400";
+  if (status === "Available soon") return "bg-amber-400";
+  return "bg-slate-500";
+}
+
+function driverTextColor(status) {
+  if (status === "Available") return "text-emerald-300";
+  if (status === "En route" || status === "Passenger onboard") return "text-blue-300";
+  if (status === "Available soon") return "text-amber-300";
+  return "text-slate-400";
+}
+
+function DriverFleet({ drivers }) {
   return (
     <div className="card p-5">
       <div className="mb-6 flex items-center justify-between">
@@ -151,8 +170,8 @@ function DriverFleet() {
               <MoreVertical className="h-4 w-4 text-slate-600" />
             </div>
             <div className="mt-4 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              <span className="text-sm text-emerald-300">{driver.status}</span>
+              <span className={`h-2 w-2 rounded-full ${driverDotColor(driver.status)}`} />
+              <span className={`text-sm ${driverTextColor(driver.status)}`}>{driver.status}</span>
             </div>
             <p className="mt-3 text-sm text-slate-400">{driver.job}</p>
           </div>
@@ -164,9 +183,17 @@ function DriverFleet() {
 
 export default function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
-  const { bookings, createBooking } = useBookings();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const { bookings, loading: bookingsLoading, error: bookingsError, createBooking } = useBookings();
   const { drivers } = useDrivers();
   const { calls } = useMissedCalls();
+
+  async function handleCreateBooking(form) {
+    const result = await createBooking(form);
+    toast({ message: `Booking ${result.ref} created successfully`, type: "success" });
+    return result;
+  }
 
   const activeCount = bookings.filter((b) =>
     ["Dispatched", "En Route", "Passenger On Board"].includes(b.status)
@@ -207,8 +234,13 @@ export default function Dashboard() {
 
   return (
     <>
-    <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={createBooking} />
+    <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreateBooking} />
     <div className="grid gap-6 p-10">
+      {bookingsError && (
+        <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
+          Failed to load bookings: {bookingsError}
+        </div>
+      )}
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
@@ -238,13 +270,13 @@ export default function Dashboard() {
           </div>
           <div className="space-y-4">
             {bookings.map((transfer) => (
-              <TransferRow key={transfer.id} transfer={transfer} />
+              <TransferRow key={transfer.id} transfer={transfer} onManage={() => navigate("/dispatch")} />
             ))}
           </div>
         </div>
 
         <div className="space-y-6">
-          <DriverFleet />
+          <DriverFleet drivers={drivers} />
           <div className="rounded-3xl border border-amber-400/20 bg-amber-400/[0.05] p-6">
             <p className="text-xs uppercase tracking-[0.25em] text-amber-300">
               Automation Watch
@@ -256,7 +288,10 @@ export default function Dashboard() {
               Automated follow-up monitoring missed calls, incomplete enquiries
               and unassigned airport transfer requests.
             </p>
-            <button className="mt-6 w-full rounded-2xl border border-amber-400/20 px-4 py-3 text-sm font-semibold text-amber-200 transition hover:bg-amber-400/10">
+            <button
+              onClick={() => navigate("/bookings")}
+              className="mt-6 w-full rounded-2xl border border-amber-400/20 px-4 py-3 text-sm font-semibold text-amber-200 transition hover:bg-amber-400/10"
+            >
               Review Queue
             </button>
           </div>

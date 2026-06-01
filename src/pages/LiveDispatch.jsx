@@ -1,15 +1,9 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import BookingModal from "../components/BookingModal";
 import StatusActionMenu from "../components/StatusActionMenu";
 import DispatchButton from "../components/DispatchButton";
-import {
-  MapPin,
-  Clock,
-  CheckCircle2,
-  Loader2,
-  AlertCircle,
-  Filter,
-} from "lucide-react";
+import { MapPin, Clock, Filter } from "lucide-react";
+import { useToast } from "../components/Toast";
 import { useBookings } from "../hooks/useBookings";
 
 const STATUS_FILTERS = [
@@ -21,40 +15,22 @@ const STATUS_FILTERS = [
   "Unassigned / Missed Call Recovery",
 ];
 
-function statusClasses(status) {
-  switch (status) {
-    case "Dispatched":
-      return "border-amber-500/30 bg-amber-500/10 text-amber-300";
-    case "En Route":
-      return "border-blue-400/30 bg-blue-400/10 text-blue-300";
-    case "Passenger On Board":
-      return "border-emerald-400/30 bg-emerald-400/10 text-emerald-300";
-    case "Completed":
-      return "border-slate-500/30 bg-slate-500/10 text-slate-300";
-    default:
-      return "border-red-400/30 bg-red-400/10 text-red-300";
-  }
-}
-
-function statusIcon(status) {
-  switch (status) {
-    case "Dispatched":
-      return <Loader2 className="h-4 w-4 animate-spin text-amber-400" />;
-    case "En Route":
-      return <MapPin className="h-4 w-4 text-blue-400" />;
-    case "Passenger On Board":
-      return <CheckCircle2 className="h-4 w-4 text-emerald-400" />;
-    case "Completed":
-      return <CheckCircle2 className="h-4 w-4 text-slate-400" />;
-    default:
-      return <AlertCircle className="h-4 w-4 text-red-400" />;
-  }
-}
-
 export default function LiveDispatch() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [modalOpen, setModalOpen] = useState(false);
-  const { bookings: transfers, createBooking, updateStatus } = useBookings();
+  const toast = useToast();
+  const { bookings: transfers, loading, error, createBooking, updateStatus } = useBookings();
+
+  const handleStatusUpdate = useCallback(async (id, status) => {
+    await updateStatus(id, status);
+    toast({ message: `Status updated to ${status}`, type: "success" });
+  }, [updateStatus, toast]);
+
+  const handleCreateBooking = useCallback(async (form) => {
+    const result = await createBooking(form);
+    toast({ message: `Booking ${result.ref} created successfully`, type: "success" });
+    return result;
+  }, [createBooking, toast]);
 
   const filtered =
     activeFilter === "All"
@@ -71,8 +47,13 @@ export default function LiveDispatch() {
 
   return (
     <>
-    <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={createBooking} />
+    <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreateBooking} />
     <div className="grid gap-6 p-10">
+      {error && (
+        <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
+          Failed to load transfers: {error}
+        </div>
+      )}
       {/* Summary strip */}
       <div className="grid grid-cols-3 gap-4">
         {[
@@ -93,7 +74,7 @@ export default function LiveDispatch() {
         <div className="z-10 text-center">
           <MapPin className="mx-auto mb-3 h-8 w-8 text-amber-400/50" />
           <p className="text-sm text-slate-500">
-            Live map integration — Phase 3
+            Live map coming soon
           </p>
           <p className="mt-1 text-xs text-slate-600">
             Google Maps / Mapbox will render here with driver pins
@@ -196,7 +177,7 @@ export default function LiveDispatch() {
                     <StatusActionMenu
                       bookingId={t.id}
                       currentStatus={t.status}
-                      onUpdate={updateStatus}
+                      onUpdate={handleStatusUpdate}
                     />
                   </td>
                   <td className="py-4">

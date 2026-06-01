@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { X, Plane, MapPin, Clock, User, Car, PoundSterling, ChevronDown } from "lucide-react";
-import { drivers } from "../data/mockData";
+import { useDrivers } from "../hooks/useDrivers";
 
 const AIRPORTS = [
   "Manchester Airport (MAN)",
@@ -24,7 +24,6 @@ const ROUTE_PRICES = {
   "Liverpool Airport (LPL)": { Blackpool: 145, "Lytham St Annes": 130, "Poulton-le-Fylde": 145, Preston: 155, Southport: 110, Chorley: 145 },
 };
 
-const VEHICLES = drivers.map((d) => ({ id: d.id, label: `${d.name} — ${d.vehicle}`, available: d.status === "Available" }));
 
 function Field({ label, icon: Icon, error, children }) {
   return (
@@ -89,15 +88,21 @@ const empty = {
 };
 
 export default function BookingModal({ open, onClose, onSubmit }) {
+  const { drivers } = useDrivers();
+  const vehicles = drivers.map((d) => ({ id: d.id, label: `${d.name} — ${d.vehicle}` }));
   const [form, setForm] = useState(empty);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   useEffect(() => {
     if (!open) {
       setForm(empty);
       setErrors({});
       setSubmitted(false);
+      setSubmitting(false);
+      setSubmitError(null);
     }
   }, [open]);
 
@@ -129,16 +134,24 @@ export default function BookingModal({ open, onClose, onSubmit }) {
     return e;
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const e2 = validate();
     if (Object.keys(e2).length) {
       setErrors(e2);
       return;
     }
-    setSubmitted(true);
-    onSubmit?.({ ...form, price });
-    setTimeout(onClose, 1200);
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await onSubmit?.({ ...form, price });
+      setSubmitted(true);
+      setTimeout(onClose, 1200);
+    } catch (err) {
+      setSubmitError(err?.message ?? "Failed to create booking. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (!open) return null;
@@ -247,7 +260,7 @@ export default function BookingModal({ open, onClose, onSubmit }) {
             {/* Driver + Price */}
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Assign Driver" icon={Car}>
-                <Select value={form.driver} onChange={set("driver")} options={VEHICLES} placeholder="Auto-assign" />
+                <Select value={form.driver} onChange={set("driver")} options={vehicles} placeholder="Auto-assign" />
               </Field>
               <div>
                 <label className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-500">
@@ -276,6 +289,11 @@ export default function BookingModal({ open, onClose, onSubmit }) {
             </Field>
 
             {/* Submit */}
+            {submitError && (
+              <p className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-300">
+                {submitError}
+              </p>
+            )}
             <div className="flex items-center justify-between gap-4 border-t border-white/5 pt-4">
               <button
                 type="button"
@@ -286,10 +304,10 @@ export default function BookingModal({ open, onClose, onSubmit }) {
               </button>
               <button
                 type="submit"
-                className="flex-1 rounded-2xl bg-amber-500 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-400"
+                disabled={submitting}
+                className="flex-1 rounded-2xl bg-amber-500 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Create Booking
-                {price !== null && ` — £${price}`}
+                {submitting ? "Creating…" : `Create Booking${price !== null ? ` — £${price}` : ""}`}
               </button>
             </div>
           </form>

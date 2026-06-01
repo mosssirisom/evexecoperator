@@ -144,7 +144,7 @@ export default function DriverManagement() {
         <div className="relative h-24 overflow-hidden rounded-2xl bg-white/[0.02]">
           <div className="absolute inset-0 flex items-center justify-center">
             <p className="text-sm text-slate-600">
-              Shift timeline — Phase 4 (real-time Supabase data)
+              Shift timeline coming soon
             </p>
           </div>
           {/* Decorative bars */}
