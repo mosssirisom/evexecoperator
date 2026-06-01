@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import BookingModal from "../components/BookingModal";
 import StatusActionMenu from "../components/StatusActionMenu";
+import DispatchButton from "../components/DispatchButton";
 import {
   MapPin,
   Clock,
@@ -199,9 +200,7 @@ export default function LiveDispatch() {
                     />
                   </td>
                   <td className="py-4">
-                    <button className="rounded-xl border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition hover:border-amber-400/20 hover:text-amber-300">
-                      Manage
-                    </button>
+                    <DispatchButton booking={t} driverName={t.driver} />
                   </td>
                 </tr>
               ))}

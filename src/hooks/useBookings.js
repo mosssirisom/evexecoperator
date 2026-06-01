@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase, isConfigured } from "../lib/supabase";
 import { transfers as mockTransfers } from "../data/mockData";
 import { useRealtimeBookings } from "./useRealtimeBookings";
+import { dispatchJobToDriverApp } from "../lib/driverApp";
 
 function shapedBooking(row) {
   return {
@@ -69,15 +70,18 @@ export function useBookings() {
             priority: false,
           },
         ]);
+        dispatchJobToDriverApp({ bookingRef: ref, customer: form.customer, route: `${form.airport} → ${form.destination}`, flight: form.flight, pickupTime: form.time, price: form.price ? `£${form.price}` : "TBC" }).catch(() => {});
         return { ref };
       }
       const { data: driverRow } = form.driver
-        ? await supabase.from("drivers").select("id").eq("id", form.driver).single()
+        ? await supabase.from("drivers").select("id, name").eq("id", form.driver).single()
         : { data: null };
 
       const pickup = form.date && form.time
         ? new Date(`${form.date}T${form.time}`).toISOString()
         : null;
+
+      const dest = form.destination === "Custom address…" ? form.customAddress : form.destination;
 
       const { error: err } = await supabase.from("bookings").insert({
         ref,
@@ -87,7 +91,7 @@ export function useBookings() {
         flight: form.flight || null,
         direction: form.direction,
         airport: form.airport,
-        destination: form.destination === "Custom address…" ? form.customAddress : form.destination,
+        destination: dest,
         pickup_time: pickup,
         driver_id: driverRow?.id ?? null,
         price: form.price ?? null,
@@ -95,6 +99,17 @@ export function useBookings() {
         notes: form.notes || null,
       });
       if (err) throw err;
+
+      dispatchJobToDriverApp({
+        bookingRef: ref,
+        customer: form.customer,
+        route: `${form.airport} → ${dest}`,
+        flight: form.flight,
+        pickupTime: pickup,
+        price: form.price ? `£${form.price}` : "TBC",
+        driver: driverRow?.name ?? null,
+      }).catch(() => {});
+
       await fetchBookings();
       return { ref };
     },
