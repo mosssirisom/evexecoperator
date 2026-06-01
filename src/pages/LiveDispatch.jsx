@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import BookingModal from "../components/BookingModal";
+import StatusActionMenu from "../components/StatusActionMenu";
 import {
-  Plane,
-  PhoneMissed,
   MapPin,
   Clock,
   CheckCircle2,
@@ -54,7 +53,7 @@ function statusIcon(status) {
 export default function LiveDispatch() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [modalOpen, setModalOpen] = useState(false);
-  const { bookings: transfers, createBooking } = useBookings();
+  const { bookings: transfers, createBooking, updateStatus } = useBookings();
 
   const filtered =
     activeFilter === "All"
@@ -193,16 +192,11 @@ export default function LiveDispatch() {
                     {t.price}
                   </td>
                   <td className="py-4 pr-6">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${statusClasses(
-                        t.status
-                      )}`}
-                    >
-                      {statusIcon(t.status)}
-                      {t.status === "Unassigned / Missed Call Recovery"
-                        ? "Missed Call"
-                        : t.status}
-                    </span>
+                    <StatusActionMenu
+                      bookingId={t.id}
+                      currentStatus={t.status}
+                      onUpdate={updateStatus}
+                    />
                   </td>
                   <td className="py-4">
                     <button className="rounded-xl border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition hover:border-amber-400/20 hover:text-amber-300">

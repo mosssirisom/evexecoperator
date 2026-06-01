@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Search, Bell } from "lucide-react";
 import Sidebar from "./Sidebar";
 import LiveClock from "./LiveClock";
+import RealtimeDot from "./RealtimeDot";
 
 const pageMeta = {
   "/": { label: "EV Exec", title: "Operator Dashboard" },
@@ -42,6 +43,7 @@ export default function Layout() {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <RealtimeDot />
               <button className="glass flex h-12 w-12 items-center justify-center rounded-2xl">
                 <Bell className="h-5 w-5 text-slate-300" />
               </button>

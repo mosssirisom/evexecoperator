@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase, isConfigured } from "../lib/supabase";
 import { transfers as mockTransfers } from "../data/mockData";
+import { useRealtimeBookings } from "./useRealtimeBookings";
 
 function shapedBooking(row) {
   return {
@@ -38,6 +39,17 @@ export function useBookings() {
   useEffect(() => {
     fetchBookings();
   }, [fetchBookings]);
+
+  useRealtimeBookings(fetchBookings);
+
+  const updateStatus = useCallback(async (id, status) => {
+    if (!isConfigured) {
+      setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status } : b));
+      return;
+    }
+    await supabase.from("bookings").update({ status }).eq("ref", id);
+    // realtime subscription triggers refetch automatically
+  }, []);
 
   const createBooking = useCallback(
     async (form) => {
@@ -89,5 +101,5 @@ export function useBookings() {
     [fetchBookings]
   );
 
-  return { bookings, loading, error, createBooking, refetch: fetchBookings };
+  return { bookings, loading, error, createBooking, updateStatus, refetch: fetchBookings };
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase, isConfigured } from "../lib/supabase";
 import { drivers as mockDrivers } from "../data/mockData";
+import { useRealtimeDrivers } from "./useRealtimeBookings";
 
 function shapedDriver(row) {
   return {
@@ -36,6 +37,8 @@ export function useDrivers() {
   useEffect(() => {
     fetchDrivers();
   }, [fetchDrivers]);
+
+  useRealtimeDrivers(fetchDrivers);
 
   const updateStatus = useCallback(async (id, status) => {
     if (!isConfigured) {
