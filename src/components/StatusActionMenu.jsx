@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { ChevronDown, CheckCircle2, Loader2, MapPin, AlertCircle, XCircle } from "lucide-react";
+import { bookingStatusColor } from "../lib/statusColor";
 
 const STATUSES = [
   { value: "Dispatched", icon: Loader2, spin: true, color: "text-amber-300" },
@@ -9,15 +10,6 @@ const STATUSES = [
   { value: "Cancelled", icon: XCircle, spin: false, color: "text-red-400" },
 ];
 
-function statusColor(status) {
-  switch (status) {
-    case "Dispatched": return "border-amber-500/30 bg-amber-500/10 text-amber-300";
-    case "En Route": return "border-blue-400/30 bg-blue-400/10 text-blue-300";
-    case "Passenger On Board": return "border-emerald-400/30 bg-emerald-400/10 text-emerald-300";
-    case "Completed": return "border-slate-500/30 bg-slate-500/10 text-slate-300";
-    default: return "border-red-400/30 bg-red-400/10 text-red-300";
-  }
-}
 
 export default function StatusActionMenu({ bookingId, currentStatus, onUpdate }) {
   const [open, setOpen] = useState(false);
@@ -38,7 +30,7 @@ export default function StatusActionMenu({ bookingId, currentStatus, onUpdate })
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition hover:opacity-80 ${statusColor(currentStatus)}`}
+        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition hover:opacity-80 ${bookingStatusColor(currentStatus)}`}
       >
         {currentStatus === "Unassigned / Missed Call Recovery" ? "Missed Call" : currentStatus}
         <ChevronDown className="h-3 w-3" />

@@ -127,7 +127,7 @@ function MissedCallRow({ call, onResolve }) {
 
 export default function AutomatedBookings() {
   const [activeTab, setActiveTab] = useState("queue");
-  const { calls: missedCalls, resolve } = useMissedCalls();
+  const { calls: missedCalls, loading: callsLoading, error: callsError, resolve } = useMissedCalls();
 
   return (
     <div className="grid gap-6 p-10">
@@ -181,7 +181,7 @@ export default function AutomatedBookings() {
                 Missed Calls
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                {missedCalls.length} calls awaiting follow-up
+                {callsLoading ? "Loading…" : `${missedCalls.length} calls awaiting follow-up`}
               </p>
             </div>
             <button className="flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 transition hover:border-amber-400/20 hover:text-amber-300">
@@ -189,11 +189,35 @@ export default function AutomatedBookings() {
               Refresh
             </button>
           </div>
-          <div className="space-y-3">
-            {missedCalls.map((call) => (
-              <MissedCallRow key={call.id} call={call} onResolve={resolve} />
-            ))}
-          </div>
+          {callsError && (
+            <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
+              Failed to load missed calls: {callsError}
+            </div>
+          )}
+          {callsLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                  <div className="flex gap-4">
+                    <div className="h-10 w-10 rounded-2xl bg-white/[0.04]" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-1/3 rounded-full bg-white/[0.04]" />
+                      <div className="h-3 w-1/2 rounded-full bg-white/[0.03]" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {missedCalls.map((call) => (
+                <MissedCallRow key={call.id} call={call} onResolve={resolve} />
+              ))}
+              {missedCalls.length === 0 && (
+                <p className="py-8 text-center text-sm text-slate-600">No missed calls in the queue.</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 

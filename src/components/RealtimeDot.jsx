@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { supabase, isConfigured } from "../lib/supabase";
 
 export default function RealtimeDot() {
   const [state, setState] = useState(isConfigured ? "connecting" : "mock");
+  const channelRef = useRef(`heartbeat-${Math.random().toString(36).slice(2, 8)}`);
 
   useEffect(() => {
     if (!isConfigured || !supabase) return;
-    const ch = supabase.channel("heartbeat").subscribe((s) => {
+    const ch = supabase.channel(channelRef.current).subscribe((s) => {
       if (s === "SUBSCRIBED") setState("live");
       else if (s === "CLOSED" || s === "CHANNEL_ERROR") setState("error");
     });

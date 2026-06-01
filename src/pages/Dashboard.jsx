@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import BookingModal from "../components/BookingModal";
 import { useToast } from "../components/Toast";
+import { bookingStatusColor } from "../lib/statusColor";
 import { useBookings } from "../hooks/useBookings";
 import { useDrivers } from "../hooks/useDrivers";
 import { useMissedCalls } from "../hooks/useMissedCalls";
@@ -35,20 +36,6 @@ function MetricCard({ title, value, sub, icon: Icon }) {
   );
 }
 
-function statusClasses(status) {
-  switch (status) {
-    case "Dispatched":
-      return "border-amber-500/30 bg-amber-500/10 text-amber-300";
-    case "En Route":
-      return "border-blue-400/30 bg-blue-400/10 text-blue-300";
-    case "Passenger On Board":
-      return "border-emerald-400/30 bg-emerald-400/10 text-emerald-300";
-    case "Completed":
-      return "border-slate-500/30 bg-slate-500/10 text-slate-300";
-    default:
-      return "border-red-400/30 bg-red-400/10 text-red-300";
-  }
-}
 
 function TransferRow({ transfer, onManage }) {
   return (
@@ -66,7 +53,7 @@ function TransferRow({ transfer, onManage }) {
               {transfer.id}
             </span>
             <span
-              className={`rounded-full border px-3 py-1 text-xs font-medium ${statusClasses(
+              className={`rounded-full border px-3 py-1 text-xs font-medium ${bookingStatusColor(
                 transfer.status
               )}`}
             >

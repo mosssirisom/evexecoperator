@@ -46,7 +46,9 @@ export default function LiveDispatch() {
       ["Dispatched", "En Route", "Passenger On Board"].includes(t.status)
     ).length,
     completed: transfers.filter((t) => t.status === "Completed").length,
-    pending: transfers.filter((t) => t.priority).length,
+    pending: transfers.filter((t) =>
+      t.status === "Unassigned / Missed Call Recovery" || t.priority
+    ).length,
   };
 
   return (
