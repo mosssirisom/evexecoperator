@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import BookingModal from "../components/BookingModal";
 import {
   Plane,
   PhoneMissed,
@@ -52,6 +53,7 @@ function statusIcon(status) {
 
 export default function LiveDispatch() {
   const [activeFilter, setActiveFilter] = useState("All");
+  const [modalOpen, setModalOpen] = useState(false);
 
   const filtered =
     activeFilter === "All"
@@ -67,6 +69,8 @@ export default function LiveDispatch() {
   };
 
   return (
+    <>
+    <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} />
     <div className="grid gap-6 p-10">
       {/* Summary strip */}
       <div className="grid grid-cols-3 gap-4">
@@ -119,7 +123,13 @@ export default function LiveDispatch() {
               All Transfers
             </h2>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setModalOpen(true)}
+              className="mr-2 rounded-2xl bg-amber-500 px-4 py-2 text-sm font-semibold text-black transition hover:bg-amber-400"
+            >
+              + New Booking
+            </button>
             <Filter className="h-4 w-4 self-center text-slate-500" />
             {STATUS_FILTERS.map((f) => (
               <button
@@ -210,5 +220,6 @@ export default function LiveDispatch() {
         </div>
       </div>
     </div>
+    </>
   );
 }

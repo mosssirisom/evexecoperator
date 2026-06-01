@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Route,
   PhoneMissed,
@@ -9,6 +9,7 @@ import {
   MoreVertical,
 } from "lucide-react";
 import { transfers, drivers } from "../data/mockData";
+import BookingModal from "../components/BookingModal";
 
 function MetricCard({ title, value, sub, icon: Icon }) {
   return (
@@ -160,6 +161,7 @@ function DriverFleet() {
 }
 
 export default function Dashboard() {
+  const [modalOpen, setModalOpen] = useState(false);
   const metrics = useMemo(
     () => [
       {
@@ -191,6 +193,8 @@ export default function Dashboard() {
   );
 
   return (
+    <>
+    <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} />
     <div className="grid gap-6 p-10">
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
@@ -212,7 +216,10 @@ export default function Dashboard() {
                 Real-time operational transfer overview
               </p>
             </div>
-            <button className="rounded-2xl bg-amber-500 px-5 py-3 text-sm font-semibold text-black transition hover:bg-amber-400">
+            <button
+              onClick={() => setModalOpen(true)}
+              className="rounded-2xl bg-amber-500 px-5 py-3 text-sm font-semibold text-black transition hover:bg-amber-400"
+            >
               Create Booking
             </button>
           </div>
@@ -243,5 +250,6 @@ export default function Dashboard() {
         </div>
       </section>
     </div>
+    </>
   );
 }
