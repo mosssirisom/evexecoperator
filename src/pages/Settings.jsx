@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Check,
 } from "lucide-react";
+import { useToast } from "../components/Toast";
 
 const SECTIONS = [
   { key: "business", label: "Business", icon: Building2 },
@@ -17,25 +18,25 @@ const SECTIONS = [
   { key: "security", label: "Security", icon: Shield },
 ];
 
-function Toggle({ defaultOn = false }) {
-  const [on, setOn] = useState(defaultOn);
+function Toggle({ value, onChange }) {
   return (
     <button
-      onClick={() => setOn(!on)}
-      className={`relative h-6 w-11 rounded-full transition-colors ${
-        on ? "bg-amber-500" : "bg-white/10"
+      type="button"
+      onClick={() => onChange(!value)}
+      className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${
+        value ? "bg-amber-500" : "bg-white/10"
       }`}
     >
       <span
         className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-          on ? "translate-x-5" : "translate-x-0.5"
+          value ? "translate-x-5" : "translate-x-0.5"
         }`}
       />
     </button>
   );
 }
 
-function Field({ label, defaultValue, type = "text" }) {
+function TextInput({ label, value, onChange, type = "text" }) {
   return (
     <div>
       <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-slate-500">
@@ -43,20 +44,30 @@ function Field({ label, defaultValue, type = "text" }) {
       </label>
       <input
         type={type}
-        defaultValue={defaultValue}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-amber-400/40 focus:bg-white/[0.05] transition"
       />
     </div>
   );
 }
 
-function BusinessSettings() {
+function ToggleRow({ label, value, onChange }) {
+  return (
+    <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4">
+      <span className="text-sm text-white">{label}</span>
+      <Toggle value={value} onChange={onChange} />
+    </div>
+  );
+}
+
+function BusinessSettings({ state, set }) {
   return (
     <div className="space-y-5">
-      <Field label="Business Name" defaultValue="EV Exec" />
-      <Field label="Contact Email" defaultValue="operator@evexec.co.uk" type="email" />
-      <Field label="Phone Number" defaultValue="+44 1253 000000" />
-      <Field label="Business Address" defaultValue="Blackpool, Lancashire, UK" />
+      <TextInput label="Business Name" value={state.name} onChange={set("name")} />
+      <TextInput label="Contact Email" value={state.email} onChange={set("email")} type="email" />
+      <TextInput label="Phone Number" value={state.phone} onChange={set("phone")} />
+      <TextInput label="Business Address" value={state.address} onChange={set("address")} />
       <div>
         <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-slate-500">
           Operating Area
@@ -79,44 +90,33 @@ function BusinessSettings() {
   );
 }
 
-function NotificationSettings() {
+function NotificationSettings({ state, set }) {
+  const items = [
+    { key: "newBooking", label: "New booking confirmation" },
+    { key: "missedCall", label: "Missed call alert" },
+    { key: "driverStatus", label: "Driver status change" },
+    { key: "flightDelay", label: "Flight delay detected" },
+    { key: "dailySummary", label: "Daily revenue summary" },
+    { key: "weeklyReport", label: "Weekly analytics report" },
+  ];
   return (
     <div className="space-y-5">
-      {[
-        { label: "New booking confirmation", on: true },
-        { label: "Missed call alert", on: true },
-        { label: "Driver status change", on: true },
-        { label: "Flight delay detected", on: true },
-        { label: "Daily revenue summary", on: false },
-        { label: "Weekly analytics report", on: false },
-      ].map((n) => (
-        <div
-          key={n.label}
-          className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4"
-        >
-          <span className="text-sm text-white">{n.label}</span>
-          <Toggle defaultOn={n.on} />
-        </div>
+      {items.map((n) => (
+        <ToggleRow key={n.key} label={n.label} value={state[n.key]} onChange={set(n.key)} />
       ))}
     </div>
   );
 }
 
-function FleetSettings() {
+function FleetSettings({ state, set }) {
   return (
     <div className="space-y-5">
-      <Field label="Standard Rate (MAN → Blackpool)" defaultValue="£160" />
-      <Field label="Standard Rate (LPL → Blackpool)" defaultValue="£145" />
-      <Field label="Waiting Time (per 15 min)" defaultValue="£15" />
-      <Field label="Child Seat Surcharge" defaultValue="£10" />
-      <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4">
-        <span className="text-sm text-white">Show fixed prices on booking form</span>
-        <Toggle defaultOn={true} />
-      </div>
-      <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4">
-        <span className="text-sm text-white">Auto-assign nearest available driver</span>
-        <Toggle defaultOn={false} />
-      </div>
+      <TextInput label="Standard Rate (MAN → Blackpool)" value={state.rateMan} onChange={set("rateMan")} />
+      <TextInput label="Standard Rate (LPL → Blackpool)" value={state.rateLpl} onChange={set("rateLpl")} />
+      <TextInput label="Waiting Time (per 15 min)" value={state.rateWaiting} onChange={set("rateWaiting")} />
+      <TextInput label="Child Seat Surcharge" value={state.rateChildSeat} onChange={set("rateChildSeat")} />
+      <ToggleRow label="Show fixed prices on booking form" value={state.showPrices} onChange={set("showPrices")} />
+      <ToggleRow label="Auto-assign nearest available driver" value={state.autoAssign} onChange={set("autoAssign")} />
     </div>
   );
 }
@@ -153,35 +153,49 @@ function IntegrationSettings() {
   );
 }
 
-function SecuritySettings() {
+function SecuritySettings({ state, set }) {
   return (
     <div className="space-y-5">
-      <Field label="Current Password" type="password" defaultValue="" />
-      <Field label="New Password" type="password" defaultValue="" />
-      <Field label="Confirm New Password" type="password" defaultValue="" />
-      <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4">
-        <span className="text-sm text-white">Two-factor authentication</span>
-        <Toggle defaultOn={false} />
-      </div>
-      <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4">
-        <span className="text-sm text-white">Session timeout (30 minutes)</span>
-        <Toggle defaultOn={true} />
-      </div>
+      <TextInput label="Current Password" value={state.currentPassword} onChange={set("currentPassword")} type="password" />
+      <TextInput label="New Password" value={state.newPassword} onChange={set("newPassword")} type="password" />
+      <TextInput label="Confirm New Password" value={state.confirmPassword} onChange={set("confirmPassword")} type="password" />
+      <ToggleRow label="Two-factor authentication" value={state.twoFactor} onChange={set("twoFactor")} />
+      <ToggleRow label="Session timeout (30 minutes)" value={state.sessionTimeout} onChange={set("sessionTimeout")} />
     </div>
   );
 }
 
-const sectionContent = {
-  business: BusinessSettings,
-  notifications: NotificationSettings,
-  fleet: FleetSettings,
-  integrations: IntegrationSettings,
-  security: SecuritySettings,
+const INITIAL = {
+  business: { name: "EV Exec", email: "operator@evexec.co.uk", phone: "+44 1253 000000", address: "Blackpool, Lancashire, UK" },
+  notifications: { newBooking: true, missedCall: true, driverStatus: true, flightDelay: true, dailySummary: false, weeklyReport: false },
+  fleet: { rateMan: "£160", rateLpl: "£145", rateWaiting: "£15", rateChildSeat: "£10", showPrices: true, autoAssign: false },
+  security: { currentPassword: "", newPassword: "", confirmPassword: "", twoFactor: false, sessionTimeout: true },
 };
 
 export default function Settings() {
   const [active, setActive] = useState("business");
-  const Content = sectionContent[active];
+  const [settings, setSettings] = useState(INITIAL);
+  const toast = useToast();
+
+  function set(section) {
+    return (field) => (value) =>
+      setSettings((prev) => ({
+        ...prev,
+        [section]: { ...prev[section], [field]: value },
+      }));
+  }
+
+  function handleSave() {
+    toast({ message: "Settings saved", type: "success" });
+  }
+
+  const sectionContent = {
+    business: <BusinessSettings state={settings.business} set={set("business")} />,
+    notifications: <NotificationSettings state={settings.notifications} set={set("notifications")} />,
+    fleet: <FleetSettings state={settings.fleet} set={set("fleet")} />,
+    integrations: <IntegrationSettings />,
+    security: <SecuritySettings state={settings.security} set={set("security")} />,
+  };
 
   return (
     <div className="p-10">
@@ -220,10 +234,13 @@ export default function Settings() {
               {SECTIONS.find((s) => s.key === active)?.label}
             </h2>
           </div>
-          <Content />
+          {sectionContent[active]}
           {active !== "integrations" && (
             <div className="mt-8 flex justify-end">
-              <button className="rounded-2xl bg-amber-500 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-400">
+              <button
+                onClick={handleSave}
+                className="rounded-2xl bg-amber-500 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-400"
+              >
                 Save Changes
               </button>
             </div>

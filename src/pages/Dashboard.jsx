@@ -229,7 +229,7 @@ export default function Dashboard() {
         icon: Leaf,
       },
     ],
-    [bookings, activeCount, totalRevenue, calls]
+    [bookings, calls]
   );
 
   return (

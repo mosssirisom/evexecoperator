@@ -28,13 +28,16 @@ export function useBookings() {
   const fetchBookings = useCallback(async () => {
     if (!isConfigured) return;
     setLoading(true);
-    const { data, error: err } = await supabase
-      .from("bookings")
-      .select("*, drivers(name)")
-      .order("pickup_time", { ascending: true });
-    setLoading(false);
-    if (err) { setError(err.message); return; }
-    setBookings(data.map(shapedBooking));
+    try {
+      const { data, error: err } = await supabase
+        .from("bookings")
+        .select("*, drivers(name)")
+        .order("pickup_time", { ascending: true });
+      if (err) { setError(err.message); return; }
+      setBookings(data.map(shapedBooking));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -54,7 +57,7 @@ export function useBookings() {
 
   const createBooking = useCallback(
     async (form) => {
-      const ref = `EVX-${Date.now().toString().slice(-4)}`;
+      const ref = `EVX-${Date.now().toString(36).toUpperCase().slice(-5)}${Math.random().toString(36).toUpperCase().slice(2, 4)}`;
       if (!isConfigured) {
         setBookings((prev) => [
           ...prev,

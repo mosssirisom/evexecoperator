@@ -1,46 +1,31 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { supabase, isConfigured } from "../lib/supabase";
 
-export function useRealtimeBookings(onUpdate) {
-  const subscribe = useCallback(() => {
-    if (!isConfigured || !supabase) return () => {};
+function useRealtimeTable(table, onUpdate) {
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
 
+  useEffect(() => {
+    if (!isConfigured || !supabase) return;
+
+    const channelName = `${table}-realtime-${Math.random().toString(36).slice(2, 7)}`;
     const channel = supabase
-      .channel("bookings-realtime")
+      .channel(channelName)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "bookings" },
-        () => onUpdate()
+        { event: "*", schema: "public", table },
+        () => onUpdateRef.current()
       )
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [onUpdate]);
+  }, [table]);
+}
 
-  useEffect(() => {
-    const unsub = subscribe();
-    return unsub;
-  }, [subscribe]);
+export function useRealtimeBookings(onUpdate) {
+  useRealtimeTable("bookings", onUpdate);
 }
 
 export function useRealtimeDrivers(onUpdate) {
-  const subscribe = useCallback(() => {
-    if (!isConfigured || !supabase) return () => {};
-
-    const channel = supabase
-      .channel("drivers-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "drivers" },
-        () => onUpdate()
-      )
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [onUpdate]);
-
-  useEffect(() => {
-    const unsub = subscribe();
-    return unsub;
-  }, [subscribe]);
+  useRealtimeTable("drivers", onUpdate);
 }
