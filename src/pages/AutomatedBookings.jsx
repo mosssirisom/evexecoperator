@@ -10,7 +10,7 @@ import {
   ChevronRight,
   Zap,
 } from "lucide-react";
-import { missedCalls } from "../data/mockData";
+import { useMissedCalls } from "../hooks/useMissedCalls";
 
 const automations = [
   {
@@ -87,7 +87,7 @@ function AutomationCard({ automation }) {
   );
 }
 
-function MissedCallRow({ call }) {
+function MissedCallRow({ call, onResolve }) {
   return (
     <div className="flex items-center justify-between gap-4 rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-4">
       <div className="flex items-center gap-4">
@@ -113,8 +113,11 @@ function MissedCallRow({ call }) {
             <Phone className="h-3.5 w-3.5" />
             Call
           </button>
-          <button className="rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-400 transition hover:border-amber-400/20 hover:text-amber-300">
-            Book
+          <button
+            onClick={() => onResolve?.(call.id)}
+            className="rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-400 transition hover:border-amber-400/20 hover:text-amber-300"
+          >
+            Resolve
           </button>
         </div>
       </div>
@@ -124,6 +127,7 @@ function MissedCallRow({ call }) {
 
 export default function AutomatedBookings() {
   const [activeTab, setActiveTab] = useState("queue");
+  const { calls: missedCalls, resolve } = useMissedCalls();
 
   return (
     <div className="grid gap-6 p-10">
@@ -187,7 +191,7 @@ export default function AutomatedBookings() {
           </div>
           <div className="space-y-3">
             {missedCalls.map((call) => (
-              <MissedCallRow key={call.id} call={call} />
+              <MissedCallRow key={call.id} call={call} onResolve={resolve} />
             ))}
           </div>
         </div>

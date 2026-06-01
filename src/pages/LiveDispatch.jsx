@@ -10,7 +10,7 @@ import {
   AlertCircle,
   Filter,
 } from "lucide-react";
-import { transfers } from "../data/mockData";
+import { useBookings } from "../hooks/useBookings";
 
 const STATUS_FILTERS = [
   "All",
@@ -54,6 +54,7 @@ function statusIcon(status) {
 export default function LiveDispatch() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [modalOpen, setModalOpen] = useState(false);
+  const { bookings: transfers, createBooking } = useBookings();
 
   const filtered =
     activeFilter === "All"
@@ -70,7 +71,7 @@ export default function LiveDispatch() {
 
   return (
     <>
-    <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} />
+    <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={createBooking} />
     <div className="grid gap-6 p-10">
       {/* Summary strip */}
       <div className="grid grid-cols-3 gap-4">

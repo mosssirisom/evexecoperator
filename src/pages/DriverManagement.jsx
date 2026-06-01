@@ -9,7 +9,7 @@ import {
   MoreVertical,
   Plus,
 } from "lucide-react";
-import { drivers } from "../data/mockData";
+import { useDrivers } from "../hooks/useDrivers";
 
 function statusColor(status) {
   if (status === "Available") return "text-emerald-300 bg-emerald-400/10 border-emerald-400/20";
@@ -85,6 +85,7 @@ function DriverCard({ driver }) {
 }
 
 export default function DriverManagement() {
+  const { drivers, updateStatus } = useDrivers();
   const available = drivers.filter((d) =>
     ["Available", "Available soon"].includes(d.status)
   ).length;

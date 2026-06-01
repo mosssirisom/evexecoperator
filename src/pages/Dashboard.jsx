@@ -8,8 +8,10 @@ import {
   CarFront,
   MoreVertical,
 } from "lucide-react";
-import { transfers, drivers } from "../data/mockData";
 import BookingModal from "../components/BookingModal";
+import { useBookings } from "../hooks/useBookings";
+import { useDrivers } from "../hooks/useDrivers";
+import { useMissedCalls } from "../hooks/useMissedCalls";
 
 function MetricCard({ title, value, sub, icon: Icon }) {
   return (
@@ -162,23 +164,34 @@ function DriverFleet() {
 
 export default function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
+  const { bookings, createBooking } = useBookings();
+  const { drivers } = useDrivers();
+  const { calls } = useMissedCalls();
+
+  const activeCount = bookings.filter((b) =>
+    ["Dispatched", "En Route", "Passenger On Board"].includes(b.status)
+  ).length;
+  const totalRevenue = bookings
+    .filter((b) => b.status === "Completed")
+    .reduce((acc, b) => acc + (parseFloat(String(b.price).replace("£", "")) || 0), 0);
+
   const metrics = useMemo(
     () => [
       {
         title: "Total Bookings Today",
-        value: "18",
-        sub: "£2,640 confirmed revenue",
+        value: bookings.length,
+        sub: totalRevenue > 0 ? `£${totalRevenue.toLocaleString()} confirmed revenue` : "Tracking live",
         icon: ShieldCheck,
       },
       {
         title: "Active En-Route Transfers",
-        value: "3",
+        value: activeCount,
         sub: "Live airport operations",
         icon: Route,
       },
       {
         title: "Missed Call Recovery Queue",
-        value: "4",
+        value: calls.length,
         sub: "Automation awaiting confirmation",
         icon: PhoneMissed,
       },
@@ -189,12 +202,12 @@ export default function Dashboard() {
         icon: Leaf,
       },
     ],
-    []
+    [bookings, activeCount, totalRevenue, calls]
   );
 
   return (
     <>
-    <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} />
+    <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={createBooking} />
     <div className="grid gap-6 p-10">
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
@@ -224,7 +237,7 @@ export default function Dashboard() {
             </button>
           </div>
           <div className="space-y-4">
-            {transfers.map((transfer) => (
+            {bookings.map((transfer) => (
               <TransferRow key={transfer.id} transfer={transfer} />
             ))}
           </div>
