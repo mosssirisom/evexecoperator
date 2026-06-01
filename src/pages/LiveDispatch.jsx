@@ -54,7 +54,7 @@ export default function LiveDispatch() {
   return (
     <>
     <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreateBooking} />
-    <div className="grid gap-6 p-10">
+    <div className="grid gap-6 p-4 sm:p-6 lg:p-10">
       {error && (
         <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
           Failed to load transfers: {error}

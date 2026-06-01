@@ -21,14 +21,14 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-[#0B132B] text-white">
       <Sidebar />
-      <main className="ml-24 min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(212,175,55,0.10),transparent_30%),linear-gradient(180deg,#0B132B_0%,#050814_100%)]">
-        <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0B132B]/80 px-10 py-6 backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-6">
+      <main className="ml-0 sm:ml-24 min-h-screen pb-20 sm:pb-0 bg-[radial-gradient(circle_at_top_right,rgba(212,175,55,0.10),transparent_30%),linear-gradient(180deg,#0B132B_0%,#050814_100%)]">
+        <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0B132B]/80 px-4 py-4 sm:px-10 sm:py-6 backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-4 sm:gap-6">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-amber-400">
                 {meta.label}
               </p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+              <h1 className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-semibold tracking-tight text-white">
                 {meta.title}
               </h1>
             </div>
@@ -42,12 +42,12 @@ export default function Layout() {
                 />
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <RealtimeDot />
-              <button className="glass flex h-12 w-12 items-center justify-center rounded-2xl">
-                <Bell className="h-5 w-5 text-slate-300" />
+              <button className="glass flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-2xl">
+                <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-slate-300" />
               </button>
-              <LiveClock />
+              <div className="hidden sm:block"><LiveClock /></div>
               <div className="glass hidden items-center gap-3 rounded-2xl px-3 py-2 lg:flex">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-400/10 text-sm font-semibold text-amber-300">
                   EV

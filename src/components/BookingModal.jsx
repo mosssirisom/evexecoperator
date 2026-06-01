@@ -181,7 +181,7 @@ export default function BookingModal({ open, onClose, onSubmit }) {
       {/* Modal */}
       <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#0B132B] shadow-2xl">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/5 bg-[#0B132B] px-8 py-6">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/5 bg-[#0B132B] px-4 py-4 sm:px-8 sm:py-6">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-amber-400">
               New Booking
@@ -209,7 +209,7 @@ export default function BookingModal({ open, onClose, onSubmit }) {
             <p className="text-sm text-slate-400">Transfer added to dispatch board</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="grid gap-6 px-8 py-6">
+          <form onSubmit={handleSubmit} className="grid gap-6 px-4 py-4 sm:px-8 sm:py-6">
             {/* Customer */}
             <div>
               <p className="mb-4 text-xs uppercase tracking-[0.2em] text-slate-600">

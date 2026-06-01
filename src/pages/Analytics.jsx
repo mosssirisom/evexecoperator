@@ -92,9 +92,9 @@ export default function Analytics() {
   const peakDay = useMemo(() => data.bars.reduce((a, b) => (b.value > a.value ? b : a)), [data]);
 
   return (
-    <div className="grid gap-6 p-10">
+    <div className="grid gap-6 p-4 sm:p-6 lg:p-10">
       {/* Period selector */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {PERIODS.map((p) => (
           <button
             key={p}

@@ -198,7 +198,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="p-10">
+    <div className="p-4 sm:p-6 lg:p-10">
       <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
         {/* Sidebar nav */}
         <div className="card h-fit p-2">

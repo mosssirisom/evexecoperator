@@ -73,7 +73,7 @@ function TransferRow({ transfer, onManage }) {
                 {transfer.customer}
               </h3>
               <p className="mt-1 text-sm text-slate-400">{transfer.route}</p>
-              <div className="mt-5 grid gap-4 md:grid-cols-4">
+              <div className="mt-5 grid gap-4 grid-cols-2 md:grid-cols-4">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">
                     Flight
@@ -237,7 +237,7 @@ export default function Dashboard() {
   return (
     <>
     <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreateBooking} />
-    <div className="grid gap-6 p-10">
+    <div className="grid gap-6 p-4 sm:p-6 lg:p-10">
       {bookingsError && (
         <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
           Failed to load bookings: {bookingsError}

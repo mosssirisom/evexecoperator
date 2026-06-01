@@ -89,7 +89,7 @@ function AutomationCard({ automation }) {
 
 function MissedCallRow({ call, onResolve }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-4">
+    <div className="flex flex-col gap-4 rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-4">
         <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-red-500/10">
           <PhoneMissed className="h-4 w-4 text-red-300" />
@@ -99,12 +99,12 @@ function MissedCallRow({ call, onResolve }) {
           <p className="mt-0.5 text-xs text-slate-500">{call.notes}</p>
         </div>
       </div>
-      <div className="flex items-center gap-6 text-right">
-        <div>
+      <div className="flex items-center justify-between gap-4 sm:justify-end sm:gap-6">
+        <div className="text-left sm:text-right">
           <p className="text-xs text-slate-600">Time</p>
           <p className="text-sm text-white">{call.time}</p>
         </div>
-        <div>
+        <div className="text-left sm:text-right">
           <p className="text-xs text-slate-600">Attempts</p>
           <p className="text-sm text-white">{call.attempts}</p>
         </div>
@@ -130,7 +130,7 @@ export default function AutomatedBookings() {
   const { calls: missedCalls, loading: callsLoading, error: callsError, resolve } = useMissedCalls();
 
   return (
-    <div className="grid gap-6 p-10">
+    <div className="grid gap-6 p-4 sm:p-6 lg:p-10">
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[

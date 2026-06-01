@@ -94,7 +94,7 @@ export default function DriverManagement() {
   ).length;
 
   return (
-    <div className="grid gap-6 p-10">
+    <div className="grid gap-6 p-4 sm:p-6 lg:p-10">
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
