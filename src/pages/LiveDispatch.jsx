@@ -146,6 +146,15 @@ export default function LiveDispatch() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.03]">
+              {loading && transfers.length === 0 && [1, 2, 3, 4].map((i) => (
+                <tr key={i} className="animate-pulse">
+                  {[...Array(9)].map((_, j) => (
+                    <td key={j} className="py-4 pr-6">
+                      <div className="h-3 rounded-full bg-white/[0.04]" style={{ width: `${50 + j * 5}%` }} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
               {filtered.map((t) => (
                 <tr
                   key={t.id}

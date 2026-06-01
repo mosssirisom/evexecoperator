@@ -181,6 +181,21 @@ function DriverFleet({ drivers }) {
   );
 }
 
+function SkeletonRow() {
+  return (
+    <div className="rounded-3xl border border-white/5 bg-white/[0.02] p-5 animate-pulse">
+      <div className="flex gap-4">
+        <div className="h-12 w-12 rounded-2xl bg-white/[0.04]" />
+        <div className="flex-1 space-y-3">
+          <div className="h-4 w-1/3 rounded-full bg-white/[0.04]" />
+          <div className="h-3 w-1/2 rounded-full bg-white/[0.03]" />
+          <div className="h-3 w-2/3 rounded-full bg-white/[0.03]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const navigate = useNavigate();
@@ -269,9 +284,12 @@ export default function Dashboard() {
             </button>
           </div>
           <div className="space-y-4">
-            {bookings.map((transfer) => (
-              <TransferRow key={transfer.id} transfer={transfer} onManage={() => navigate("/dispatch")} />
-            ))}
+            {bookingsLoading
+              ? [1, 2, 3].map((i) => <SkeletonRow key={i} />)
+              : bookings.map((transfer) => (
+                  <TransferRow key={transfer.id} transfer={transfer} onManage={() => navigate("/dispatch")} />
+                ))
+            }
           </div>
         </div>
 
