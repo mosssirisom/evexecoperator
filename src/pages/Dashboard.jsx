@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Route,
@@ -204,11 +204,11 @@ export default function Dashboard() {
   const { drivers } = useDrivers();
   const { calls } = useMissedCalls();
 
-  async function handleCreateBooking(form) {
+  const handleCreateBooking = useCallback(async (form) => {
     const result = await createBooking(form);
     toast({ message: `Booking ${result.ref} created successfully`, type: "success" });
     return result;
-  }
+  }, [createBooking, toast]);
 
   const activeCount = bookings.filter((b) =>
     ["Dispatched", "En Route", "Passenger On Board"].includes(b.status)

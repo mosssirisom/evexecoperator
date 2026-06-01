@@ -25,13 +25,16 @@ export function useDrivers() {
   const fetchDrivers = useCallback(async () => {
     if (!isConfigured) return;
     setLoading(true);
-    const { data, error: err } = await supabase
-      .from("drivers")
-      .select("*")
-      .order("name");
-    setLoading(false);
-    if (err) { setError(err.message); return; }
-    setDrivers(data.map(shapedDriver));
+    try {
+      const { data, error: err } = await supabase
+        .from("drivers")
+        .select("*")
+        .order("name");
+      if (err) { setError(err.message); return; }
+      setDrivers(data.map(shapedDriver));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

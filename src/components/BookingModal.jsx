@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { X, Plane, MapPin, Clock, User, Car, PoundSterling, ChevronDown } from "lucide-react";
 import { useDrivers } from "../hooks/useDrivers";
 
@@ -89,15 +89,20 @@ const empty = {
 
 export default function BookingModal({ open, onClose, onSubmit }) {
   const { drivers } = useDrivers();
-  const vehicles = drivers.map((d) => ({ id: d.id, label: `${d.name} — ${d.vehicle}` }));
+  const vehicles = useMemo(
+    () => drivers.map((d) => ({ id: d.id, label: `${d.name} — ${d.vehicle}` })),
+    [drivers]
+  );
   const [form, setForm] = useState(empty);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const closeTimerRef = useRef(null);
 
   useEffect(() => {
     if (!open) {
+      clearTimeout(closeTimerRef.current);
       setForm(empty);
       setErrors({});
       setSubmitted(false);
@@ -107,19 +112,28 @@ export default function BookingModal({ open, onClose, onSubmit }) {
   }, [open]);
 
   useEffect(() => {
-    const handleKey = (e) => e.key === "Escape" && onClose();
+    return () => clearTimeout(closeTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === "Escape" && !submitting) onClose();
+    };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  }, [onClose, submitting]);
 
-  const set = (field) => (value) => setForm((f) => ({ ...f, [field]: value }));
+  const set = useCallback(
+    (field) => (value) => setForm((f) => ({ ...f, [field]: value })),
+    []
+  );
 
-  const price = (() => {
+  const price = useMemo(() => {
     const base = ROUTE_PRICES[form.airport];
     if (!base) return null;
     const dest = form.destination === "Custom address…" ? null : form.destination;
     return dest ? base[dest] ?? null : null;
-  })();
+  }, [form.airport, form.destination]);
 
   function validate() {
     const e = {};
@@ -146,7 +160,7 @@ export default function BookingModal({ open, onClose, onSubmit }) {
     try {
       await onSubmit?.({ ...form, price });
       setSubmitted(true);
-      setTimeout(onClose, 1200);
+      closeTimerRef.current = setTimeout(onClose, 1200);
     } catch (err) {
       setSubmitError(err?.message ?? "Failed to create booking. Please try again.");
     } finally {

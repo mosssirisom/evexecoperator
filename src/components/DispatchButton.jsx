@@ -1,10 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Send, CheckCircle2, Loader2, AlertTriangle } from "lucide-react";
 import { dispatchJobToDriverApp } from "../lib/driverApp";
 
 export default function DispatchButton({ booking, driverName }) {
   const [state, setState] = useState("idle"); // idle | loading | success | error
   const [errMsg, setErrMsg] = useState("");
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    return () => clearTimeout(timerRef.current);
+  }, []);
 
   const handleDispatch = async () => {
     if (state !== "idle") return;
@@ -21,11 +26,11 @@ export default function DispatchButton({ booking, driverName }) {
         status: booking.status,
       });
       setState("success");
-      setTimeout(() => setState("idle"), 3000);
+      timerRef.current = setTimeout(() => setState("idle"), 3000);
     } catch (e) {
       setErrMsg(e.message);
       setState("error");
-      setTimeout(() => setState("idle"), 4000);
+      timerRef.current = setTimeout(() => setState("idle"), 4000);
     }
   };
 

@@ -24,14 +24,17 @@ export function useMissedCalls() {
   const fetchCalls = useCallback(async () => {
     if (!isConfigured) return;
     setLoading(true);
-    const { data, error: err } = await supabase
-      .from("missed_calls")
-      .select("*")
-      .eq("resolved", false)
-      .order("created_at", { ascending: false });
-    setLoading(false);
-    if (err) { setError(err.message); return; }
-    setCalls(data.map(shapedCall));
+    try {
+      const { data, error: err } = await supabase
+        .from("missed_calls")
+        .select("*")
+        .eq("resolved", false)
+        .order("created_at", { ascending: false });
+      if (err) { setError(err.message); return; }
+      setCalls(data.map(shapedCall));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

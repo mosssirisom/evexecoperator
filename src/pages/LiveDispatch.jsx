@@ -22,8 +22,12 @@ export default function LiveDispatch() {
   const { bookings: transfers, loading, error, createBooking, updateStatus } = useBookings();
 
   const handleStatusUpdate = useCallback(async (id, status) => {
-    await updateStatus(id, status);
-    toast({ message: `Status updated to ${status}`, type: "success" });
+    try {
+      await updateStatus(id, status);
+      toast({ message: `Status updated to ${status}`, type: "success" });
+    } catch (err) {
+      toast({ message: err?.message ?? "Failed to update status", type: "error" });
+    }
   }, [updateStatus, toast]);
 
   const handleCreateBooking = useCallback(async (form) => {
@@ -196,7 +200,7 @@ export default function LiveDispatch() {
               ))}
             </tbody>
           </table>
-          {filtered.length === 0 && (
+          {!loading && filtered.length === 0 && (
             <p className="py-10 text-center text-sm text-slate-600">
               No transfers match this filter.
             </p>
