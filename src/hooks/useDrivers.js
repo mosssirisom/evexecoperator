@@ -45,10 +45,14 @@ export function useDrivers() {
 
   const updateStatus = useCallback(async (id, status) => {
     if (!isConfigured) {
-      setDrivers((prev) => prev.map((d) => d.id === id ? { ...d, status } : d));
+      setDrivers((prev) => prev.map((d) => (d.id === id ? { ...d, status } : d)));
       return;
     }
-    await supabase.from("drivers").update({ status }).eq("id", id);
+    const { error: err } = await supabase
+      .from("drivers")
+      .update({ status })
+      .eq("id", id);
+    if (err) throw new Error(err.message);
     await fetchDrivers();
   }, [fetchDrivers]);
 

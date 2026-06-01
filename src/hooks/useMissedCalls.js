@@ -46,7 +46,14 @@ export function useMissedCalls() {
       setCalls((prev) => prev.filter((c) => c.id !== id));
       return;
     }
-    await supabase.from("missed_calls").update({ resolved: true }).eq("ref", id);
+    const { error: err } = await supabase
+      .from("missed_calls")
+      .update({ resolved: true })
+      .eq("ref", id);
+    if (err) {
+      setError(err.message);
+      throw new Error(err.message);
+    }
     await fetchCalls();
   }, [fetchCalls]);
 

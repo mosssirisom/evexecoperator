@@ -1,29 +1,55 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase, isConfigured } from "../lib/supabase";
 import { transfers as mockTransfers } from "../data/mockData";
 import { useRealtimeBookings } from "./useRealtimeBookings";
-import { dispatchJobToDriverApp } from "../lib/driverApp";
+import { dispatchJobToDriverApp, updateJobStatus } from "../lib/driverApp";
+import {
+  validateBookingPayload,
+  validateStatusTransition,
+  BOOKING_STATUSES,
+  ValidationError,
+  generateBookingRef,
+  sanitizeText,
+} from "../lib/validation";
 
-function shapedBooking(row) {
+// ─── Row mapper ───────────────────────────────────────────────────────────────
+
+export function shapedBooking(row) {
   return {
     id: row.ref,
     customer: row.customer_name,
     flight: row.flight ?? "—",
-    route: [row.airport, row.destination].filter(Boolean).join(" → ") || row.destination || "—",
+    route:
+      [row.airport, row.destination].filter(Boolean).join(" → ") ||
+      row.destination ||
+      "—",
     time: row.pickup_time
-      ? new Date(row.pickup_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+      ? new Date(row.pickup_time).toLocaleTimeString("en-GB", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
       : "—",
     driver: row.drivers?.name ?? "Unassigned",
     price: row.price ? `£${Number(row.price).toFixed(0)}` : "TBC",
     status: row.status,
     priority: row.priority ?? false,
+    updatedAt: row.updated_at ?? null,
   };
 }
+
+// ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useBookings() {
   const [bookings, setBookings] = useState(mockTransfers);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Stable ref to current bookings — avoids stale closures in updateStatus
+  // without adding `bookings` to the useCallback dependency array.
+  const bookingsRef = useRef(bookings);
+  useEffect(() => {
+    bookingsRef.current = bookings;
+  }, [bookings]);
 
   const fetchBookings = useCallback(async () => {
     if (!isConfigured) return;
@@ -46,62 +72,131 @@ export function useBookings() {
 
   useRealtimeBookings(fetchBookings);
 
+  // ─── updateStatus ──────────────────────────────────────────────────────────
+
   const updateStatus = useCallback(async (id, status) => {
+    // 1. Reject unknown status values immediately
+    if (!BOOKING_STATUSES.includes(status)) {
+      throw new ValidationError(`"${status}" is not a valid booking status`);
+    }
+
+    // 2. Enforce state machine transition rules
+    const current = bookingsRef.current.find((b) => b.id === id);
+    if (current) {
+      validateStatusTransition(current.status, status);
+    }
+
+    // 3. Mock path (no Supabase configured)
     if (!isConfigured) {
-      setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status } : b));
+      setBookings((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, status } : b))
+      );
+      updateJobStatus(id, status).catch((err) => {
+        console.warn("[DriverApp] Status sync failed (mock):", err.message);
+      });
       return;
     }
-    await supabase.from("bookings").update({ status }).eq("ref", id);
-    // realtime subscription triggers refetch automatically
+
+    // 4. Persist to Supabase — surface any DB-level errors (including trigger
+    //    violations from the status-transition constraint)
+    const { error: err } = await supabase
+      .from("bookings")
+      .update({ status })
+      .eq("ref", id);
+    if (err) throw new Error(err.message);
+
+    // 5. Notify driver app non-blocking — failure does not roll back the
+    //    booking update; the operator UI already reflects the new status.
+    updateJobStatus(id, status).catch((err) => {
+      console.warn("[DriverApp] Status sync failed:", err.message);
+    });
   }, []);
+
+  // ─── createBooking ─────────────────────────────────────────────────────────
 
   const createBooking = useCallback(
     async (form) => {
-      const ref = `EVX-${Date.now().toString(36).toUpperCase().slice(-5)}${Math.random().toString(36).toUpperCase().slice(2, 4)}`;
+      // Validate before any DB round-trip (defence-in-depth)
+      validateBookingPayload(form);
+
+      const dest =
+        form.destination === "Custom address…"
+          ? form.customAddress.trim()
+          : form.destination;
+
+      const pickup =
+        form.date && form.time
+          ? new Date(`${form.date}T${form.time}`).toISOString()
+          : null;
+
+      // ── Mock path ───────────────────────────────────────────────────────────
       if (!isConfigured) {
+        const ref = generateBookingRef();
         setBookings((prev) => [
           ...prev,
           {
             id: ref,
             customer: form.customer,
             flight: form.flight || "—",
-            route: `${form.airport} → ${form.destination === "Custom address…" ? form.customAddress : form.destination}`,
+            route: `${form.airport} → ${dest}`,
             time: form.time,
             driver: "Unassigned",
             price: form.price ? `£${form.price}` : "TBC",
             status: "Dispatched",
             priority: false,
+            updatedAt: null,
           },
         ]);
-        dispatchJobToDriverApp({ bookingRef: ref, customer: form.customer, route: `${form.airport} → ${form.destination}`, flight: form.flight, pickupTime: form.time, price: form.price ? `£${form.price}` : "TBC" }).catch(() => {});
+        dispatchJobToDriverApp({
+          bookingRef: ref,
+          customer: form.customer,
+          route: `${form.airport} → ${dest}`,
+          flight: form.flight,
+          pickupTime: form.time,
+          price: form.price ? `£${form.price}` : "TBC",
+        }).catch(() => {});
         return { ref };
       }
+
+      // ── Real Supabase path ──────────────────────────────────────────────────
       const { data: driverRow } = form.driver
-        ? await supabase.from("drivers").select("id, name").eq("id", form.driver).single()
+        ? await supabase
+            .from("drivers")
+            .select("id, name")
+            .eq("id", form.driver)
+            .single()
         : { data: null };
 
-      const pickup = form.date && form.time
-        ? new Date(`${form.date}T${form.time}`).toISOString()
-        : null;
+      // Retry up to 3 times on unique-key collision (astronomically rare but
+      // possible under concurrent high-volume inserts).
+      let ref;
+      let succeeded = false;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        ref = generateBookingRef();
+        const { error: insertErr } = await supabase.from("bookings").insert({
+          ref,
+          customer_name:  sanitizeText(form.customer, 120),
+          customer_phone: sanitizeText(form.phone, 30),
+          customer_email: form.email?.trim() || null,
+          flight:         form.flight?.trim() || null,
+          direction:      form.direction,
+          airport:        form.airport,
+          destination:    dest,
+          pickup_time:    pickup,
+          driver_id:      driverRow?.id ?? null,
+          price:          form.price ?? null,
+          status:         "Dispatched",
+          notes:          form.notes?.trim() || null,
+        });
 
-      const dest = form.destination === "Custom address…" ? form.customAddress : form.destination;
-
-      const { error: err } = await supabase.from("bookings").insert({
-        ref,
-        customer_name: form.customer,
-        customer_phone: form.phone,
-        customer_email: form.email || null,
-        flight: form.flight || null,
-        direction: form.direction,
-        airport: form.airport,
-        destination: dest,
-        pickup_time: pickup,
-        driver_id: driverRow?.id ?? null,
-        price: form.price ?? null,
-        status: "Dispatched",
-        notes: form.notes || null,
-      });
-      if (err) throw err;
+        if (!insertErr) { succeeded = true; break; }
+        if (insertErr.code !== "23505") throw new Error(insertErr.message);
+      }
+      if (!succeeded) {
+        throw new Error(
+          "Failed to generate a unique booking reference after 3 attempts. Please try again."
+        );
+      }
 
       dispatchJobToDriverApp({
         bookingRef: ref,
