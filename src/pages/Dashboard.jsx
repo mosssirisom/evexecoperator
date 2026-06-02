@@ -8,8 +8,10 @@ import {
   Plane,
   CarFront,
   MoreVertical,
+  Clock,
 } from "lucide-react";
 import BookingModal from "../components/BookingModal";
+import ETACountdown from "../components/ETACountdown";
 import { useToast } from "../components/Toast";
 import { bookingStatusColor } from "../lib/statusColor";
 import { useBookings } from "../hooks/useBookings";
@@ -18,29 +20,81 @@ import { useMissedCalls } from "../hooks/useMissedCalls";
 
 function MetricCard({ title, value, sub, icon: Icon }) {
   return (
-    <div className="card p-6">
+    <div className="card p-5 sm:p-6">
       <div className="mb-5 flex items-center justify-between">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/5 bg-white/[0.03]">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/5 bg-white/[0.03] sm:h-12 sm:w-12">
           <Icon className="h-5 w-5 text-amber-400" />
         </div>
-        <span className="text-[10px] uppercase tracking-[0.25em] text-slate-500">
-          Live
-        </span>
+        <span className="text-[10px] uppercase tracking-[0.25em] text-slate-500">Live</span>
       </div>
       <p className="text-sm text-slate-400">{title}</p>
-      <h3 className="mt-2 text-4xl font-semibold tracking-tight text-white">
-        {value}
-      </h3>
+      <h3 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">{value}</h3>
       <p className="mt-3 text-sm text-slate-500">{sub}</p>
     </div>
   );
 }
 
+function UpcomingPickups({ bookings, onNavigate }) {
+  const upcoming = useMemo(() => {
+    const now = Date.now();
+    return bookings
+      .filter(
+        (b) =>
+          b.pickupTime &&
+          new Date(b.pickupTime).getTime() > now - 30 * 60 * 1000 &&
+          !["Completed", "Cancelled"].includes(b.status)
+      )
+      .sort((a, b) => new Date(a.pickupTime) - new Date(b.pickupTime))
+      .slice(0, 4);
+  }, [bookings]);
+
+  if (upcoming.length === 0) return null;
+
+  return (
+    <div className="card p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Upcoming</p>
+          <h3 className="mt-1 text-lg font-semibold text-white">Next Pickups</h3>
+        </div>
+        <button
+          onClick={onNavigate}
+          className="text-xs text-slate-500 transition hover:text-amber-300"
+        >
+          View all →
+        </button>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {upcoming.map((b) => (
+          <button
+            key={b.id}
+            onClick={onNavigate}
+            className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-3 text-left transition hover:border-amber-400/20 hover:bg-amber-400/[0.03]"
+          >
+            <div className="w-12 flex-shrink-0 text-center">
+              <p className="text-sm font-semibold text-white">{b.time}</p>
+              {b.pickupTime && <ETACountdown pickupTime={b.pickupTime} />}
+            </div>
+            <div className="h-7 w-px flex-shrink-0 bg-white/10" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-white">{b.customer}</p>
+              <p className="truncate text-xs text-slate-500">{b.driver}</p>
+            </div>
+            <div className="flex-shrink-0 text-right">
+              <p className="text-xs font-semibold text-amber-300">{b.price}</p>
+              {b.priority && <span className="text-[10px] text-red-400">⚡ Priority</span>}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function TransferRow({ transfer, onManage }) {
   return (
     <div
-      className={`rounded-3xl border p-5 transition-all duration-300 ${
+      className={`rounded-3xl border p-4 transition-all duration-300 sm:p-5 ${
         transfer.priority
           ? "border-red-500/30 bg-red-500/[0.04]"
           : "border-white/5 bg-white/[0.02] hover:border-amber-400/20 hover:bg-white/[0.04]"
@@ -49,13 +103,9 @@ function TransferRow({ transfer, onManage }) {
       <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex-1">
           <div className="mb-4 flex flex-wrap items-center gap-3">
-            <span className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
-              {transfer.id}
-            </span>
+            <span className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{transfer.id}</span>
             <span
-              className={`rounded-full border px-3 py-1 text-xs font-medium ${bookingStatusColor(
-                transfer.status
-              )}`}
+              className={`rounded-full border px-3 py-1 text-xs font-medium ${bookingStatusColor(transfer.status)}`}
             >
               {transfer.status}
             </span>
@@ -68,37 +118,25 @@ function TransferRow({ transfer, onManage }) {
                 <Plane className="h-5 w-5 text-amber-400" />
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-white">
-                {transfer.customer}
-              </h3>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base font-semibold text-white sm:text-lg">{transfer.customer}</h3>
               <p className="mt-1 text-sm text-slate-400">{transfer.route}</p>
-              <div className="mt-5 grid gap-4 grid-cols-2 md:grid-cols-4">
+              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">
-                    Flight
-                  </p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Flight</p>
                   <p className="mt-1 text-sm text-white">{transfer.flight}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">
-                    Pickup
-                  </p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Pickup</p>
                   <p className="mt-1 text-sm text-white">{transfer.time}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">
-                    Driver
-                  </p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Driver</p>
                   <p className="mt-1 text-sm text-white">{transfer.driver}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">
-                    Fixed Price
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-amber-300">
-                    {transfer.price}
-                  </p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Price</p>
+                  <p className="mt-1 text-sm font-semibold text-amber-300">{transfer.price}</p>
                 </div>
               </div>
             </div>
@@ -106,7 +144,7 @@ function TransferRow({ transfer, onManage }) {
         </div>
         <button
           onClick={onManage}
-          className="rounded-2xl border border-white/10 px-4 py-3 text-sm text-slate-300 transition hover:border-amber-400/20 hover:bg-amber-400/10 hover:text-amber-200"
+          className="self-end rounded-2xl border border-white/10 px-4 py-3 text-sm text-slate-300 transition hover:border-amber-400/20 hover:bg-amber-400/10 hover:text-amber-200 xl:self-auto"
         >
           Manage
         </button>
@@ -130,47 +168,56 @@ function driverTextColor(status) {
 }
 
 function DriverFleet({ drivers }) {
+  const navigate = useNavigate();
   return (
     <div className="card p-5">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-amber-400">
-            Driver Fleet
-          </p>
-          <h3 className="mt-2 text-xl font-semibold text-white">
-            Active vehicle availability
-          </h3>
+          <p className="text-xs uppercase tracking-[0.22em] text-amber-400">Driver Fleet</p>
+          <h3 className="mt-2 text-xl font-semibold text-white">Active availability</h3>
         </div>
         <CarFront className="h-5 w-5 text-amber-400" />
       </div>
-      <div className="space-y-4">
+      <div className="space-y-3">
         {drivers.map((driver) => (
           <div
             key={driver.id}
             className="rounded-2xl border border-white/5 bg-white/[0.02] p-4"
           >
             <div className="flex items-start justify-between">
-              <div>
+              <div className="min-w-0 flex-1">
                 <h4 className="font-medium text-white">{driver.name}</h4>
-                <p className="mt-1 text-xs text-slate-500">{driver.vehicle}</p>
+                <p className="mt-0.5 text-xs text-slate-500 truncate">{driver.vehicle}</p>
               </div>
-              <MoreVertical className="h-4 w-4 text-slate-600" />
+              <button
+                onClick={() => navigate("/drivers")}
+                className="ml-2 text-slate-600 transition hover:text-slate-400"
+                title="Manage driver"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
             </div>
-            <div className="mt-4 flex items-center gap-2">
+            <div className="mt-3 flex items-center gap-2">
               <span className={`h-2 w-2 rounded-full ${driverDotColor(driver.status)}`} />
               <span className={`text-sm ${driverTextColor(driver.status)}`}>{driver.status}</span>
             </div>
-            <p className="mt-3 text-sm text-slate-400">{driver.job}</p>
+            <p className="mt-2 truncate text-sm text-slate-400">{driver.job}</p>
           </div>
         ))}
       </div>
+      <button
+        onClick={() => navigate("/drivers")}
+        className="mt-4 w-full rounded-2xl border border-white/5 py-2.5 text-xs text-slate-500 transition hover:border-amber-400/20 hover:text-amber-300"
+      >
+        Manage Fleet →
+      </button>
     </div>
   );
 }
 
 function SkeletonRow() {
   return (
-    <div className="rounded-3xl border border-white/5 bg-white/[0.02] p-5 animate-pulse">
+    <div className="animate-pulse rounded-3xl border border-white/5 bg-white/[0.02] p-5">
       <div className="flex gap-4">
         <div className="h-12 w-12 rounded-2xl bg-white/[0.04]" />
         <div className="flex-1 space-y-3">
@@ -197,12 +244,18 @@ export default function Dashboard() {
     return result;
   }, [createBooking, toast]);
 
-  const activeCount = bookings.filter((b) =>
-    ["Dispatched", "En Route", "Passenger On Board"].includes(b.status)
-  ).length;
-  const totalRevenue = bookings
-    .filter((b) => b.status === "Completed")
-    .reduce((acc, b) => acc + (parseFloat(String(b.price).replace("£", "")) || 0), 0);
+  const activeCount = useMemo(
+    () => bookings.filter((b) => ["Dispatched", "En Route", "Passenger On Board"].includes(b.status)).length,
+    [bookings]
+  );
+
+  const totalRevenue = useMemo(
+    () =>
+      bookings
+        .filter((b) => b.status === "Completed")
+        .reduce((acc, b) => acc + (parseFloat(String(b.price).replace("£", "")) || 0), 0),
+    [bookings]
+  );
 
   const metrics = useMemo(
     () => [
@@ -231,78 +284,89 @@ export default function Dashboard() {
         icon: Leaf,
       },
     ],
-    [bookings, calls]
+    [bookings, activeCount, totalRevenue, calls]
   );
 
   return (
     <>
-    <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreateBooking} />
-    <div className="grid gap-6 p-4 sm:p-6 lg:p-10">
-      {bookingsError && (
-        <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
-          Failed to load bookings: {bookingsError}
-        </div>
-      )}
-      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <MetricCard key={metric.title} {...metric} />
-        ))}
-      </section>
+      <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreateBooking} />
+      <div className="grid gap-5 p-4 sm:gap-6 sm:p-6 lg:p-10">
+        {bookingsError && (
+          <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
+            Failed to load bookings: {bookingsError}
+          </div>
+        )}
 
-      <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
-        <div className="card p-6">
-          <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
-            <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-amber-400">
-                Live Dispatch
-              </p>
-              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
-                Today's Transfers
-              </h2>
-              <p className="mt-2 text-sm text-slate-500">
-                Real-time operational transfer overview
-              </p>
+        {/* KPI metric cards */}
+        <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          {metrics.map((metric) => (
+            <MetricCard key={metric.title} {...metric} />
+          ))}
+        </section>
+
+        {/* Upcoming pickups strip */}
+        <UpcomingPickups bookings={bookings} onNavigate={() => navigate("/dispatch")} />
+
+        {/* Main content: transfers list + sidebar */}
+        <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
+          <div className="card p-5 sm:p-6">
+            <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+              <div>
+                <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Live Dispatch</p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                  Today's Transfers
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">Real-time operational overview</p>
+              </div>
+              <button
+                onClick={() => setModalOpen(true)}
+                className="self-start rounded-2xl bg-amber-500 px-5 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 sm:self-auto"
+              >
+                + New Booking
+              </button>
             </div>
-            <button
-              onClick={() => setModalOpen(true)}
-              className="rounded-2xl bg-amber-500 px-5 py-3 text-sm font-semibold text-black transition hover:bg-amber-400"
-            >
-              Create Booking
-            </button>
+            <div className="space-y-4">
+              {bookingsLoading
+                ? [1, 2, 3].map((i) => <SkeletonRow key={i} />)
+                : bookings.map((transfer) => (
+                    <TransferRow
+                      key={transfer.id}
+                      transfer={transfer}
+                      onManage={() => navigate("/dispatch")}
+                    />
+                  ))}
+              {!bookingsLoading && bookings.length === 0 && (
+                <p className="py-8 text-center text-sm text-slate-600">No bookings yet today.</p>
+              )}
+            </div>
           </div>
-          <div className="space-y-4">
-            {bookingsLoading
-              ? [1, 2, 3].map((i) => <SkeletonRow key={i} />)
-              : bookings.map((transfer) => (
-                  <TransferRow key={transfer.id} transfer={transfer} onManage={() => navigate("/dispatch")} />
-                ))
-            }
-          </div>
-        </div>
 
-        <div className="space-y-6">
-          <DriverFleet drivers={drivers} />
-          <div className="rounded-3xl border border-amber-400/20 bg-amber-400/[0.05] p-6">
-            <p className="text-xs uppercase tracking-[0.25em] text-amber-300">
-              Automation Watch
-            </p>
-            <h3 className="mt-3 text-2xl font-semibold text-white">
-              Missed Call Recovery Active
-            </h3>
-            <p className="mt-3 text-sm leading-7 text-slate-400">
-              Automated follow-up monitoring missed calls, incomplete enquiries
-              and unassigned airport transfer requests.
-            </p>
-            <button
-              onClick={() => navigate("/bookings")}
-              className="mt-6 w-full rounded-2xl border border-amber-400/20 px-4 py-3 text-sm font-semibold text-amber-200 transition hover:bg-amber-400/10"
-            >
-              Review Queue
-            </button>
+          <div className="space-y-6">
+            <DriverFleet drivers={drivers} />
+            <div className="rounded-3xl border border-amber-400/20 bg-amber-400/[0.05] p-6">
+              <p className="text-xs uppercase tracking-[0.25em] text-amber-300">Automation Watch</p>
+              <h3 className="mt-3 text-xl font-semibold text-white sm:text-2xl">
+                Missed Call Recovery Active
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-slate-400">
+                Automated follow-up monitoring missed calls, incomplete enquiries and unassigned airport
+                transfer requests.
+              </p>
+              {calls.length > 0 && (
+                <p className="mt-2 text-sm font-medium text-red-300">
+                  {calls.length} call{calls.length > 1 ? "s" : ""} awaiting follow-up
+                </p>
+              )}
+              <button
+                onClick={() => navigate("/bookings")}
+                className="mt-5 w-full rounded-2xl border border-amber-400/20 px-4 py-3 text-sm font-semibold text-amber-200 transition hover:bg-amber-400/10"
+              >
+                Review Queue
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
     </>
   );
 }

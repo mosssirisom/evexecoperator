@@ -1,9 +1,10 @@
-import React from "react";
-import { Outlet, useLocation } from "react-router-dom";
-import { Search, Bell } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Search, Bell, X } from "lucide-react";
 import Sidebar from "./Sidebar";
 import LiveClock from "./LiveClock";
 import RealtimeDot from "./RealtimeDot";
+import { useMissedCalls } from "../hooks/useMissedCalls";
 
 const pageMeta = {
   "/": { label: "EV Exec", title: "Operator Dashboard" },
@@ -14,24 +15,100 @@ const pageMeta = {
   "/settings": { label: "System", title: "Settings" },
 };
 
+function NotificationPopover({ calls, onClose, onNavigate }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-white/10 bg-[#0B132B] shadow-2xl sm:w-80"
+    >
+      <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400">Alerts</p>
+        <button onClick={onClose} className="text-slate-500 hover:text-white transition">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="max-h-72 overflow-y-auto">
+        {calls.length === 0 ? (
+          <p className="py-6 text-center text-sm text-slate-600">No pending alerts</p>
+        ) : (
+          calls.map((c) => (
+            <div key={c.id} className="flex items-start gap-3 border-b border-white/5 px-4 py-3 last:border-0">
+              <div className="mt-0.5 h-2 w-2 flex-shrink-0 rounded-full bg-red-400" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white">{c.caller}</p>
+                <p className="mt-0.5 text-xs text-slate-500 truncate">{c.notes || "Missed call"}</p>
+                <p className="mt-0.5 text-[10px] text-slate-600">{c.time}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      <div className="border-t border-white/5 p-2">
+        <button
+          onClick={onNavigate}
+          className="w-full rounded-xl py-2 text-xs text-amber-300 transition hover:bg-amber-400/10"
+        >
+          View all in Automation →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Layout() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const meta = pageMeta[pathname] ?? pageMeta["/"];
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
+  const { calls } = useMissedCalls();
+  const alertCount = calls.length;
 
   return (
     <div className="min-h-screen bg-[#0B132B] text-white">
       <Sidebar />
-      <main className="ml-0 sm:ml-24 min-h-screen pb-20 sm:pb-0 bg-[radial-gradient(circle_at_top_right,rgba(212,175,55,0.10),transparent_30%),linear-gradient(180deg,#0B132B_0%,#050814_100%)]">
+      <main className="ml-0 min-h-screen pb-20 sm:ml-24 sm:pb-0 bg-[radial-gradient(circle_at_top_right,rgba(212,175,55,0.10),transparent_30%),linear-gradient(180deg,#0B132B_0%,#050814_100%)]">
         <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0B132B]/80 px-4 py-4 sm:px-10 sm:py-6 backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-4 sm:gap-6">
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-amber-400">
-                {meta.label}
-              </p>
-              <h1 className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-semibold tracking-tight text-white">
+          <div className="flex items-center justify-between gap-3">
+
+            {/* Page title — hidden when mobile search is open */}
+            <div className={`min-w-0 flex-1 sm:flex-none ${searchOpen ? "hidden sm:block" : ""}`}>
+              <p className="text-xs uppercase tracking-[0.3em] text-amber-400">{meta.label}</p>
+              <h1 className="mt-1 text-xl font-semibold tracking-tight text-white sm:text-3xl">
                 {meta.title}
               </h1>
             </div>
+
+            {/* Mobile search — expanded inline */}
+            {searchOpen && (
+              <div className="flex flex-1 items-center gap-2 sm:hidden">
+                <div className="glass flex flex-1 items-center gap-3 rounded-2xl px-4 py-3">
+                  <Search className="h-4 w-4 flex-shrink-0 text-slate-500" />
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Search bookings, drivers…"
+                    className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-600"
+                  />
+                </div>
+                <button
+                  onClick={() => setSearchOpen(false)}
+                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-white/10 text-slate-400 transition hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Desktop centre search */}
             <div className="hidden flex-1 justify-center xl:flex">
               <div className="glass flex w-full max-w-lg items-center gap-3 rounded-2xl px-4 py-3">
                 <Search className="h-4 w-4 text-slate-500" />
@@ -42,13 +119,55 @@ export default function Layout() {
                 />
               </div>
             </div>
-            <div className="flex items-center gap-3 sm:gap-4">
+
+            {/* Right actions */}
+            <div className="flex items-center gap-2 sm:gap-3">
               <RealtimeDot />
-              <button className="glass flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-2xl">
-                <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-slate-300" />
-              </button>
-              <div className="hidden sm:block"><LiveClock /></div>
-              <div className="glass hidden items-center gap-3 rounded-2xl px-3 py-2 lg:flex">
+
+              {/* Mobile search toggle */}
+              {!searchOpen && (
+                <button
+                  onClick={() => setSearchOpen(true)}
+                  className="glass flex h-10 w-10 items-center justify-center rounded-2xl xl:hidden"
+                  title="Search"
+                >
+                  <Search className="h-4 w-4 text-slate-300" />
+                </button>
+              )}
+
+              {/* Bell with missed-call badge */}
+              <div className="relative">
+                <button
+                  onClick={() => setBellOpen(!bellOpen)}
+                  className="glass relative flex h-10 w-10 items-center justify-center rounded-2xl transition hover:bg-white/10 sm:h-12 sm:w-12"
+                  title="Notifications"
+                >
+                  <Bell className="h-4 w-4 text-slate-300 sm:h-5 sm:w-5" />
+                  {alertCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                      {alertCount > 9 ? "9+" : alertCount}
+                    </span>
+                  )}
+                </button>
+                {bellOpen && (
+                  <NotificationPopover
+                    calls={calls}
+                    onClose={() => setBellOpen(false)}
+                    onNavigate={() => { setBellOpen(false); navigate("/bookings"); }}
+                  />
+                )}
+              </div>
+
+              <div className="hidden sm:block">
+                <LiveClock />
+              </div>
+
+              {/* Profile chip */}
+              <button
+                onClick={() => navigate("/settings")}
+                className="glass hidden items-center gap-3 rounded-2xl px-3 py-2 transition hover:bg-white/10 lg:flex"
+                title="Settings"
+              >
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-400/10 text-sm font-semibold text-amber-300">
                   EV
                 </div>
@@ -56,7 +175,7 @@ export default function Layout() {
                   <p className="text-sm font-medium text-white">Operator</p>
                   <p className="text-xs text-slate-500">Control Room</p>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
         </header>

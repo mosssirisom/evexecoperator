@@ -8,9 +8,9 @@ export function useToast() {
 }
 
 const ICONS = {
-  success: <CheckCircle2 className="h-4 w-4 text-emerald-400" />,
-  error: <AlertTriangle className="h-4 w-4 text-red-400" />,
-  info: <Info className="h-4 w-4 text-blue-400" />,
+  success: <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-400" />,
+  error: <AlertTriangle className="h-4 w-4 flex-shrink-0 text-red-400" />,
+  info: <Info className="h-4 w-4 flex-shrink-0 text-blue-400" />,
 };
 
 export function ToastProvider({ children }) {
@@ -29,17 +29,21 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={toast}>
       {children}
-      <div className="fixed bottom-6 right-6 z-[200] flex flex-col gap-2">
+      {/*
+        bottom-20 on mobile clears the fixed bottom nav bar (h-16 ≈ 64px + 16px gap).
+        On sm+ there's no bottom nav so 6 is fine.
+      */}
+      <div className="fixed bottom-20 right-4 z-[200] flex flex-col gap-2 sm:bottom-6 sm:right-6">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0B132B]/95 px-4 py-3 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-2 duration-200"
+            className="flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl border border-white/10 bg-[#0B132B]/95 px-4 py-3 shadow-2xl backdrop-blur-xl sm:max-w-sm"
           >
             {ICONS[t.type]}
-            <span className="text-sm text-white">{t.message}</span>
+            <span className="flex-1 text-sm text-white">{t.message}</span>
             <button
               onClick={() => dismiss(t.id)}
-              className="ml-2 text-slate-500 hover:text-slate-300 transition"
+              className="ml-1 flex-shrink-0 text-slate-500 transition hover:text-slate-300"
             >
               <X className="h-3.5 w-3.5" />
             </button>

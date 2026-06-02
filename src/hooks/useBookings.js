@@ -18,22 +18,31 @@ export function shapedBooking(row) {
   return {
     id: row.ref,
     customer: row.customer_name,
+    phone: row.customer_phone ?? null,
+    email: row.customer_email ?? null,
     flight: row.flight ?? "—",
     route:
       [row.airport, row.destination].filter(Boolean).join(" → ") ||
       row.destination ||
       "—",
+    airport: row.airport ?? null,
+    destination: row.destination ?? null,
+    direction: row.direction ?? null,
     time: row.pickup_time
       ? new Date(row.pickup_time).toLocaleTimeString("en-GB", {
           hour: "2-digit",
           minute: "2-digit",
         })
       : "—",
+    pickupTime: row.pickup_time ?? null,
     driver: row.drivers?.name ?? "Unassigned",
+    driverId: row.driver_id ?? null,
     price: row.price ? `£${Number(row.price).toFixed(0)}` : "TBC",
     status: row.status,
     priority: row.priority ?? false,
+    notes: row.notes ?? "",
     updatedAt: row.updated_at ?? null,
+    createdAt: row.created_at ?? null,
   };
 }
 
@@ -214,5 +223,58 @@ export function useBookings() {
     [fetchBookings]
   );
 
-  return { bookings, loading, error, createBooking, updateStatus, refetch: fetchBookings };
+  // ─── assignDriver ──────────────────────────────────────────────────────────
+
+  const assignDriver = useCallback(async (id, driverId) => {
+    if (!isConfigured) {
+      setBookings((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, driverId: driverId || null } : b))
+      );
+      return;
+    }
+    const { error: err } = await supabase
+      .from("bookings")
+      .update({ driver_id: driverId || null })
+      .eq("ref", id);
+    if (err) throw new Error(err.message);
+    await fetchBookings();
+  }, [fetchBookings]);
+
+  // ─── updateNotes ───────────────────────────────────────────────────────────
+
+  const updateNotes = useCallback(async (id, notes) => {
+    if (!isConfigured) {
+      setBookings((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, notes: notes ?? "" } : b))
+      );
+      return;
+    }
+    const { error: err } = await supabase
+      .from("bookings")
+      .update({ notes: notes?.trim() || null })
+      .eq("ref", id);
+    if (err) throw new Error(err.message);
+    await fetchBookings();
+  }, [fetchBookings]);
+
+  // ─── togglePriority ────────────────────────────────────────────────────────
+
+  const togglePriority = useCallback(async (id) => {
+    const current = bookingsRef.current.find((b) => b.id === id);
+    const newPriority = !current?.priority;
+    if (!isConfigured) {
+      setBookings((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, priority: newPriority } : b))
+      );
+      return;
+    }
+    const { error: err } = await supabase
+      .from("bookings")
+      .update({ priority: newPriority })
+      .eq("ref", id);
+    if (err) throw new Error(err.message);
+    await fetchBookings();
+  }, [fetchBookings]);
+
+  return { bookings, loading, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, refetch: fetchBookings };
 }
