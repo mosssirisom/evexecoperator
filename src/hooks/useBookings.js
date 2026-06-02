@@ -48,9 +48,13 @@ export function shapedBooking(row) {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
+const PAGE_SIZE = 100;
+
 export function useBookings() {
   const [bookings, setBookings] = useState(mockTransfers);
+  const [totalCount, setTotalCount] = useState(mockTransfers.length);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
 
   // Stable ref to current bookings — avoids stale closures in callbacks
@@ -69,18 +73,42 @@ export function useBookings() {
     const myId = ++fetchIdRef.current;
     setLoading(true);
     try {
-      const { data, error: err } = await supabase
+      const { data, count, error: err } = await supabase
         .from("bookings")
-        .select("*, drivers(name)")
-        .order("pickup_time", { ascending: true });
+        .select("*, drivers(name)", { count: "exact" })
+        .order("pickup_time", { ascending: true })
+        .range(0, PAGE_SIZE - 1);
       if (fetchIdRef.current !== myId) return; // stale — a newer fetch is in flight
       if (err) { setError(err.message); return; }
       setBookings(data.map(shapedBooking));
+      setTotalCount(count ?? 0);
       setError(null);
     } finally {
       if (fetchIdRef.current === myId) setLoading(false);
     }
   }, []);
+
+  // Append next page without resetting the list; deduplicates by id in case
+  // a realtime event inserted a record between the initial fetch and load-more.
+  const loadMore = useCallback(async () => {
+    if (!isConfigured || loadingMore) return;
+    const from = bookingsRef.current.length;
+    setLoadingMore(true);
+    try {
+      const { data, error: err } = await supabase
+        .from("bookings")
+        .select("*, drivers(name)")
+        .order("pickup_time", { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+      if (err) throw new Error(err.message);
+      setBookings((prev) => {
+        const existingIds = new Set(prev.map((b) => b.id));
+        return [...prev, ...data.map(shapedBooking).filter((b) => !existingIds.has(b.id))];
+      });
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore]);
 
   // Initial load
   useEffect(() => {
@@ -313,5 +341,5 @@ export function useBookings() {
     }
   }, []);
 
-  return { bookings, loading, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, refetch: fetchBookings };
+  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, refetch: fetchBookings };
 }

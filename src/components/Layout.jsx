@@ -100,6 +100,7 @@ export default function Layout() {
                   <input
                     autoFocus
                     type="text"
+                    aria-label="Search bookings and drivers"
                     placeholder="Search bookings, drivers…"
                     className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-600"
                   />
@@ -119,6 +120,7 @@ export default function Layout() {
                 <Search className="h-4 w-4 text-slate-500" />
                 <input
                   type="text"
+                  aria-label="Search bookings, flights and drivers"
                   placeholder="Search bookings, flights, drivers..."
                   className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-600"
                 />
@@ -145,6 +147,7 @@ export default function Layout() {
                 <button
                   onClick={() => setBellOpen(!bellOpen)}
                   className="glass relative flex h-10 w-10 items-center justify-center rounded-2xl transition hover:bg-white/10 sm:h-12 sm:w-12"
+                  aria-label={alertCount > 0 ? `Notifications — ${alertCount} pending` : "Notifications"}
                   title="Notifications"
                 >
                   <Bell className="h-4 w-4 text-slate-300 sm:h-5 sm:w-5" />

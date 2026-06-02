@@ -129,7 +129,10 @@ export default function LiveDispatch() {
   const toast = useToast();
   const {
     bookings: transfers,
+    totalCount,
     loading,
+    loadingMore,
+    loadMore,
     error,
     createBooking,
     updateStatus,
@@ -513,6 +516,21 @@ export default function LiveDispatch() {
                 <p className="py-10 text-center text-sm text-slate-600">
                   {debouncedSearch ? `No transfers match "${debouncedSearch}"` : "No transfers match this filter."}
                 </p>
+              )}
+              {/* Pagination: load more when more records exist beyond the first page */}
+              {totalCount > transfers.length && !debouncedSearch && activeFilter === "All" && (
+                <div className="mt-4 flex items-center justify-center gap-4 border-t border-white/5 pt-4">
+                  <p className="text-xs text-slate-600">
+                    Showing {transfers.length} of {totalCount} bookings
+                  </p>
+                  <button
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                    className="rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-400 transition hover:border-amber-400/20 hover:text-amber-300 disabled:opacity-50"
+                  >
+                    {loadingMore ? "Loading…" : "Load more"}
+                  </button>
+                </div>
               )}
             </div>
           </div>

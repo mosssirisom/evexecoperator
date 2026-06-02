@@ -4,47 +4,6 @@ import { useBookings } from "../hooks/useBookings";
 
 const PERIODS = ["Today", "7 Days", "30 Days", "All Time"];
 
-const STATIC_DATA = {
-  "7 Days": {
-    bars: [
-      { label: "Mon", value: 480, bookings: 3 },
-      { label: "Tue", value: 320, bookings: 2 },
-      { label: "Wed", value: 640, bookings: 4 },
-      { label: "Thu", value: 800, bookings: 5 },
-      { label: "Fri", value: 960, bookings: 6 },
-      { label: "Sat", value: 1120, bookings: 7 },
-      { label: "Sun", value: 640, bookings: 4 },
-    ],
-    newCustomers: 9,
-    co2: "604kg",
-    subRevenue: "+12% vs last week",
-  },
-  "30 Days": {
-    bars: [
-      { label: "Wk 1", value: 4800, bookings: 30 },
-      { label: "Wk 2", value: 5600, bookings: 35 },
-      { label: "Wk 3", value: 4160, bookings: 26 },
-      { label: "Wk 4", value: 6400, bookings: 40 },
-    ],
-    newCustomers: 34,
-    co2: "2,416kg",
-    subRevenue: "+8% vs last month",
-  },
-  "All Time": {
-    bars: [
-      { label: "Jan", value: 12800, bookings: 80 },
-      { label: "Feb", value: 11200, bookings: 70 },
-      { label: "Mar", value: 14400, bookings: 90 },
-      { label: "Apr", value: 16000, bookings: 100 },
-      { label: "May", value: 19200, bookings: 120 },
-      { label: "Jun", value: 17600, bookings: 110 },
-    ],
-    newCustomers: 142,
-    co2: "12,400kg",
-    subRevenue: "Since launch",
-  },
-};
-
 const topRoutes = [
   { route: "Manchester Airport → Blackpool", count: 48, revenue: "£7,680" },
   { route: "Manchester Airport → Lytham St Annes", count: 31, revenue: "£4,495" },
@@ -75,7 +34,9 @@ export default function Analytics() {
   const [period, setPeriod] = useState("7 Days");
   const { bookings } = useBookings();
 
-  // Build live "Today" data from real bookings
+  const parsePrice = (b) => parseFloat(String(b.price).replace("£", "")) || 0;
+
+  // ── Build live "Today" data from real bookings ──────────────────────────────
   const todayData = useMemo(() => {
     const now = new Date();
     const todayStart = new Date(now);
@@ -91,9 +52,8 @@ export default function Analytics() {
 
     const completedRevenue = todayBookings
       .filter((b) => b.status === "Completed")
-      .reduce((acc, b) => acc + (parseFloat(String(b.price).replace("£", "")) || 0), 0);
+      .reduce((acc, b) => acc + parsePrice(b), 0);
 
-    // Group into 3-hour windows for the bar chart
     const windows = [
       { label: "06:00", start: 6, end: 9 },
       { label: "09:00", start: 9, end: 12 },
@@ -108,10 +68,7 @@ export default function Analytics() {
         const h = new Date(b.pickupTime).getHours();
         return h >= start && h < end;
       });
-      const revenue = windowBookings.reduce(
-        (acc, b) => acc + (parseFloat(String(b.price).replace("£", "")) || 0),
-        0
-      );
+      const revenue = windowBookings.reduce((acc, b) => acc + parsePrice(b), 0);
       return { label, value: revenue, bookings: windowBookings.length };
     });
 
@@ -128,19 +85,117 @@ export default function Analytics() {
     };
   }, [bookings]);
 
-  const isToday = period === "Today";
-  const staticData = isToday ? null : STATIC_DATA[period];
+  // ── Build real data for 7 Days / 30 Days / All Time from actual bookings ────
+  const liveData = useMemo(() => {
+    const now = new Date();
 
-  const bars = isToday ? todayData.bars : staticData?.bars ?? [];
+    function buildBars(buckets) {
+      return buckets.map(({ label, start, end }) => {
+        const subset = bookings.filter((b) => {
+          if (!b.pickupTime) return false;
+          const t = new Date(b.pickupTime).getTime();
+          return t >= start && t < end;
+        });
+        return {
+          label,
+          value: subset.reduce((acc, b) => acc + parsePrice(b), 0),
+          bookings: subset.length,
+        };
+      });
+    }
+
+    function periodStats(periodBookings, subRevenue) {
+      const co2kg = Math.round(periodBookings.length * 7.3);
+      const uniqueCustomers = new Set(
+        periodBookings.map((b) => b.phone || b.customer)
+      ).size;
+      return {
+        newCustomers: uniqueCustomers,
+        co2: co2kg > 0 ? `${co2kg.toLocaleString()}kg` : "0kg",
+        subRevenue,
+      };
+    }
+
+    // 7 Days: last 7 calendar days
+    const sevenDayBuckets = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - (6 - i));
+      d.setHours(0, 0, 0, 0);
+      const end = new Date(d);
+      end.setDate(end.getDate() + 1);
+      return {
+        label: d.toLocaleDateString("en-GB", { weekday: "short" }),
+        start: d.getTime(),
+        end: end.getTime(),
+      };
+    });
+
+    // 30 Days: 4 rolling weeks, most recent = Wk 4
+    const thirtyDayBuckets = Array.from({ length: 4 }, (_, i) => {
+      const weekEnd = new Date(now);
+      weekEnd.setDate(weekEnd.getDate() - i * 7);
+      weekEnd.setHours(23, 59, 59, 999);
+      const weekStart = new Date(weekEnd);
+      weekStart.setDate(weekStart.getDate() - 6);
+      weekStart.setHours(0, 0, 0, 0);
+      return {
+        label: `Wk ${4 - i}`,
+        start: weekStart.getTime(),
+        end: weekEnd.getTime() + 1,
+      };
+    }).reverse();
+
+    // All Time: last 6 calendar months
+    const allTimeBuckets = Array.from({ length: 6 }, (_, i) => {
+      const offset = 5 - i;
+      const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+      const end = new Date(now.getFullYear(), now.getMonth() - offset + 1, 1);
+      return {
+        label: d.toLocaleDateString("en-GB", { month: "short" }),
+        start: d.getTime(),
+        end: end.getTime(),
+      };
+    });
+
+    const sevenStart = sevenDayBuckets[0].start;
+    const thirtyStart = thirtyDayBuckets[0].start;
+
+    const sevenDayBookings = bookings.filter(
+      (b) => b.pickupTime && new Date(b.pickupTime).getTime() >= sevenStart
+    );
+    const thirtyDayBookings = bookings.filter(
+      (b) => b.pickupTime && new Date(b.pickupTime).getTime() >= thirtyStart
+    );
+
+    return {
+      "7 Days": {
+        bars: buildBars(sevenDayBuckets),
+        ...periodStats(sevenDayBookings, "Last 7 days"),
+      },
+      "30 Days": {
+        bars: buildBars(thirtyDayBuckets),
+        ...periodStats(thirtyDayBookings, "Last 30 days"),
+      },
+      "All Time": {
+        bars: buildBars(allTimeBuckets),
+        ...periodStats(bookings, "All loaded bookings"),
+      },
+    };
+  }, [bookings]);
+
+  const isToday = period === "Today";
+  const periodData = isToday ? null : liveData[period];
+
+  const bars = isToday ? todayData.bars : periodData?.bars ?? [];
   const totalRevenue = isToday
     ? todayData.totalRevenue
     : bars.reduce((acc, d) => acc + d.value, 0);
   const totalBookings = isToday
     ? todayData.totalBookings
     : bars.reduce((acc, d) => acc + d.bookings, 0);
-  const newCustomers = isToday ? todayData.newCustomers : staticData?.newCustomers ?? 0;
-  const co2 = isToday ? todayData.co2 : staticData?.co2 ?? "—";
-  const subRevenue = isToday ? todayData.subRevenue : staticData?.subRevenue ?? "";
+  const newCustomers = isToday ? todayData.newCustomers : periodData?.newCustomers ?? 0;
+  const co2 = isToday ? todayData.co2 : periodData?.co2 ?? "—";
+  const subRevenue = isToday ? todayData.subRevenue : periodData?.subRevenue ?? "";
   const peakDay = isToday
     ? todayData.peakDay
     : bars.reduce((a, b) => (b.value > a.value ? b : a), bars[0] ?? { label: "—", value: 0 });

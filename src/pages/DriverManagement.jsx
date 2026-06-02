@@ -103,15 +103,21 @@ function AssignJobModal({ driver, bookings, onAssign, onClose }) {
 function AddDriverModal({ onClose, onAdd }) {
   const [form, setForm] = useState({ name: "", phone: "", vehicle: "", plate: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.name.trim()) return;
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 500));
-    onAdd(form);
-    setSubmitting(false);
+    setSubmitError(null);
+    try {
+      await onAdd(form);
+    } catch (err) {
+      setSubmitError(err?.message ?? "Failed to add driver");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const fields = [
@@ -155,6 +161,11 @@ function AddDriverModal({ onClose, onAdd }) {
             </div>
           ))}
 
+          {submitError && (
+            <p className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-xs text-red-300">
+              {submitError}
+            </p>
+          )}
           <div className="flex gap-3 pt-2">
             <button
               type="button"
@@ -320,7 +331,7 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus }) {
 export default function DriverManagement() {
   const navigate = useNavigate();
   const toast = useToast();
-  const { drivers, updateStatus } = useDrivers();
+  const { drivers, updateStatus, createDriver } = useDrivers();
   const { bookings, assignDriver } = useBookings();
   const [assignModal, setAssignModal] = useState(null);
   const [addModal, setAddModal] = useState(false);
@@ -354,7 +365,8 @@ export default function DriverManagement() {
     }
   };
 
-  const handleAddDriver = (form) => {
+  const handleAddDriver = async (form) => {
+    await createDriver(form); // throws on error — AddDriverModal catches and surfaces it
     toast({ message: `${form.name} added to the fleet`, type: "success" });
     setAddModal(false);
   };

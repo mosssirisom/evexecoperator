@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   X, Phone, Mail, Plane, MapPin, Clock, Car, PoundSterling,
-  User, AlertTriangle, FileText, ChevronDown, Check, Edit3,
+  User, AlertTriangle, FileText, ChevronDown, Check, Edit3, Loader2,
 } from "lucide-react";
 import { bookingStatusColor } from "../lib/statusColor";
 import ETACountdown from "./ETACountdown";
@@ -27,38 +27,89 @@ function Row({ icon: Icon, label, value, muted }) {
 
 function StatusPicker({ currentStatus, onUpdate }) {
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
-    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setConfirmCancel(false); } };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
+  const handleSelect = async (s) => {
+    if (s === currentStatus) return;
+    if (s === "Cancelled") { setConfirmCancel(true); return; }
+    setOpen(false);
+    setPending(s);
+    try { await onUpdate(s); } finally { setPending(null); }
+  };
+
+  const handleConfirmCancel = async () => {
+    setConfirmCancel(false);
+    setOpen(false);
+    setPending("Cancelled");
+    try { await onUpdate("Cancelled"); } finally { setPending(null); }
+  };
+
+  const isUpdating = pending !== null;
+
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen(!open)}
-        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition hover:opacity-80 ${bookingStatusColor(currentStatus)}`}
+        onClick={() => !isUpdating && setOpen(!open)}
+        disabled={isUpdating}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition hover:opacity-80 disabled:opacity-60 disabled:cursor-not-allowed ${bookingStatusColor(pending ?? currentStatus)}`}
       >
-        {currentStatus}
-        <ChevronDown className="h-3 w-3" />
+        {isUpdating ? (
+          <><Loader2 className="h-3 w-3 animate-spin" />Updating…</>
+        ) : (
+          <>{pending ?? currentStatus}<ChevronDown className="h-3 w-3" /></>
+        )}
       </button>
-      {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-60 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl">
-          {STATUSES.map((s) => (
-            <button
-              key={s}
-              onClick={() => { onUpdate(s); setOpen(false); }}
-              className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-white/5 ${
-                s === currentStatus ? "opacity-40 cursor-default" : "text-slate-300"
-              }`}
-              disabled={s === currentStatus}
-            >
-              {s === currentStatus && <Check className="h-3 w-3" />}
-              {s}
-            </button>
-          ))}
+      {open && !isUpdating && (
+        <div
+          role="listbox"
+          aria-label="Change booking status"
+          className="absolute left-0 top-full z-50 mt-1 w-60 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl"
+        >
+          {confirmCancel ? (
+            <div className="px-4 py-3 space-y-2">
+              <p className="text-xs text-slate-300">Cancel this booking?</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleConfirmCancel}
+                  className="flex-1 rounded-xl bg-red-500/20 border border-red-500/30 px-3 py-1.5 text-xs text-red-300 transition hover:bg-red-500/30"
+                >
+                  Yes, Cancel
+                </button>
+                <button
+                  onClick={() => setConfirmCancel(false)}
+                  className="flex-1 rounded-xl border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition hover:text-white"
+                >
+                  Keep Job
+                </button>
+              </div>
+            </div>
+          ) : (
+            STATUSES.map((s) => (
+              <button
+                key={s}
+                role="option"
+                aria-selected={s === currentStatus}
+                onClick={() => handleSelect(s)}
+                className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-white/5 ${
+                  s === currentStatus ? "opacity-40 cursor-default" : "text-slate-300"
+                }`}
+                disabled={s === currentStatus}
+              >
+                {s === currentStatus && <Check className="h-3 w-3" />}
+                {s}
+              </button>
+            ))
+          )}
         </div>
       )}
     </div>
@@ -67,6 +118,7 @@ function StatusPicker({ currentStatus, onUpdate }) {
 
 function DriverPicker({ currentDriverId, drivers, onAssign }) {
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
   const ref = useRef(null);
   const current = drivers.find((d) => d.id === currentDriverId);
 
@@ -76,20 +128,37 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
+  const handleAssign = async (dId) => {
+    setOpen(false);
+    setPending(true);
+    try { await onAssign(dId); } finally { setPending(false); }
+  };
+
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-xs text-slate-300 transition hover:border-amber-400/20 hover:text-amber-300"
+        onClick={() => !pending && setOpen(!open)}
+        disabled={pending}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-xs text-slate-300 transition hover:border-amber-400/20 hover:text-amber-300 disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        <Car className="h-3 w-3" />
-        {current?.name ?? "Unassigned"}
-        <ChevronDown className="h-3 w-3" />
+        {pending ? (
+          <><Loader2 className="h-3 w-3 animate-spin" />Assigning…</>
+        ) : (
+          <><Car className="h-3 w-3" />{current?.name ?? "Unassigned"}<ChevronDown className="h-3 w-3" /></>
+        )}
       </button>
-      {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl">
+      {open && !pending && (
+        <div
+          role="listbox"
+          aria-label="Assign driver"
+          className="absolute left-0 top-full z-50 mt-1 w-52 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl"
+        >
           <button
-            onClick={() => { onAssign(null); setOpen(false); }}
+            role="option"
+            aria-selected={currentDriverId == null}
+            onClick={() => handleAssign(null)}
             className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs text-slate-500 transition hover:bg-white/5"
           >
             Unassigned
@@ -97,7 +166,9 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
           {drivers.map((d) => (
             <button
               key={d.id}
-              onClick={() => { onAssign(d.id); setOpen(false); }}
+              role="option"
+              aria-selected={d.id === currentDriverId}
+              onClick={() => handleAssign(d.id)}
               className={`flex w-full items-center justify-between px-4 py-2.5 text-xs transition hover:bg-white/5 ${
                 d.id === currentDriverId ? "text-amber-300" : "text-slate-300"
               }`}
