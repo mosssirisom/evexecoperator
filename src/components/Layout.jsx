@@ -20,8 +20,8 @@ function NotificationPopover({ calls, onClose, onNavigate }) {
 
   useEffect(() => {
     const h = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    document.addEventListener("pointerdown", h);
+    return () => document.removeEventListener("pointerdown", h);
   }, [onClose]);
 
   return (

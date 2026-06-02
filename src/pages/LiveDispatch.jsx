@@ -76,9 +76,13 @@ function BookingCard({ booking, onSelect, onStatusUpdate }) {
   const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
 
   return (
-    <button
+    // Outer div — not a <button> so it can legally contain the StatusActionMenu button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(booking)}
-      className={`w-full rounded-2xl border p-4 text-left transition ${
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(booking); } }}
+      className={`w-full cursor-pointer rounded-2xl border p-4 text-left transition ${
         booking.priority
           ? "border-red-500/20 bg-red-500/[0.04]"
           : isActive
@@ -101,17 +105,18 @@ function BookingCard({ booking, onSelect, onStatusUpdate }) {
           {booking.pickupTime && <ETACountdown pickupTime={booking.pickupTime} className="mt-0.5" />}
         </div>
       </div>
-      <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/5 pt-3">
+      <div
+        className="mt-3 flex items-center justify-between gap-2 border-t border-white/5 pt-3"
+        onClick={(e) => e.stopPropagation()}
+      >
         <p className="text-xs text-slate-400">{booking.driver}</p>
-        <div onClick={(e) => e.stopPropagation()}>
-          <StatusActionMenu
-            bookingId={booking.id}
-            currentStatus={booking.status}
-            onUpdate={onStatusUpdate}
-          />
-        </div>
+        <StatusActionMenu
+          bookingId={booking.id}
+          currentStatus={booking.status}
+          onUpdate={onStatusUpdate}
+        />
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -517,22 +522,23 @@ export default function LiveDispatch() {
                   {debouncedSearch ? `No transfers match "${debouncedSearch}"` : "No transfers match this filter."}
                 </p>
               )}
-              {/* Pagination: load more when more records exist beyond the first page */}
-              {totalCount > transfers.length && !debouncedSearch && activeFilter === "All" && (
-                <div className="mt-4 flex items-center justify-center gap-4 border-t border-white/5 pt-4">
-                  <p className="text-xs text-slate-600">
-                    Showing {transfers.length} of {totalCount} bookings
-                  </p>
-                  <button
-                    onClick={loadMore}
-                    disabled={loadingMore}
-                    className="rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-400 transition hover:border-amber-400/20 hover:text-amber-300 disabled:opacity-50"
-                  >
-                    {loadingMore ? "Loading…" : "Load more"}
-                  </button>
-                </div>
-              )}
             </div>
+
+            {/* Load more — shown on both mobile and desktop when more pages exist */}
+            {totalCount > transfers.length && !debouncedSearch && activeFilter === "All" && (
+              <div className="mt-4 flex items-center justify-center gap-4 border-t border-white/5 pt-4">
+                <p className="text-xs text-slate-600">
+                  Showing {transfers.length} of {totalCount} bookings
+                </p>
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-400 transition hover:border-amber-400/20 hover:text-amber-300 disabled:opacity-50"
+                >
+                  {loadingMore ? "Loading…" : "Load more"}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase, isConfigured } from "../lib/supabase";
-import { transfers as mockTransfers } from "../data/mockData";
 import { useRealtimeBookings } from "./useRealtimeBookings";
 import { dispatchJobToDriverApp, updateJobStatus } from "../lib/driverApp";
 import {
@@ -51,8 +50,8 @@ export function shapedBooking(row) {
 const PAGE_SIZE = 100;
 
 export function useBookings() {
-  const [bookings, setBookings] = useState(mockTransfers);
-  const [totalCount, setTotalCount] = useState(mockTransfers.length);
+  const [bookings, setBookings] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
@@ -189,33 +188,7 @@ export function useBookings() {
           ? new Date(`${form.date}T${form.time}`).toISOString()
           : null;
 
-      if (!isConfigured) {
-        const ref = generateBookingRef();
-        setBookings((prev) => [
-          ...prev,
-          {
-            id: ref,
-            customer: form.customer,
-            flight: form.flight || "—",
-            route: `${form.airport} → ${dest}`,
-            time: form.time,
-            driver: "Unassigned",
-            price: form.price ? `£${form.price}` : "TBC",
-            status: "Dispatched",
-            priority: false,
-            updatedAt: null,
-          },
-        ]);
-        dispatchJobToDriverApp({
-          bookingRef: ref,
-          customer: form.customer,
-          route: `${form.airport} → ${dest}`,
-          flight: form.flight,
-          pickupTime: form.time,
-          price: form.price ? `£${form.price}` : "TBC",
-        }).catch(() => {});
-        return { ref };
-      }
+      if (!isConfigured) throw new Error("Database not configured. Please add Supabase credentials.");
 
       const { data: driverRow } = form.driver
         ? await supabase

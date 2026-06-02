@@ -33,8 +33,8 @@ function StatusPicker({ currentStatus, onUpdate }) {
 
   useEffect(() => {
     const h = (e) => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setConfirmCancel(false); } };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    document.addEventListener("pointerdown", h);
+    return () => document.removeEventListener("pointerdown", h);
   }, []);
 
   const handleSelect = async (s) => {
@@ -124,8 +124,8 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
 
   useEffect(() => {
     const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    document.addEventListener("pointerdown", h);
+    return () => document.removeEventListener("pointerdown", h);
   }, []);
 
   const handleAssign = async (dId) => {
@@ -208,8 +208,8 @@ export default function BookingDetailDrawer({
     const h = (e) => {
       if (drawerRef.current && !drawerRef.current.contains(e.target)) onClose?.();
     };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    document.addEventListener("pointerdown", h);
+    return () => document.removeEventListener("pointerdown", h);
   }, [onClose]);
 
   // Close on Escape

@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase, isConfigured } from "../lib/supabase";
-import { missedCalls as mockCalls } from "../data/mockData";
 
 function shapedCall(row) {
   return {
@@ -17,7 +16,7 @@ function shapedCall(row) {
 }
 
 export function useMissedCalls() {
-  const [calls, setCalls] = useState(mockCalls);
+  const [calls, setCalls] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 

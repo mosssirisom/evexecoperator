@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase, isConfigured } from "../lib/supabase";
-import { drivers as mockDrivers } from "../data/mockData";
 import { useRealtimeDrivers } from "./useRealtimeBookings";
 
 const PHONE_RE = /^[+\d][\d\s\-().]{4,}$/;
@@ -20,7 +19,7 @@ function shapedDriver(row) {
 }
 
 export function useDrivers() {
-  const [drivers, setDrivers] = useState(mockDrivers);
+  const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -46,10 +45,7 @@ export function useDrivers() {
   useRealtimeDrivers(fetchDrivers);
 
   const updateStatus = useCallback(async (id, status) => {
-    if (!isConfigured) {
-      setDrivers((prev) => prev.map((d) => (d.id === id ? { ...d, status } : d)));
-      return;
-    }
+    if (!isConfigured) throw new Error("Database not configured.");
     const { error: err } = await supabase
       .from("drivers")
       .update({ status })
@@ -69,14 +65,7 @@ export function useDrivers() {
     if (phone && !PHONE_RE.test(phone)) throw new Error("Please enter a valid phone number.");
     if (plate && plate.length > 20) throw new Error("Plate number must be 20 characters or fewer.");
 
-    if (!isConfigured) {
-      // Mock path: add locally
-      setDrivers((prev) => [
-        ...prev,
-        { id: `mock-${Date.now()}`, name, phone: phone ?? "—", vehicle: vehicle ?? "—", plate: plate ?? "—", status: "Available", job: "No active job", completedToday: 0, rating: 5.0 },
-      ]);
-      return;
-    }
+    if (!isConfigured) throw new Error("Database not configured.");
 
     const { error: err } = await supabase.from("drivers").insert({
       name,
