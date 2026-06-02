@@ -162,21 +162,35 @@ export default function BookingDetailDrawer({
 
   const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
 
+  // Sanitise phone before use in href attributes — reject anything that isn't
+  // a recognisable phone string to prevent javascript: injection.
+  const rawPhone = booking.phone?.trim() ?? "";
+  const phoneHref = rawPhone && /^[+\d][\d\s\-().]{4,}$/.test(rawPhone)
+    ? `tel:${rawPhone.replace(/\s/g, "")}`
+    : null;
+  const waDigits = rawPhone.replace(/\D/g, "");
+  const waHref = waDigits.length >= 7 && waDigits.length <= 15
+    ? `https://wa.me/${waDigits}`
+    : null;
+
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" />
+      <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" aria-hidden="true" />
 
       {/* Drawer */}
       <div
         ref={drawerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="drawer-booking-title"
         className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-white/5 bg-[#070D1F] shadow-2xl"
       >
         {/* Header */}
         <div className="flex items-start justify-between border-b border-white/5 px-6 py-5">
           <div>
             <p className="font-mono text-xs text-slate-500">{booking.id}</p>
-            <h2 className="mt-1 text-xl font-semibold text-white">{booking.customer}</h2>
+            <h2 id="drawer-booking-title" className="mt-1 text-xl font-semibold text-white">{booking.customer}</h2>
             <div className="mt-2 flex items-center gap-2">
               {booking.priority && (
                 <span className="rounded-full border border-red-400/30 bg-red-400/10 px-2 py-0.5 text-[10px] font-medium text-red-300">
@@ -221,20 +235,24 @@ export default function BookingDetailDrawer({
                     <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Phone</p>
                     <div className="flex items-center gap-2">
                       <p className="mt-0.5 text-sm text-white">{booking.phone}</p>
-                      <a
-                        href={`tel:${booking.phone}`}
-                        className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] text-emerald-300 transition hover:bg-emerald-400/20"
-                      >
-                        Call
-                      </a>
-                      <a
-                        href={`https://wa.me/${booking.phone.replace(/\D/g, "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] text-emerald-300 transition hover:bg-emerald-400/20"
-                      >
-                        WhatsApp
-                      </a>
+                      {phoneHref && (
+                        <a
+                          href={phoneHref}
+                          className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] text-emerald-300 transition hover:bg-emerald-400/20"
+                        >
+                          Call
+                        </a>
+                      )}
+                      {waHref && (
+                        <a
+                          href={waHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] text-emerald-300 transition hover:bg-emerald-400/20"
+                        >
+                          WhatsApp
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>

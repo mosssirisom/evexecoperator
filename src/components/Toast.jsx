@@ -30,10 +30,15 @@ export function ToastProvider({ children }) {
     <ToastContext.Provider value={toast}>
       {children}
       {/*
+        aria-live="polite" announces toasts to screen readers without interrupting.
         bottom-20 on mobile clears the fixed bottom nav bar (h-16 ≈ 64px + 16px gap).
-        On sm+ there's no bottom nav so 6 is fine.
       */}
-      <div className="fixed bottom-20 right-4 z-[200] flex flex-col gap-2 sm:bottom-6 sm:right-6">
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="false"
+        className="fixed bottom-20 right-4 z-[200] flex flex-col gap-2 sm:bottom-6 sm:right-6"
+      >
         {toasts.map((t) => (
           <div
             key={t.id}
@@ -43,6 +48,7 @@ export function ToastProvider({ children }) {
             <span className="flex-1 text-sm text-white">{t.message}</span>
             <button
               onClick={() => dismiss(t.id)}
+              aria-label="Dismiss notification"
               className="ml-1 flex-shrink-0 text-slate-500 transition hover:text-slate-300"
             >
               <X className="h-3.5 w-3.5" />

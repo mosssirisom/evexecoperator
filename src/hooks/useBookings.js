@@ -53,79 +53,102 @@ export function useBookings() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Stable ref to current bookings — avoids stale closures in updateStatus
-  // without adding `bookings` to the useCallback dependency array.
+  // Stable ref to current bookings — avoids stale closures in callbacks
+  // without adding `bookings` to useCallback dependency arrays.
   const bookingsRef = useRef(bookings);
   useEffect(() => {
     bookingsRef.current = bookings;
   }, [bookings]);
 
+  // Counter guard: only the last in-flight fetch applies its result to state,
+  // preventing a slow earlier response from overwriting a faster later one.
+  const fetchIdRef = useRef(0);
+
   const fetchBookings = useCallback(async () => {
     if (!isConfigured) return;
+    const myId = ++fetchIdRef.current;
     setLoading(true);
     try {
       const { data, error: err } = await supabase
         .from("bookings")
         .select("*, drivers(name)")
         .order("pickup_time", { ascending: true });
+      if (fetchIdRef.current !== myId) return; // stale — a newer fetch is in flight
       if (err) { setError(err.message); return; }
       setBookings(data.map(shapedBooking));
+      setError(null);
     } finally {
-      setLoading(false);
+      if (fetchIdRef.current === myId) setLoading(false);
     }
   }, []);
 
+  // Initial load
   useEffect(() => {
     fetchBookings();
   }, [fetchBookings]);
 
+  // Realtime subscription (with reconnect logic in useRealtimeBookings)
   useRealtimeBookings(fetchBookings);
+
+  // Auto-refresh when tab regains focus — catches changes missed while away
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fetchBookings();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [fetchBookings]);
+
+  // 60-second polling fallback: keeps data fresh if realtime silently dies
+  useEffect(() => {
+    if (!isConfigured) return;
+    const id = setInterval(fetchBookings, 60_000);
+    return () => clearInterval(id);
+  }, [fetchBookings]);
 
   // ─── updateStatus ──────────────────────────────────────────────────────────
 
   const updateStatus = useCallback(async (id, status) => {
-    // 1. Reject unknown status values immediately
     if (!BOOKING_STATUSES.includes(status)) {
       throw new ValidationError(`"${status}" is not a valid booking status`);
     }
 
-    // 2. Enforce state machine transition rules
     const current = bookingsRef.current.find((b) => b.id === id);
     if (current) {
       validateStatusTransition(current.status, status);
     }
 
-    // 3. Mock path (no Supabase configured)
+    // Optimistic update — snapshot for rollback
+    const snapshot = bookingsRef.current;
+    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)));
+
     if (!isConfigured) {
-      setBookings((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, status } : b))
-      );
       updateJobStatus(id, status).catch((err) => {
         console.warn("[DriverApp] Status sync failed (mock):", err.message);
       });
       return;
     }
 
-    // 4. Persist to Supabase — surface any DB-level errors (including trigger
-    //    violations from the status-transition constraint)
-    const { error: err } = await supabase
-      .from("bookings")
-      .update({ status })
-      .eq("ref", id);
-    if (err) throw new Error(err.message);
+    try {
+      const { error: err } = await supabase
+        .from("bookings")
+        .update({ status })
+        .eq("ref", id);
+      if (err) throw new Error(err.message);
 
-    // 5. Notify driver app non-blocking — failure does not roll back the
-    //    booking update; the operator UI already reflects the new status.
-    updateJobStatus(id, status).catch((err) => {
-      console.warn("[DriverApp] Status sync failed:", err.message);
-    });
+      updateJobStatus(id, status).catch((err) => {
+        console.warn("[DriverApp] Status sync failed:", err.message);
+      });
+    } catch (err) {
+      setBookings(snapshot); // roll back on failure
+      throw err;
+    }
   }, []);
 
   // ─── createBooking ─────────────────────────────────────────────────────────
 
   const createBooking = useCallback(
     async (form) => {
-      // Validate before any DB round-trip (defence-in-depth)
       validateBookingPayload(form);
 
       const dest =
@@ -138,7 +161,6 @@ export function useBookings() {
           ? new Date(`${form.date}T${form.time}`).toISOString()
           : null;
 
-      // ── Mock path ───────────────────────────────────────────────────────────
       if (!isConfigured) {
         const ref = generateBookingRef();
         setBookings((prev) => [
@@ -167,7 +189,6 @@ export function useBookings() {
         return { ref };
       }
 
-      // ── Real Supabase path ──────────────────────────────────────────────────
       const { data: driverRow } = form.driver
         ? await supabase
             .from("drivers")
@@ -176,8 +197,7 @@ export function useBookings() {
             .single()
         : { data: null };
 
-      // Retry up to 3 times on unique-key collision (astronomically rare but
-      // possible under concurrent high-volume inserts).
+      // Retry up to 3 times on unique-key collision
       let ref;
       let succeeded = false;
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -217,6 +237,7 @@ export function useBookings() {
         driver: driverRow?.name ?? null,
       }).catch(() => {});
 
+      // Fetch after create so the new booking appears with its server-assigned fields
       await fetchBookings();
       return { ref };
     },
@@ -226,55 +247,71 @@ export function useBookings() {
   // ─── assignDriver ──────────────────────────────────────────────────────────
 
   const assignDriver = useCallback(async (id, driverId) => {
-    if (!isConfigured) {
-      setBookings((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, driverId: driverId || null } : b))
-      );
-      return;
+    const snapshot = bookingsRef.current;
+    setBookings((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, driverId: driverId || null } : b))
+    );
+
+    if (!isConfigured) return;
+
+    try {
+      const { error: err } = await supabase
+        .from("bookings")
+        .update({ driver_id: driverId || null })
+        .eq("ref", id);
+      if (err) throw new Error(err.message);
+    } catch (err) {
+      setBookings(snapshot);
+      throw err;
     }
-    const { error: err } = await supabase
-      .from("bookings")
-      .update({ driver_id: driverId || null })
-      .eq("ref", id);
-    if (err) throw new Error(err.message);
-    await fetchBookings();
-  }, [fetchBookings]);
+  }, []);
 
   // ─── updateNotes ───────────────────────────────────────────────────────────
 
   const updateNotes = useCallback(async (id, notes) => {
-    if (!isConfigured) {
-      setBookings((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, notes: notes ?? "" } : b))
-      );
-      return;
+    const snapshot = bookingsRef.current;
+    setBookings((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, notes: notes ?? "" } : b))
+    );
+
+    if (!isConfigured) return;
+
+    try {
+      const { error: err } = await supabase
+        .from("bookings")
+        .update({ notes: notes?.trim() || null })
+        .eq("ref", id);
+      if (err) throw new Error(err.message);
+    } catch (err) {
+      setBookings(snapshot);
+      throw err;
     }
-    const { error: err } = await supabase
-      .from("bookings")
-      .update({ notes: notes?.trim() || null })
-      .eq("ref", id);
-    if (err) throw new Error(err.message);
-    await fetchBookings();
-  }, [fetchBookings]);
+  }, []);
 
   // ─── togglePriority ────────────────────────────────────────────────────────
 
   const togglePriority = useCallback(async (id) => {
     const current = bookingsRef.current.find((b) => b.id === id);
     const newPriority = !current?.priority;
-    if (!isConfigured) {
-      setBookings((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, priority: newPriority } : b))
-      );
-      return;
+
+    const snapshot = bookingsRef.current;
+    setBookings((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, priority: newPriority } : b))
+    );
+
+    if (!isConfigured) return;
+
+    try {
+      const { error: err } = await supabase
+        .from("bookings")
+        .update({ priority: newPriority })
+        .eq("ref", id);
+      if (err) throw new Error(err.message);
+    } catch (err) {
+      setBookings(snapshot);
+      throw err;
     }
-    const { error: err } = await supabase
-      .from("bookings")
-      .update({ priority: newPriority })
-      .eq("ref", id);
-    if (err) throw new Error(err.message);
-    await fetchBookings();
-  }, [fetchBookings]);
+  }, []);
 
   return { bookings, loading, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, refetch: fetchBookings };
 }

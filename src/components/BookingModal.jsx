@@ -99,6 +99,7 @@ export default function BookingModal({ open, onClose, onSubmit }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const closeTimerRef = useRef(null);
+  const dialogRef = useRef(null);
 
   useEffect(() => {
     if (!open) {
@@ -108,6 +109,14 @@ export default function BookingModal({ open, onClose, onSubmit }) {
       setSubmitted(false);
       setSubmitting(false);
       setSubmitError(null);
+    } else {
+      // Focus first focusable element when modal opens
+      setTimeout(() => {
+        const first = dialogRef.current?.querySelector(
+          'button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        first?.focus();
+      }, 0);
     }
   }, [open]);
 
@@ -117,11 +126,28 @@ export default function BookingModal({ open, onClose, onSubmit }) {
 
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === "Escape" && !submitting) onClose();
+      if (!open) return;
+      if (e.key === "Escape" && !submitting) { onClose(); return; }
+      // Focus trap: cycle Tab within the dialog
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = Array.from(
+          dialogRef.current.querySelectorAll(
+            'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+        } else {
+          if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose, submitting]);
+  }, [open, onClose, submitting]);
 
   const set = useCallback(
     (field) => (value) => setForm((f) => ({ ...f, [field]: value })),
@@ -176,17 +202,24 @@ export default function BookingModal({ open, onClose, onSubmit }) {
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#0B132B] shadow-2xl">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="booking-modal-title"
+        className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#0B132B] shadow-2xl"
+      >
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/5 bg-[#0B132B] px-4 py-4 sm:px-8 sm:py-6">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-amber-400">
               New Booking
             </p>
-            <h2 className="mt-1 text-2xl font-semibold text-white">
+            <h2 id="booking-modal-title" className="mt-1 text-2xl font-semibold text-white">
               Create Transfer
             </h2>
           </div>

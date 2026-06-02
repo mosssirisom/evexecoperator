@@ -72,6 +72,11 @@ export default function Layout() {
   const { calls } = useMissedCalls();
   const alertCount = calls.length;
 
+  // Keep browser tab title in sync with the active page
+  useEffect(() => {
+    document.title = `${meta.title} — EV Exec`;
+  }, [meta.title]);
+
   return (
     <div className="min-h-screen bg-[#0B132B] text-white">
       <Sidebar />

@@ -1,5 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+
+// Delays filtering until the user stops typing, avoiding expensive re-renders on each keystroke
+function useDebounce(value, delay) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
 import BookingModal from "../components/BookingModal";
 import StatusActionMenu from "../components/StatusActionMenu";
 import DispatchButton from "../components/DispatchButton";
@@ -129,10 +139,25 @@ export default function LiveDispatch() {
   } = useBookings();
   const { drivers } = useDrivers();
 
+  const debouncedSearch = useDebounce(search, 200);
+
   // Sync the view state if the URL param changes (e.g. navigating from DriverManagement)
   useEffect(() => {
     if (searchParams.get("view") === "schedule") setView("schedule");
   }, [searchParams]);
+
+  // "N" keyboard shortcut opens the new booking modal
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key !== "n" || modalOpen || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      e.preventDefault();
+      setModalOpen(true);
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [modalOpen]);
 
   const handleStatusUpdate = useCallback(async (id, status) => {
     try {
@@ -184,8 +209,8 @@ export default function LiveDispatch() {
   const filtered = useMemo(() => {
     let list = transfers;
     if (activeFilter !== "All") list = list.filter((t) => t.status === activeFilter);
-    if (search.trim()) {
-      const q = search.toLowerCase();
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase();
       list = list.filter(
         (t) =>
           t.customer.toLowerCase().includes(q) ||
@@ -196,7 +221,7 @@ export default function LiveDispatch() {
       );
     }
     return list;
-  }, [transfers, activeFilter, search]);
+  }, [transfers, activeFilter, debouncedSearch]);
 
   const schedule = useMemo(() => {
     const today = new Date();
@@ -302,6 +327,7 @@ export default function LiveDispatch() {
           </div>
           <button
             onClick={() => setModalOpen(true)}
+            title="New Booking (N)"
             className="rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
           >
             + New Booking
@@ -402,7 +428,7 @@ export default function LiveDispatch() {
                   ))}
               {!loading && filtered.length === 0 && (
                 <p className="py-8 text-center text-sm text-slate-600">
-                  {search ? `No transfers match "${search}"` : "No transfers match this filter."}
+                  {debouncedSearch ? `No transfers match "${debouncedSearch}"` : "No transfers match this filter."}
                 </p>
               )}
             </div>
@@ -485,7 +511,7 @@ export default function LiveDispatch() {
               </table>
               {!loading && filtered.length === 0 && (
                 <p className="py-10 text-center text-sm text-slate-600">
-                  {search ? `No transfers match "${search}"` : "No transfers match this filter."}
+                  {debouncedSearch ? `No transfers match "${debouncedSearch}"` : "No transfers match this filter."}
                 </p>
               )}
             </div>

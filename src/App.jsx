@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Dashboard from "./pages/Dashboard";
 import LiveDispatch from "./pages/LiveDispatch";
 import DriverManagement from "./pages/DriverManagement";
@@ -13,12 +14,12 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="dispatch" element={<LiveDispatch />} />
-          <Route path="drivers" element={<DriverManagement />} />
-          <Route path="bookings" element={<AutomatedBookings />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="settings" element={<Settings />} />
+          <Route index element={<ErrorBoundary key="dashboard"><Dashboard /></ErrorBoundary>} />
+          <Route path="dispatch" element={<ErrorBoundary key="dispatch"><LiveDispatch /></ErrorBoundary>} />
+          <Route path="drivers" element={<ErrorBoundary key="drivers"><DriverManagement /></ErrorBoundary>} />
+          <Route path="bookings" element={<ErrorBoundary key="bookings"><AutomatedBookings /></ErrorBoundary>} />
+          <Route path="analytics" element={<ErrorBoundary key="analytics"><Analytics /></ErrorBoundary>} />
+          <Route path="settings" element={<ErrorBoundary key="settings"><Settings /></ErrorBoundary>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
