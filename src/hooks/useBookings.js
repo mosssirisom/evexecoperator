@@ -74,7 +74,7 @@ export function useBookings() {
     try {
       const { data, count, error: err } = await supabase
         .from("bookings")
-        .select("*, drivers(name)", { count: "exact" })
+        .select("*, drivers!driver_id(name)", { count: "exact" })
         .order("pickup_time", { ascending: true })
         .range(0, PAGE_SIZE - 1);
       if (fetchIdRef.current !== myId) return; // stale — a newer fetch is in flight
@@ -96,7 +96,7 @@ export function useBookings() {
     try {
       const { data, error: err } = await supabase
         .from("bookings")
-        .select("*, drivers(name)")
+        .select("*, drivers!driver_id(name)")
         .order("pickup_time", { ascending: true })
         .range(from, from + PAGE_SIZE - 1);
       if (err) throw new Error(err.message);
