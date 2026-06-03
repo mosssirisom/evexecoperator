@@ -61,16 +61,16 @@ function PortalQuickLinks() {
 
 function MetricCard({ title, value, sub, icon: Icon }) {
   return (
-    <div className="card p-5 sm:p-6">
-      <div className="mb-5 flex items-center justify-between">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/5 bg-white/[0.03] sm:h-12 sm:w-12">
-          <Icon className="h-5 w-5 text-amber-400" />
+    <div className="card p-4 sm:p-6">
+      <div className="mb-3 flex items-center justify-between sm:mb-5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/5 bg-white/[0.03] sm:h-12 sm:w-12">
+          <Icon className="h-4 w-4 text-amber-400 sm:h-5 sm:w-5" />
         </div>
-        <span className="text-[10px] uppercase tracking-[0.25em] text-slate-500">Live</span>
+        <span className="text-[9px] uppercase tracking-[0.2em] text-slate-500 sm:text-[10px] sm:tracking-[0.25em]">Live</span>
       </div>
-      <p className="text-sm text-slate-400">{title}</p>
-      <h3 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">{value}</h3>
-      <p className="mt-3 text-sm text-slate-500">{sub}</p>
+      <p className="text-xs text-slate-400 sm:text-sm">{title}</p>
+      <h3 className="mt-1.5 text-2xl font-semibold tracking-tight text-white sm:mt-2 sm:text-4xl">{value}</h3>
+      <p className="mt-2 text-xs text-slate-500 sm:mt-3 sm:text-sm">{sub}</p>
     </div>
   );
 }
@@ -100,7 +100,7 @@ function UpcomingPickups({ bookings, onNavigate }) {
         </div>
         <button
           onClick={onNavigate}
-          className="text-xs text-slate-500 transition hover:text-amber-300"
+          className="min-h-[36px] px-2 text-xs text-slate-500 transition hover:text-amber-300"
         >
           View all →
         </button>
@@ -110,7 +110,7 @@ function UpcomingPickups({ bookings, onNavigate }) {
           <button
             key={b.id}
             onClick={onNavigate}
-            className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-3 text-left transition hover:border-amber-400/20 hover:bg-amber-400/[0.03]"
+            className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left transition hover:border-amber-400/20 hover:bg-amber-400/[0.03]"
           >
             <div className="w-12 flex-shrink-0 text-center">
               <p className="text-sm font-semibold text-white">{b.time}</p>
@@ -331,7 +331,7 @@ export default function Dashboard() {
   return (
     <>
       <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreateBooking} />
-      <div className="grid gap-5 p-4 sm:gap-6 sm:p-6 lg:p-10">
+      <div className="grid gap-4 p-4 sm:gap-6 sm:p-6 lg:p-10">
         {bookingsError && (
           <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
             Failed to load bookings: {bookingsError}

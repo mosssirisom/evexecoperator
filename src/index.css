@@ -35,6 +35,20 @@ body {
   -webkit-backdrop-filter: blur(16px);
 }
 
+/* Prevent double-tap zoom and grey flash on all interactive elements */
+button,
+a,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
 }

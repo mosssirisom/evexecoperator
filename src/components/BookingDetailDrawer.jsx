@@ -73,7 +73,7 @@ function StatusPicker({ currentStatus, onUpdate }) {
         <div
           role="listbox"
           aria-label="Change booking status"
-          className="absolute left-0 top-full z-50 mt-1 w-60 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl"
+          className="absolute left-0 top-full z-[60] mt-1 w-60 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl"
         >
           {confirmCancel ? (
             <div className="px-4 py-3 space-y-2">
@@ -81,13 +81,13 @@ function StatusPicker({ currentStatus, onUpdate }) {
               <div className="flex gap-2">
                 <button
                   onClick={handleConfirmCancel}
-                  className="flex-1 rounded-xl bg-red-500/20 border border-red-500/30 px-3 py-1.5 text-xs text-red-300 transition hover:bg-red-500/30"
+                  className="flex-1 rounded-xl bg-red-500/20 border border-red-500/30 px-3 py-2 text-xs text-red-300 transition hover:bg-red-500/30"
                 >
                   Yes, Cancel
                 </button>
                 <button
                   onClick={() => setConfirmCancel(false)}
-                  className="flex-1 rounded-xl border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition hover:text-white"
+                  className="flex-1 rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-400 transition hover:text-white"
                 >
                   Keep Job
                 </button>
@@ -100,7 +100,7 @@ function StatusPicker({ currentStatus, onUpdate }) {
                 role="option"
                 aria-selected={s === currentStatus}
                 onClick={() => handleSelect(s)}
-                className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-white/5 ${
+                className={`flex w-full items-center gap-2.5 px-4 py-3 text-xs transition hover:bg-white/5 ${
                   s === currentStatus ? "opacity-40 cursor-default" : "text-slate-300"
                 }`}
                 disabled={s === currentStatus}
@@ -153,13 +153,13 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
         <div
           role="listbox"
           aria-label="Assign driver"
-          className="absolute left-0 top-full z-50 mt-1 w-52 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl"
+          className="absolute left-0 top-full z-[60] mt-1 w-52 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl"
         >
           <button
             role="option"
             aria-selected={currentDriverId == null}
             onClick={() => handleAssign(null)}
-            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs text-slate-500 transition hover:bg-white/5"
+            className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-slate-500 transition hover:bg-white/5"
           >
             Unassigned
           </button>
@@ -169,7 +169,7 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
               role="option"
               aria-selected={d.id === currentDriverId}
               onClick={() => handleAssign(d.id)}
-              className={`flex w-full items-center justify-between px-4 py-2.5 text-xs transition hover:bg-white/5 ${
+              className={`flex w-full items-center justify-between px-4 py-3 text-xs transition hover:bg-white/5 ${
                 d.id === currentDriverId ? "text-amber-300" : "text-slate-300"
               }`}
             >
@@ -197,13 +197,12 @@ export default function BookingDetailDrawer({
   const [saving, setSaving] = useState(false);
   const drawerRef = useRef(null);
 
-  // Sync notes when booking changes
   useEffect(() => {
     setNotes(booking?.notes ?? "");
     setEditingNotes(false);
   }, [booking?.id, booking?.notes]);
 
-  // Close on outside click
+  // Close on outside click (pointerdown fires on touch too)
   useEffect(() => {
     const h = (e) => {
       if (drawerRef.current && !drawerRef.current.contains(e.target)) onClose?.();
@@ -233,8 +232,6 @@ export default function BookingDetailDrawer({
 
   const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
 
-  // Sanitise phone before use in href attributes — reject anything that isn't
-  // a recognisable phone string to prevent javascript: injection.
   const rawPhone = booking.phone?.trim() ?? "";
   const phoneHref = rawPhone && /^[+\d][\d\s\-().]{4,}$/.test(rawPhone)
     ? `tel:${rawPhone.replace(/\s/g, "")}`
@@ -247,22 +244,32 @@ export default function BookingDetailDrawer({
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" aria-hidden="true" />
+      <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
 
-      {/* Drawer */}
+      {/*
+        Mobile:  bottom sheet — slides up from bottom, rounded top corners
+        Desktop: right panel  — full-height side drawer
+      */}
       <div
         ref={drawerRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="drawer-booking-title"
-        className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-white/5 bg-[#070D1F] shadow-2xl"
+        className="fixed bottom-0 left-0 right-0 z-50 flex max-h-[92vh] flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#070D1F] shadow-2xl sm:bottom-auto sm:left-auto sm:right-0 sm:top-0 sm:h-full sm:max-h-none sm:w-full sm:max-w-md sm:rounded-none sm:border-l sm:border-r-0 sm:border-t-0"
       >
+        {/* Mobile drag handle */}
+        <div className="flex flex-shrink-0 justify-center pb-1 pt-3 sm:hidden">
+          <div className="h-1 w-12 rounded-full bg-white/20" />
+        </div>
+
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-white/5 px-6 py-5">
-          <div>
+        <div className="flex flex-shrink-0 items-start justify-between border-b border-white/5 px-5 py-4 sm:px-6 sm:py-5">
+          <div className="min-w-0 flex-1">
             <p className="font-mono text-xs text-slate-500">{booking.id}</p>
-            <h2 id="drawer-booking-title" className="mt-1 text-xl font-semibold text-white">{booking.customer}</h2>
-            <div className="mt-2 flex items-center gap-2">
+            <h2 id="drawer-booking-title" className="mt-1 truncate text-lg font-semibold text-white sm:text-xl">
+              {booking.customer}
+            </h2>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               {booking.priority && (
                 <span className="rounded-full border border-red-400/30 bg-red-400/10 px-2 py-0.5 text-[10px] font-medium text-red-300">
                   ⚡ Priority
@@ -276,7 +283,7 @@ export default function BookingDetailDrawer({
           </div>
           <button
             onClick={onClose}
-            className="rounded-xl p-2 text-slate-500 transition hover:bg-white/5 hover:text-white"
+            className="ml-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-white/10 text-slate-500 transition hover:bg-white/5 hover:text-white"
           >
             <X className="h-5 w-5" />
           </button>
@@ -284,7 +291,7 @@ export default function BookingDetailDrawer({
 
         {/* ETA banner for active jobs */}
         {isActive && booking.pickupTime && (
-          <div className="border-b border-white/5 bg-amber-400/[0.04] px-6 py-3">
+          <div className="flex-shrink-0 border-b border-white/5 bg-amber-400/[0.04] px-5 py-3 sm:px-6">
             <p className="text-xs text-slate-500">Pickup</p>
             <div className="flex items-baseline gap-3">
               <span className="text-lg font-semibold text-white">{booking.time}</span>
@@ -293,163 +300,167 @@ export default function BookingDetailDrawer({
           </div>
         )}
 
-        {/* Body */}
-        <div className="flex-1 space-y-6 px-6 py-6">
-          {/* Contact */}
-          <div>
-            <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-400">Contact</p>
-            <div className="space-y-3">
-              {booking.phone && (
-                <div className="flex items-center gap-3">
-                  <Phone className="h-4 w-4 flex-shrink-0 text-slate-600" />
-                  <div className="flex-1">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Phone</p>
-                    <div className="flex items-center gap-2">
-                      <p className="mt-0.5 text-sm text-white">{booking.phone}</p>
-                      {phoneHref && (
-                        <a
-                          href={phoneHref}
-                          className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] text-emerald-300 transition hover:bg-emerald-400/20"
-                        >
-                          Call
-                        </a>
-                      )}
-                      {waHref && (
-                        <a
-                          href={waHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] text-emerald-300 transition hover:bg-emerald-400/20"
-                        >
-                          WhatsApp
-                        </a>
-                      )}
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          <div className="space-y-6 px-5 py-5 sm:px-6">
+            {/* Contact */}
+            <div>
+              <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-400">Contact</p>
+              <div className="space-y-3">
+                {booking.phone && (
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-4 w-4 flex-shrink-0 text-slate-600" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Phone</p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                        <p className="text-sm text-white">{booking.phone}</p>
+                        {phoneHref && (
+                          <a
+                            href={phoneHref}
+                            className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] text-emerald-300 transition hover:bg-emerald-400/20"
+                          >
+                            Call
+                          </a>
+                        )}
+                        {waHref && (
+                          <a
+                            href={waHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] text-emerald-300 transition hover:bg-emerald-400/20"
+                          >
+                            WhatsApp
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-              {booking.email && (
-                <div className="flex items-center gap-3">
-                  <Mail className="h-4 w-4 flex-shrink-0 text-slate-600" />
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Email</p>
-                    <a
-                      href={`mailto:${booking.email}`}
-                      className="mt-0.5 text-sm text-blue-300 hover:underline"
+                )}
+                {booking.email && (
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-4 w-4 flex-shrink-0 text-slate-600" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Email</p>
+                      <a
+                        href={`mailto:${booking.email}`}
+                        className="mt-0.5 truncate text-sm text-blue-300 hover:underline"
+                      >
+                        {booking.email}
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Journey */}
+            <div>
+              <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-400">Journey</p>
+              <div className="space-y-3">
+                <Row icon={MapPin} label="Route" value={booking.route} />
+                <Row icon={Plane} label="Flight" value={booking.flight !== "—" ? booking.flight : null} />
+                <Row icon={Clock} label="Pickup time" value={
+                  booking.pickupTime
+                    ? new Date(booking.pickupTime).toLocaleString("en-GB", {
+                        weekday: "short", day: "numeric", month: "short",
+                        hour: "2-digit", minute: "2-digit",
+                      })
+                    : booking.time !== "—" ? booking.time : null
+                } />
+                <Row icon={PoundSterling} label="Price" value={booking.price} />
+              </div>
+            </div>
+
+            {/* Driver */}
+            <div>
+              <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-400">Driver</p>
+              <DriverPicker
+                currentDriverId={booking.driverId}
+                drivers={drivers}
+                onAssign={(dId) => onAssignDriver?.(booking.id, dId)}
+              />
+            </div>
+
+            {/* Notes */}
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-[10px] uppercase tracking-[0.28em] text-amber-400">Notes</p>
+                {!editingNotes && (
+                  <button
+                    onClick={() => setEditingNotes(true)}
+                    className="flex min-h-[36px] items-center gap-1 px-2 text-[10px] text-slate-500 transition hover:text-amber-300"
+                  >
+                    <Edit3 className="h-3 w-3" />
+                    Edit
+                  </button>
+                )}
+              </div>
+              {editingNotes ? (
+                <div>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={4}
+                    placeholder="Add notes…"
+                    className="w-full rounded-2xl border border-amber-400/20 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 resize-none"
+                    autoFocus
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      onClick={saveNotes}
+                      disabled={saving}
+                      className="min-h-[44px] rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-black transition hover:bg-amber-400 disabled:opacity-50"
                     >
-                      {booking.email}
-                    </a>
+                      {saving ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      onClick={() => { setNotes(booking.notes ?? ""); setEditingNotes(false); }}
+                      className="min-h-[44px] rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-400 transition hover:text-white"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
+              ) : (
+                <p className={`text-sm ${notes ? "text-slate-300" : "text-slate-600 italic"}`}>
+                  {notes || "No notes added"}
+                </p>
               )}
             </div>
-          </div>
 
-          {/* Journey */}
-          <div>
-            <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-400">Journey</p>
-            <div className="space-y-3">
-              <Row icon={MapPin} label="Route" value={booking.route} />
-              <Row icon={Plane} label="Flight" value={booking.flight !== "—" ? booking.flight : null} />
-              <Row icon={Clock} label="Pickup time" value={
-                booking.pickupTime
-                  ? new Date(booking.pickupTime).toLocaleString("en-GB", {
-                      weekday: "short", day: "numeric", month: "short",
-                      hour: "2-digit", minute: "2-digit",
-                    })
-                  : booking.time !== "—" ? booking.time : null
-              } />
-              <Row icon={PoundSterling} label="Price" value={booking.price} />
-            </div>
-          </div>
-
-          {/* Driver */}
-          <div>
-            <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-400">Driver</p>
-            <DriverPicker
-              currentDriverId={booking.driverId}
-              drivers={drivers}
-              onAssign={(dId) => onAssignDriver?.(booking.id, dId)}
-            />
-          </div>
-
-          {/* Notes */}
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-amber-400">Notes</p>
-              {!editingNotes && (
-                <button
-                  onClick={() => setEditingNotes(true)}
-                  className="flex items-center gap-1 text-[10px] text-slate-500 transition hover:text-amber-300"
-                >
-                  <Edit3 className="h-3 w-3" />
-                  Edit
-                </button>
+            {/* Meta */}
+            <div className="border-t border-white/5 pt-4 text-xs text-slate-600 space-y-1">
+              {booking.createdAt && (
+                <p>Created {new Date(booking.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+              )}
+              {booking.updatedAt && (
+                <p>Updated {new Date(booking.updatedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
               )}
             </div>
-            {editingNotes ? (
-              <div>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={4}
-                  placeholder="Add notes…"
-                  className="w-full rounded-2xl border border-amber-400/20 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 resize-none"
-                  autoFocus
-                />
-                <div className="mt-2 flex gap-2">
-                  <button
-                    onClick={saveNotes}
-                    disabled={saving}
-                    className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-black transition hover:bg-amber-400 disabled:opacity-50"
-                  >
-                    {saving ? "Saving…" : "Save"}
-                  </button>
-                  <button
-                    onClick={() => { setNotes(booking.notes ?? ""); setEditingNotes(false); }}
-                    className="rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-400 transition hover:text-white"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <p className={`text-sm ${notes ? "text-slate-300" : "text-slate-600 italic"}`}>
-                {notes || "No notes added"}
-              </p>
-            )}
-          </div>
-
-          {/* Meta */}
-          <div className="border-t border-white/5 pt-4 text-xs text-slate-600 space-y-1">
-            {booking.createdAt && (
-              <p>Created {new Date(booking.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
-            )}
-            {booking.updatedAt && (
-              <p>Updated {new Date(booking.updatedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
-            )}
           </div>
         </div>
 
         {/* Footer actions */}
-        <div className="border-t border-white/5 px-6 py-4 flex items-center justify-between">
-          <button
-            onClick={() => onTogglePriority?.(booking.id)}
-            className={`flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition ${
-              booking.priority
-                ? "border-red-400/30 bg-red-400/10 text-red-300 hover:bg-red-400/20"
-                : "border-white/10 text-slate-400 hover:border-amber-400/20 hover:text-amber-300"
-            }`}
-          >
-            <AlertTriangle className="h-4 w-4" />
-            {booking.priority ? "Remove Priority" : "Mark Priority"}
-          </button>
-          <button
-            onClick={onClose}
-            className="rounded-2xl border border-white/10 px-4 py-2.5 text-sm text-slate-400 transition hover:text-white"
-          >
-            Close
-          </button>
+        <div className="flex-shrink-0 border-t border-white/5 px-5 py-4 sm:px-6">
+          <div className="flex items-center justify-between gap-3">
+            <button
+              onClick={() => onTogglePriority?.(booking.id)}
+              className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition sm:flex-none sm:justify-start ${
+                booking.priority
+                  ? "border-red-400/30 bg-red-400/10 text-red-300 hover:bg-red-400/20"
+                  : "border-white/10 text-slate-400 hover:border-amber-400/20 hover:text-amber-300"
+              }`}
+            >
+              <AlertTriangle className="h-4 w-4" />
+              {booking.priority ? "Remove Priority" : "Mark Priority"}
+            </button>
+            <button
+              onClick={onClose}
+              className="min-h-[44px] rounded-2xl border border-white/10 px-5 py-2.5 text-sm text-slate-400 transition hover:text-white"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </>

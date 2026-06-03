@@ -91,7 +91,7 @@ export default function Sidebar() {
       </aside>
 
       {/* Mobile: fixed bottom tab bar */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-white/5 bg-[#050B17]/95 px-1 py-2 backdrop-blur-xl">
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-white/5 bg-[#050B17]/95 px-1 py-1 backdrop-blur-xl">
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
@@ -100,7 +100,7 @@ export default function Sidebar() {
               to={item.to}
               end={item.to === "/"}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-1 rounded-2xl px-3 py-2 transition-all ${
+                `flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 transition-all ${
                   isActive ? "text-amber-300" : "text-slate-500"
                 }`
               }

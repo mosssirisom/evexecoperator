@@ -197,7 +197,7 @@ export default function BookingModal({ open, onClose, onSubmit }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -205,16 +205,20 @@ export default function BookingModal({ open, onClose, onSubmit }) {
         aria-hidden="true"
       />
 
-      {/* Modal */}
+      {/* Modal — full-screen bottom sheet on mobile, centered dialog on desktop */}
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-modal-title"
-        className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#0B132B] shadow-2xl"
+        className="relative z-10 flex max-h-[96vh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#0B132B] shadow-2xl sm:max-w-2xl sm:rounded-3xl"
       >
+        {/* Mobile drag handle */}
+        <div className="flex flex-shrink-0 justify-center pb-1 pt-3 sm:hidden">
+          <div className="h-1 w-12 rounded-full bg-white/20" />
+        </div>
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/5 bg-[#0B132B] px-4 py-4 sm:px-8 sm:py-6">
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-white/5 bg-[#0B132B] px-4 py-4 sm:px-8 sm:py-6">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-amber-400">
               New Booking
@@ -231,6 +235,8 @@ export default function BookingModal({ open, onClose, onSubmit }) {
           </button>
         </div>
 
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
         {submitted ? (
           <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-400/10">
@@ -242,7 +248,7 @@ export default function BookingModal({ open, onClose, onSubmit }) {
             <p className="text-sm text-slate-400">Transfer added to dispatch board</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="grid gap-6 px-4 py-4 sm:px-8 sm:py-6">
+          <form onSubmit={handleSubmit} className="grid gap-5 px-4 py-4 sm:gap-6 sm:px-8 sm:py-6">
             {/* Customer */}
             <div>
               <p className="mb-4 text-xs uppercase tracking-[0.2em] text-slate-600">
@@ -359,6 +365,7 @@ export default function BookingModal({ open, onClose, onSubmit }) {
             </div>
           </form>
         )}
+        </div>
       </div>
     </div>
   );

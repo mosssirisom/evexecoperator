@@ -275,7 +275,7 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus }) {
         <div className="relative">
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            className="text-slate-600 transition hover:text-slate-400"
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition hover:bg-white/5 hover:text-slate-400"
             title="Driver options"
           >
             <MoreVertical className="h-4 w-4" />
@@ -329,7 +329,7 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus }) {
         </div>
         <button
           onClick={() => onAssignJob(driver)}
-          className="rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-300 transition hover:border-amber-400/20 hover:text-amber-300"
+          className="min-h-[44px] rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-300 transition hover:border-amber-400/20 hover:text-amber-300"
         >
           Assign Job
         </button>
@@ -408,22 +408,22 @@ export default function DriverManagement() {
         />
       )}
 
-      <div className="grid gap-6 p-4 sm:p-6 lg:p-10">
+      <div className="grid gap-4 p-4 sm:gap-6 sm:p-6 lg:p-10">
         {/* Stats strip */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {[
             { label: "Total Drivers", value: drivers.length, icon: CheckCircle2, color: "text-white" },
             { label: "On Job", value: active, icon: Car, color: "text-blue-300" },
             { label: "Available", value: available, icon: CheckCircle2, color: "text-emerald-300" },
             { label: "Off Duty", value: offDuty < 0 ? 0 : offDuty, icon: UserX, color: "text-slate-400" },
           ].map((s) => (
-            <div key={s.label} className="card p-5">
-              <div className="mb-3 flex items-center justify-between">
-                <s.icon className={`h-5 w-5 ${s.color}`} />
-                <span className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Live</span>
+            <div key={s.label} className="card p-4 sm:p-5">
+              <div className="mb-2 flex items-center justify-between sm:mb-3">
+                <s.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${s.color}`} />
+                <span className="text-[9px] uppercase tracking-[0.2em] text-slate-600 sm:text-[10px]">Live</span>
               </div>
-              <p className={`text-3xl font-semibold ${s.color}`}>{s.value}</p>
-              <p className="mt-1 text-sm text-slate-500">{s.label}</p>
+              <p className={`text-2xl font-semibold sm:text-3xl ${s.color}`}>{s.value}</p>
+              <p className="mt-1 text-xs text-slate-500 sm:text-sm">{s.label}</p>
             </div>
           ))}
         </div>

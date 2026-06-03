@@ -21,6 +21,7 @@ import {
 import { useToast } from "../components/Toast";
 import { useBookings } from "../hooks/useBookings";
 import { useDrivers } from "../hooks/useDrivers";
+import { bookingStatusColor } from "../lib/statusColor";
 
 const STATUS_FILTERS = [
   "All",
@@ -71,50 +72,64 @@ function ScheduleRow({ booking, onSelect }) {
   );
 }
 
-// ── Mobile booking card (board view on small screens) ────────────────────────
+// ── Mobile booking card ───────────────────────────────────────────────────────
+// Uses an invisible <button> overlay for iOS tap compatibility (iOS only fires
+// click on elements that are either <button>, <a>, or have cursor:pointer + onclick).
+// The overlay button sits behind the card content at z-0; interactive children
+// are z-10 so they receive their own events without propagating to the overlay.
 function BookingCard({ booking, onSelect, onStatusUpdate }) {
   const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
 
   return (
-    // Outer div — not a <button> so it can legally contain the StatusActionMenu button
     <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onSelect(booking)}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(booking); } }}
-      className={`w-full cursor-pointer rounded-2xl border p-4 text-left transition ${
+      className={`relative w-full overflow-visible rounded-2xl border p-4 transition ${
         booking.priority
           ? "border-red-500/20 bg-red-500/[0.04]"
           : isActive
           ? "border-amber-400/20 bg-amber-400/[0.03]"
-          : "border-white/5 bg-white/[0.02] hover:border-amber-400/10"
+          : "border-white/5 bg-white/[0.02]"
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            {booking.priority && <AlertTriangle className="h-3 w-3 flex-shrink-0 text-red-400" />}
-            <span className="font-mono text-[10px] text-slate-500">{booking.id}</span>
+      {/* Invisible full-card tap target — a real <button> so iOS registers the tap */}
+      <button
+        type="button"
+        onClick={() => onSelect(booking)}
+        className="absolute inset-0 z-0 rounded-2xl"
+        aria-label={`View details for ${booking.customer}`}
+      />
+
+      {/* Card content — z-10 so it renders above the tap target */}
+      <div className="relative z-10">
+        {/* Top row: info + price/time (pointer-events-none so taps reach the button) */}
+        <div className="pointer-events-none flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="mb-1.5 flex flex-wrap items-center gap-2">
+              {booking.priority && <AlertTriangle className="h-3 w-3 flex-shrink-0 text-red-400" />}
+              <span className="font-mono text-[10px] text-slate-500">{booking.id}</span>
+              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${bookingStatusColor(booking.status)}`}>
+                {booking.status === "Unassigned / Missed Call Recovery" ? "Missed Call" : booking.status}
+              </span>
+            </div>
+            <p className="text-sm font-semibold text-white">{booking.customer}</p>
+            <p className="mt-0.5 truncate text-xs text-slate-500">{booking.route}</p>
           </div>
-          <p className="font-semibold text-white">{booking.customer}</p>
-          <p className="mt-0.5 truncate text-xs text-slate-500">{booking.route}</p>
+          <div className="flex-shrink-0 text-right">
+            <p className="text-base font-semibold text-amber-300">{booking.price}</p>
+            <p className="mt-0.5 text-xs text-slate-500">{booking.time}</p>
+            {booking.pickupTime && <ETACountdown pickupTime={booking.pickupTime} className="mt-0.5 text-[10px]" />}
+          </div>
         </div>
-        <div className="flex-shrink-0 text-right">
-          <p className="font-semibold text-amber-300">{booking.price}</p>
-          <p className="mt-0.5 text-xs text-slate-500">{booking.time}</p>
-          {booking.pickupTime && <ETACountdown pickupTime={booking.pickupTime} className="mt-0.5" />}
+
+        {/* Bottom row: driver name + status menu — pointer-events auto for interaction */}
+        <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/5 pt-3">
+          <p className="pointer-events-none truncate text-xs text-slate-400">{booking.driver || "Unassigned"}</p>
+          <StatusActionMenu
+            bookingId={booking.id}
+            currentStatus={booking.status}
+            onUpdate={onStatusUpdate}
+            dropUp
+          />
         </div>
-      </div>
-      <div
-        className="mt-3 flex items-center justify-between gap-2 border-t border-white/5 pt-3"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <p className="text-xs text-slate-400">{booking.driver}</p>
-        <StatusActionMenu
-          bookingId={booking.id}
-          currentStatus={booking.status}
-          onUpdate={onStatusUpdate}
-        />
       </div>
     </div>
   );
@@ -149,7 +164,6 @@ export default function LiveDispatch() {
 
   const debouncedSearch = useDebounce(search, 200);
 
-  // Sync the view state if the URL param changes (e.g. navigating from DriverManagement)
   useEffect(() => {
     if (searchParams.get("view") === "schedule") setView("schedule");
   }, [searchParams]);
@@ -281,7 +295,7 @@ export default function LiveDispatch() {
         />
       )}
 
-      <div className="grid gap-5 p-4 sm:gap-6 sm:p-6 lg:p-10">
+      <div className="grid gap-4 p-4 sm:gap-6 sm:p-6 lg:p-10">
         {error && (
           <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
             Failed to load transfers: {error}
@@ -291,13 +305,13 @@ export default function LiveDispatch() {
         {/* Stats strip */}
         <div className="grid grid-cols-3 gap-3 sm:gap-4">
           {[
-            { label: "Active Jobs", value: stats.active, color: "text-amber-300" },
-            { label: "Completed Today", value: stats.completed, color: "text-emerald-300" },
-            { label: "Needs Attention", value: stats.pending, color: "text-red-300" },
+            { label: "Active", value: stats.active, color: "text-amber-300" },
+            { label: "Completed", value: stats.completed, color: "text-emerald-300" },
+            { label: "Attention", value: stats.pending, color: "text-red-300" },
           ].map((s) => (
             <div key={s.label} className="card flex flex-col items-center gap-1 p-4 text-center sm:flex-row sm:gap-5 sm:p-5 sm:text-left">
-              <p className={`text-3xl font-semibold sm:text-4xl ${s.color}`}>{s.value}</p>
-              <p className="text-xs text-slate-400 sm:text-sm">{s.label}</p>
+              <p className={`text-2xl font-semibold sm:text-4xl ${s.color}`}>{s.value}</p>
+              <p className="text-[11px] text-slate-400 sm:text-sm">{s.label}</p>
             </div>
           ))}
         </div>
@@ -307,7 +321,7 @@ export default function LiveDispatch() {
           <div className="flex items-center gap-1 rounded-2xl border border-white/10 p-1">
             <button
               onClick={() => setView("board")}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition sm:px-4 ${
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium transition sm:px-4 ${
                 view === "board"
                   ? "bg-amber-400/10 text-amber-300"
                   : "text-slate-500 hover:text-slate-300"
@@ -318,7 +332,7 @@ export default function LiveDispatch() {
             </button>
             <button
               onClick={() => setView("schedule")}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition sm:px-4 ${
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium transition sm:px-4 ${
                 view === "schedule"
                   ? "bg-amber-400/10 text-amber-300"
                   : "text-slate-500 hover:text-slate-300"
@@ -344,8 +358,8 @@ export default function LiveDispatch() {
 
         {view === "schedule" ? (
           /* ── Schedule view ──────────────────────────────────────────────── */
-          <div className="card p-5 sm:p-6">
-            <div className="mb-6">
+          <div className="card p-4 sm:p-6">
+            <div className="mb-5">
               <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Today</p>
               <h2 className="mt-2 text-2xl font-semibold text-white">Schedule</h2>
               <p className="mt-1 text-sm text-slate-500">
@@ -367,11 +381,11 @@ export default function LiveDispatch() {
           </div>
         ) : (
           /* ── Board view ─────────────────────────────────────────────────── */
-          <div className="card p-5 sm:p-6">
-            <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="card p-4 sm:p-6">
+            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Dispatch Board</p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">All Transfers</h2>
+                <h2 className="mt-1.5 text-xl font-semibold text-white sm:text-2xl">All Transfers</h2>
               </div>
 
               {/* Search + filter row */}
@@ -383,7 +397,7 @@ export default function LiveDispatch() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search customer, flight, ref…"
-                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-2.5 pl-9 pr-9 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-amber-400/30 lg:w-64"
+                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-3 pl-9 pr-9 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-amber-400/30 lg:w-64"
                   />
                   {search && (
                     <button
@@ -395,15 +409,15 @@ export default function LiveDispatch() {
                   )}
                 </div>
 
-                {/* Status filter chips — horizontally scrollable on mobile */}
-                <div className="flex items-center gap-1.5">
+                {/* Status filter chips — horizontally scrollable */}
+                <div className="flex items-center gap-2">
                   <Filter className="h-3.5 w-3.5 flex-shrink-0 text-slate-500" />
-                  <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {STATUS_FILTERS.map((f) => (
                       <button
                         key={f}
                         onClick={() => setActiveFilter(f)}
-                        className={`flex-shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                        className={`flex-shrink-0 rounded-full border px-3 py-2 text-xs font-medium transition ${
                           activeFilter === f
                             ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
                             : "border-white/10 text-slate-500 hover:border-white/20 hover:text-slate-300"
@@ -533,7 +547,7 @@ export default function LiveDispatch() {
                 <button
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-400 transition hover:border-amber-400/20 hover:text-amber-300 disabled:opacity-50"
+                  className="rounded-xl border border-white/10 px-4 py-2.5 text-xs text-slate-400 transition hover:border-amber-400/20 hover:text-amber-300 disabled:opacity-50"
                 >
                   {loadingMore ? "Loading…" : "Load more"}
                 </button>
