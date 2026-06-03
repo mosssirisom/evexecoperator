@@ -2,12 +2,13 @@ import React, { useMemo, useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Car, Phone, Star, CheckCircle2, Clock, UserX, MoreVertical, Plus, X,
-  User, Hash, Truck, MapPin,
+  User, Hash, Truck, MapPin, ExternalLink,
 } from "lucide-react";
 import { useDrivers } from "../hooks/useDrivers";
 import { useBookings } from "../hooks/useBookings";
 import { useToast } from "../components/Toast";
 import { bookingStatusColor } from "../lib/statusColor";
+import { PORTALS, driverJobUrl } from "../lib/portals";
 
 function statusBadge(status) {
   if (status === "Available") return "text-emerald-300 bg-emerald-400/10 border-emerald-400/20";
@@ -194,8 +195,8 @@ function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob }) {
 
   useEffect(() => {
     const h = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    document.addEventListener("pointerdown", h);
+    return () => document.removeEventListener("pointerdown", h);
   }, [onClose]);
 
   const statusOptions = ["Available", "Available soon", "Off duty"];
@@ -220,6 +221,16 @@ function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob }) {
         <Car className="h-3.5 w-3.5 text-slate-500" />
         Assign Job
       </button>
+      <a
+        href={PORTALS.driverApp.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onClose}
+        className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-slate-300 transition hover:bg-white/5"
+      >
+        <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
+        Driver Portal
+      </a>
       <div className="my-1 border-t border-white/5" />
       {statusOptions.map((s) => (
         <button
@@ -418,19 +429,30 @@ export default function DriverManagement() {
         </div>
 
         {/* Section header + Add Driver */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Fleet</p>
             <h2 className="mt-1 text-2xl font-semibold text-white">Active Drivers</h2>
           </div>
-          <button
-            onClick={() => setAddModal(true)}
-            className="flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400 sm:px-5 sm:py-3"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add Driver</span>
-            <span className="sm:hidden">Add</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href={PORTALS.driverApp.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 transition hover:border-amber-400/20 hover:text-amber-300"
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span className="hidden sm:inline">Driver Portal</span>
+            </a>
+            <button
+              onClick={() => setAddModal(true)}
+              className="flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400 sm:px-5 sm:py-3"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add Driver</span>
+              <span className="sm:hidden">Add</span>
+            </button>
+          </div>
         </div>
 
         {/* Driver cards grid */}

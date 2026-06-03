@@ -9,9 +9,15 @@ import {
   Check,
   CheckCircle2,
   Circle,
+  ExternalLink,
+  Copy,
+  Globe,
+  BookOpen,
+  UserCircle,
 } from "lucide-react";
 import { useToast } from "../components/Toast";
 import { isConfigured } from "../lib/supabase";
+import { PORTALS } from "../lib/portals";
 
 const SECTIONS = [
   { key: "business", label: "Business", icon: Building2 },
@@ -168,6 +174,66 @@ function FleetSettings({ state, set }) {
   );
 }
 
+const PORTAL_ICONS = {
+  driverApp: Car,
+  bookingForm: BookOpen,
+  customerAccount: UserCircle,
+  website: Globe,
+};
+
+function PortalRow({ portalKey, toast }) {
+  const portal = PORTALS[portalKey];
+  const Icon = PORTAL_ICONS[portalKey] ?? Globe;
+  const [copied, setCopied] = useState(false);
+
+  const handleOpen = () => {
+    window.open(portal.url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(portal.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({ message: "URL copied to clipboard", type: "success" });
+    } catch {
+      toast({ message: "Copy failed — please copy manually", type: "error" });
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 sm:p-5">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-white/5 bg-white/[0.03]">
+          <Icon className="h-4 w-4 text-amber-400" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-white">{portal.label}</p>
+          <p className="mt-0.5 text-xs text-slate-500">{portal.description}</p>
+          <p className="mt-2 truncate font-mono text-[11px] text-slate-600">{portal.url}</p>
+          <p className="mt-1 text-[10px] text-slate-700">env: {portal.envKey}</p>
+        </div>
+      </div>
+      <div className="mt-4 flex items-center gap-2">
+        <button
+          onClick={handleOpen}
+          className="flex items-center gap-1.5 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-3 py-2 text-xs font-medium text-amber-300 transition hover:bg-amber-400/10"
+        >
+          <ExternalLink className="h-3 w-3" />
+          Open
+        </button>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-400 transition hover:border-white/20 hover:text-white"
+        >
+          <Copy className="h-3 w-3" />
+          {copied ? "Copied!" : "Copy URL"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function IntegrationItem({ name, description, connected, onAction, actionLabel }) {
   return (
     <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.02] p-5">
@@ -200,46 +266,68 @@ function IntegrationItem({ name, description, connected, onAction, actionLabel }
 
 function IntegrationSettings({ toast }) {
   return (
-    <div className="space-y-4">
-      <IntegrationItem
-        name="Supabase"
-        description="Database & realtime backend"
-        connected={isConfigured}
-        onAction={() =>
-          toast({
-            message: isConfigured
-              ? "Supabase is connected and live"
-              : "Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment",
-            type: isConfigured ? "success" : "info",
-          })
-        }
-        actionLabel={isConfigured ? "Connected" : "Configure"}
-      />
-      <IntegrationItem
-        name="EV Exec Driver App"
-        description="Real-time job dispatch to evexecdriverapp.vercel.app"
-        connected={isConfigured}
-        onAction={() => toast({ message: "Driver app synced via Supabase", type: "info" })}
-        actionLabel={isConfigured ? "Active" : "Requires Supabase"}
-      />
-      <IntegrationItem
-        name="Twilio"
-        description="SMS & voice for missed call recovery"
-        connected={false}
-        onAction={() => toast({ message: "Twilio integration coming soon", type: "info" })}
-      />
-      <IntegrationItem
-        name="Stripe"
-        description="Payment processing & invoicing"
-        connected={false}
-        onAction={() => toast({ message: "Stripe integration coming soon", type: "info" })}
-      />
-      <IntegrationItem
-        name="Google Maps API"
-        description="Live map & routing on dispatch board"
-        connected={false}
-        onAction={() => toast({ message: "Maps integration coming soon", type: "info" })}
-      />
+    <div className="space-y-8">
+      {/* Portals & Website */}
+      <div>
+        <p className="mb-1 text-xs uppercase tracking-[0.28em] text-amber-400">Portals & Website</p>
+        <p className="mb-4 text-xs text-slate-500">
+          Quick-launch links for the driver portal and customer-facing website pages. Override any URL
+          by setting the corresponding environment variable.
+        </p>
+        <div className="space-y-3">
+          {(["driverApp", "bookingForm", "customerAccount", "website"]).map((key) => (
+            <PortalRow key={key} portalKey={key} toast={toast} />
+          ))}
+        </div>
+      </div>
+
+      {/* Backend services */}
+      <div>
+        <p className="mb-4 text-xs uppercase tracking-[0.28em] text-amber-400">Backend Services</p>
+        <div className="space-y-4">
+          <IntegrationItem
+            name="Supabase"
+            description="Database & realtime backend"
+            connected={isConfigured}
+            onAction={() =>
+              toast({
+                message: isConfigured
+                  ? "Supabase is connected and live"
+                  : "Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment",
+                type: isConfigured ? "success" : "info",
+              })
+            }
+            actionLabel={isConfigured ? "Connected" : "Configure"}
+          />
+          <IntegrationItem
+            name="EV Exec Driver App"
+            description={`Real-time job dispatch to ${PORTALS.driverApp.url}`}
+            connected={isConfigured}
+            onAction={() => {
+              window.open(PORTALS.driverApp.url, "_blank", "noopener,noreferrer");
+            }}
+            actionLabel={isConfigured ? "Open Portal" : "Requires Supabase"}
+          />
+          <IntegrationItem
+            name="Twilio"
+            description="SMS & voice for missed call recovery"
+            connected={false}
+            onAction={() => toast({ message: "Twilio integration coming soon", type: "info" })}
+          />
+          <IntegrationItem
+            name="Stripe"
+            description="Payment processing & invoicing"
+            connected={false}
+            onAction={() => toast({ message: "Stripe integration coming soon", type: "info" })}
+          />
+          <IntegrationItem
+            name="Google Maps API"
+            description="Live map & routing on dispatch board"
+            connected={false}
+            onAction={() => toast({ message: "Maps integration coming soon", type: "info" })}
+          />
+        </div>
+      </div>
     </div>
   );
 }

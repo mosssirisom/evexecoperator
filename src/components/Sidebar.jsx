@@ -9,7 +9,10 @@ import {
   Settings,
   Navigation,
   UserCircle2,
+  Car,
+  BookOpen,
 } from "lucide-react";
+import { PORTALS } from "../lib/portals";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, to: "/" },
@@ -57,6 +60,28 @@ export default function Sidebar() {
             );
           })}
         </nav>
+        {/* External portal links */}
+        <div className="mb-2 flex flex-col items-center gap-2 border-t border-white/5 pt-4">
+          <a
+            href={PORTALS.driverApp.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Driver Portal"
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition hover:bg-white/5 hover:text-amber-300"
+          >
+            <Car className="h-4 w-4" />
+          </a>
+          <a
+            href={PORTALS.bookingForm.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Customer Booking Form"
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition hover:bg-white/5 hover:text-amber-300"
+          >
+            <BookOpen className="h-4 w-4" />
+          </a>
+        </div>
+
         <button
           title="Profile"
           className="flex h-14 w-14 items-center justify-center rounded-2xl text-slate-500 transition hover:bg-white/5 hover:text-white"

@@ -9,6 +9,11 @@ import {
   CarFront,
   MoreVertical,
   Clock,
+  Car,
+  BookOpen,
+  UserCircle,
+  Globe,
+  ExternalLink,
 } from "lucide-react";
 import BookingModal from "../components/BookingModal";
 import ETACountdown from "../components/ETACountdown";
@@ -17,6 +22,42 @@ import { bookingStatusColor } from "../lib/statusColor";
 import { useBookings } from "../hooks/useBookings";
 import { useDrivers } from "../hooks/useDrivers";
 import { useMissedCalls } from "../hooks/useMissedCalls";
+import { PORTALS } from "../lib/portals";
+
+const PORTAL_QUICK_LINKS = [
+  { key: "driverApp",      icon: Car,        label: "Driver Portal",    color: "text-blue-300",    bg: "bg-blue-400/10",    border: "border-blue-400/20" },
+  { key: "bookingForm",    icon: BookOpen,   label: "Booking Form",     color: "text-amber-300",   bg: "bg-amber-400/10",   border: "border-amber-400/20" },
+  { key: "customerAccount",icon: UserCircle, label: "My Account",       color: "text-emerald-300", bg: "bg-emerald-400/10", border: "border-emerald-400/20" },
+  { key: "website",        icon: Globe,      label: "Website",          color: "text-slate-300",   bg: "bg-white/[0.04]",   border: "border-white/10" },
+];
+
+function PortalQuickLinks() {
+  return (
+    <div className="card p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Quick Launch</p>
+          <h3 className="mt-1 text-lg font-semibold text-white">Portals & Website</h3>
+        </div>
+        <ExternalLink className="h-4 w-4 text-slate-600" />
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {PORTAL_QUICK_LINKS.map(({ key, icon: Icon, label, color, bg, border }) => (
+          <a
+            key={key}
+            href={PORTALS[key].url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`flex flex-col items-center gap-2 rounded-2xl border ${border} ${bg} p-4 transition hover:opacity-80`}
+          >
+            <Icon className={`h-5 w-5 ${color}`} />
+            <span className={`text-center text-xs font-medium ${color}`}>{label}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function MetricCard({ title, value, sub, icon: Icon }) {
   return (
@@ -303,6 +344,9 @@ export default function Dashboard() {
             <MetricCard key={metric.title} {...metric} />
           ))}
         </section>
+
+        {/* Portal quick-launch */}
+        <PortalQuickLinks />
 
         {/* Upcoming pickups strip */}
         <UpcomingPickups bookings={bookings} onNavigate={() => navigate("/dispatch")} />

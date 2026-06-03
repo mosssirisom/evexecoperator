@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Search, Bell, X } from "lucide-react";
+import { Search, Bell, X, Car, BookOpen } from "lucide-react";
 import Sidebar from "./Sidebar";
 import LiveClock from "./LiveClock";
 import RealtimeDot from "./RealtimeDot";
 import { useMissedCalls } from "../hooks/useMissedCalls";
+import { PORTALS } from "../lib/portals";
 
 const pageMeta = {
   "/": { label: "EV Exec", title: "Operator Dashboard" },
@@ -130,6 +131,26 @@ export default function Layout() {
             {/* Right actions */}
             <div className="flex items-center gap-2 sm:gap-3">
               <RealtimeDot />
+
+              {/* Portal quick-launch — hidden on very small screens, visible sm+ */}
+              <a
+                href={PORTALS.driverApp.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open Driver Portal"
+                className="glass hidden items-center justify-center rounded-2xl h-10 w-10 transition hover:bg-white/10 sm:flex"
+              >
+                <Car className="h-4 w-4 text-slate-300" />
+              </a>
+              <a
+                href={PORTALS.bookingForm.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open Customer Booking Form"
+                className="glass hidden items-center justify-center rounded-2xl h-10 w-10 transition hover:bg-white/10 lg:flex"
+              >
+                <BookOpen className="h-4 w-4 text-slate-300" />
+              </a>
 
               {/* Mobile search toggle */}
               {!searchOpen && (
