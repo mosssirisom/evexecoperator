@@ -94,7 +94,7 @@ const empty = {
   notes: "",
 };
 
-export default function BookingModal({ open, onClose, onSubmit }) {
+export default function BookingModal({ open, onClose, onSubmit, initialValues }) {
   const { drivers } = useDrivers();
   const vehicles = useMemo(
     () => drivers.map((d) => ({ id: d.id, label: `${d.name} — ${d.vehicle}` })),
@@ -117,6 +117,8 @@ export default function BookingModal({ open, onClose, onSubmit }) {
       setSubmitting(false);
       setSubmitError(null);
     } else {
+      // Pre-fill with initial values when provided (e.g. return journey)
+      setForm(initialValues ? { ...empty, ...initialValues } : empty);
       // Focus first focusable element when modal opens
       setTimeout(() => {
         const first = dialogRef.current?.querySelector(
@@ -163,6 +165,7 @@ export default function BookingModal({ open, onClose, onSubmit }) {
 
   useEffect(() => {
     if (!form.airport || !form.destination || form.destination === "Custom address…") return;
+    if (form.price) return; // don't override a pre-filled price
     const suggested = getSuggestedPrice(form.airport);
     if (suggested !== null) setForm((f) => ({ ...f, price: String(suggested) }));
   }, [form.airport, form.destination]);
@@ -228,10 +231,10 @@ export default function BookingModal({ open, onClose, onSubmit }) {
         <div className="flex flex-shrink-0 items-center justify-between border-b border-white/5 bg-[#0B132B] px-4 py-4 sm:px-8 sm:py-6">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-amber-400">
-              New Booking
+              {initialValues ? "Return Journey" : "New Booking"}
             </p>
             <h2 id="booking-modal-title" className="mt-1 text-2xl font-semibold text-white">
-              Create Transfer
+              {initialValues ? "Create Return" : "Create Transfer"}
             </h2>
           </div>
           <button

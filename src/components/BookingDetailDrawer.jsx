@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   X, Phone, Mail, Plane, MapPin, Clock, Car, PoundSterling,
-  User, AlertTriangle, FileText, ChevronDown, Check, Edit3, Loader2,
+  User, AlertTriangle, FileText, ChevronDown, Check, Edit3, Loader2, RefreshCw,
 } from "lucide-react";
 import { bookingStatusColor } from "../lib/statusColor";
 import ETACountdown from "./ETACountdown";
@@ -220,6 +220,7 @@ export default function BookingDetailDrawer({
   onAssignDriver,
   onUpdateNotes,
   onTogglePriority,
+  onCreateReturn,
 }) {
   const [notes, setNotes] = useState(booking?.notes ?? "");
   const [editingNotes, setEditingNotes] = useState(false);
@@ -471,24 +472,36 @@ export default function BookingDetailDrawer({
 
         {/* Footer actions */}
         <div className="flex-shrink-0 border-t border-white/5 px-5 py-4 sm:px-6">
-          <div className="flex items-center justify-between gap-3">
-            <button
-              onClick={() => onTogglePriority?.(booking.id)}
-              className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition sm:flex-none sm:justify-start ${
-                booking.priority
-                  ? "border-red-400/30 bg-red-400/10 text-red-300 hover:bg-red-400/20"
-                  : "border-white/10 text-slate-400 hover:border-amber-400/20 hover:text-amber-300"
-              }`}
-            >
-              <AlertTriangle className="h-4 w-4" />
-              {booking.priority ? "Remove Priority" : "Mark Priority"}
-            </button>
-            <button
-              onClick={onClose}
-              className="min-h-[44px] rounded-2xl border border-white/10 px-5 py-2.5 text-sm text-slate-400 transition hover:text-white"
-            >
-              Close
-            </button>
+          <div className="flex flex-col gap-2">
+            {/* Return journey */}
+            {booking.airport && booking.destination && (
+              <button
+                onClick={() => onCreateReturn?.(booking)}
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-amber-400/20 bg-amber-400/5 px-4 py-2.5 text-sm font-medium text-amber-300 transition hover:bg-amber-400/10"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Create Return Journey
+              </button>
+            )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onTogglePriority?.(booking.id)}
+                className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition ${
+                  booking.priority
+                    ? "border-red-400/30 bg-red-400/10 text-red-300 hover:bg-red-400/20"
+                    : "border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-300"
+                }`}
+              >
+                <AlertTriangle className="h-4 w-4" />
+                {booking.priority ? "Remove Priority" : "Mark Priority"}
+              </button>
+              <button
+                onClick={onClose}
+                className="min-h-[44px] rounded-2xl border border-white/10 px-5 py-2.5 text-sm text-slate-400 transition hover:text-white"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       </div>

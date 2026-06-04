@@ -460,6 +460,7 @@ export default function LiveDispatch() {
     searchParams.get("view") === "schedule" ? "schedule" : "board"
   );
   const [modalOpen, setModalOpen] = useState(false);
+  const [returnPrefill, setReturnPrefill] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
 
   const toast = useToast();
@@ -544,6 +545,29 @@ export default function LiveDispatch() {
     return result;
   }, [createBooking, toast]);
 
+  const handleCreateReturn = useCallback((booking) => {
+    const flip = (dir) =>
+      dir === "Airport → Destination" ? "Destination → Airport" : "Airport → Destination";
+    const rawPrice = booking.price !== "TBC" ? booking.price.replace(/[^0-9.]/g, "") : "";
+    setReturnPrefill({
+      customer:      booking.customer ?? "",
+      phone:         booking.phone ?? "",
+      email:         booking.email ?? "",
+      flight:        "",
+      direction:     flip(booking.direction ?? "Airport → Destination"),
+      airport:       booking.airport ?? "",
+      destination:   booking.destination ?? "",
+      customAddress: "",
+      date:          "",
+      time:          "",
+      driver:        "",
+      price:         rawPrice,
+      notes:         "",
+    });
+    setSelectedBooking(null);
+    setModalOpen(true);
+  }, []);
+
   const filtered = useMemo(() => {
     let list = transfers;
     if (activeFilter !== "All") list = list.filter((t) => t.status === activeFilter);
@@ -597,7 +621,12 @@ export default function LiveDispatch() {
 
   return (
     <>
-      <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreateBooking} />
+      <BookingModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setReturnPrefill(null); }}
+        onSubmit={handleCreateBooking}
+        initialValues={returnPrefill}
+      />
 
       {liveSelectedBooking && (
         <BookingDetailDrawer
@@ -608,6 +637,7 @@ export default function LiveDispatch() {
           onAssignDriver={handleAssignDriver}
           onUpdateNotes={handleUpdateNotes}
           onTogglePriority={handleTogglePriority}
+          onCreateReturn={handleCreateReturn}
         />
       )}
 
