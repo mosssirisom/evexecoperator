@@ -297,9 +297,9 @@ export default function LiveDispatch() {
   }, [updateStatus, toast]);
 
   const handleAssignDriver = useCallback(async (id, driverId) => {
+    const driver = drivers.find((d) => d.id === driverId);
     try {
-      await assignDriver(id, driverId);
-      const driver = drivers.find((d) => d.id === driverId);
+      await assignDriver(id, driverId, driver?.name ?? null);
       toast({ message: driver ? `Assigned to ${driver.name}` : "Driver unassigned", type: "success" });
       setSelectedBooking((prev) => {
         if (prev?.id !== id) return prev;

@@ -215,7 +215,7 @@ export function useBookings() {
           pickup_time:    pickup,
           driver_id:      driverRow?.id ?? null,
           price:          form.price ?? null,
-          status:         "Dispatched",
+          status:         driverRow ? "Dispatched" : "Unassigned",
           notes:          form.notes?.trim() || null,
         });
 
@@ -228,6 +228,7 @@ export function useBookings() {
         );
       }
 
+      const createdStatus = driverRow ? "Dispatched" : "Unassigned";
       dispatchJobToDriverApp({
         bookingRef: ref,
         customer: form.customer,
@@ -236,6 +237,7 @@ export function useBookings() {
         pickupTime: pickup,
         price: form.price ? `£${form.price}` : "TBC",
         driver: driverRow?.name ?? null,
+        status: createdStatus,
       }).catch(() => {});
 
       // Fetch after create so the new booking appears with its server-assigned fields
@@ -247,10 +249,14 @@ export function useBookings() {
 
   // ─── assignDriver ──────────────────────────────────────────────────────────
 
-  const assignDriver = useCallback(async (id, driverId) => {
+  const assignDriver = useCallback(async (id, driverId, driverName) => {
     const snapshot = bookingsRef.current;
     setBookings((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, driverId: driverId || null } : b))
+      prev.map((b) =>
+        b.id === id
+          ? { ...b, driverId: driverId || null, driver: driverName ?? (driverId ? b.driver : "Unassigned") }
+          : b
+      )
     );
 
     if (!isConfigured) return;
