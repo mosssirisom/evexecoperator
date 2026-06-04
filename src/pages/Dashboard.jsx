@@ -320,8 +320,8 @@ export default function Dashboard() {
       },
       {
         title: "CO₂ Savings",
-        value: "86kg",
-        sub: "Estimated EV operation savings",
+        value: `${Math.round(bookings.length * 7.3)}kg`,
+        sub: "Estimated vs equivalent petrol fleet",
         icon: Leaf,
       },
     ],

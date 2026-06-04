@@ -19,10 +19,16 @@ const DESTINATIONS = [
   "Custom address…",
 ];
 
-const ROUTE_PRICES = {
-  "Manchester Airport (MAN)": { Blackpool: 160, "Lytham St Annes": 160, "Poulton-le-Fylde": 160, Preston: 140, Southport: 175, Chorley: 130 },
-  "Liverpool Airport (LPL)": { Blackpool: 145, "Lytham St Annes": 130, "Poulton-le-Fylde": 145, Preston: 155, Southport: 110, Chorley: 145 },
-};
+function getSuggestedPrice(airport) {
+  try {
+    const saved = JSON.parse(localStorage.getItem("evexec_settings") || "{}");
+    const fleet = saved.fleet || {};
+    const parse = (s) => { const n = parseInt(String(s || "").replace(/[^0-9]/g, ""), 10); return n > 0 ? n : null; };
+    if (airport.includes("MAN")) return parse(fleet.rateMan);
+    if (airport.includes("LPL")) return parse(fleet.rateLpl);
+  } catch {}
+  return null;
+}
 
 
 function Field({ label, icon: Icon, error, children }) {
@@ -84,6 +90,7 @@ const empty = {
   date: "",
   time: "",
   driver: "",
+  price: "",
   notes: "",
 };
 
@@ -154,11 +161,10 @@ export default function BookingModal({ open, onClose, onSubmit }) {
     []
   );
 
-  const price = useMemo(() => {
-    const base = ROUTE_PRICES[form.airport];
-    if (!base) return null;
-    const dest = form.destination === "Custom address…" ? null : form.destination;
-    return dest ? base[dest] ?? null : null;
+  useEffect(() => {
+    if (!form.airport || !form.destination || form.destination === "Custom address…") return;
+    const suggested = getSuggestedPrice(form.airport);
+    if (suggested !== null) setForm((f) => ({ ...f, price: String(suggested) }));
   }, [form.airport, form.destination]);
 
   function validate() {
@@ -184,7 +190,8 @@ export default function BookingModal({ open, onClose, onSubmit }) {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await onSubmit?.({ ...form, price });
+      const numPrice = form.price ? Number(form.price) || null : null;
+      await onSubmit?.({ ...form, price: numPrice });
       setSubmitted(true);
       closeTimerRef.current = setTimeout(onClose, 1200);
     } catch (err) {
@@ -315,19 +322,20 @@ export default function BookingModal({ open, onClose, onSubmit }) {
               <Field label="Assign Driver" icon={Car}>
                 <Select value={form.driver} onChange={set("driver")} options={vehicles} placeholder="Auto-assign" />
               </Field>
-              <div>
-                <label className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-500">
-                  <PoundSterling className="h-3.5 w-3.5" />
-                  Fixed Price
-                </label>
-                <div className="flex h-[46px] items-center rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm">
-                  {price !== null ? (
-                    <span className="font-semibold text-amber-300">£{price}</span>
-                  ) : (
-                    <span className="text-slate-600">Select route to calculate</span>
-                  )}
+              <Field label="Fixed Price" icon={PoundSterling}>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">£</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={form.price}
+                    onChange={(e) => set("price")(e.target.value)}
+                    placeholder="0"
+                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-3 pl-8 pr-4 text-sm text-amber-300 outline-none placeholder:text-slate-600 focus:border-amber-400/40 transition"
+                  />
                 </div>
-              </div>
+              </Field>
             </div>
 
             {/* Notes */}
@@ -360,7 +368,7 @@ export default function BookingModal({ open, onClose, onSubmit }) {
                 disabled={submitting}
                 className="flex-1 rounded-2xl bg-amber-500 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {submitting ? "Creating…" : `Create Booking${price !== null ? ` — £${price}` : ""}`}
+                {submitting ? "Creating…" : `Create Booking${form.price ? ` — £${form.price}` : ""}`}
               </button>
             </div>
           </form>

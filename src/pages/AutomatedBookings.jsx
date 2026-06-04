@@ -4,7 +4,6 @@ import {
   PhoneMissed,
   Phone,
   RefreshCw,
-  CheckCircle2,
   AlertTriangle,
   Zap,
 } from "lucide-react";
@@ -18,8 +17,6 @@ const automations = [
     trigger: "Missed inbound call",
     action: "Send SMS with booking link within 2 min",
     status: "Active",
-    triggered: 4,
-    converted: 1,
   },
   {
     id: "AUTO-02",
@@ -27,8 +24,6 @@ const automations = [
     trigger: "Web form partial submission",
     action: "Email follow-up after 15 min",
     status: "Active",
-    triggered: 2,
-    converted: 0,
   },
   {
     id: "AUTO-03",
@@ -36,8 +31,6 @@ const automations = [
     trigger: "Flight status change detected",
     action: "Alert driver + update pickup time",
     status: "Active",
-    triggered: 1,
-    converted: 1,
   },
   {
     id: "AUTO-04",
@@ -45,8 +38,6 @@ const automations = [
     trigger: "Job marked Completed",
     action: "Send review request SMS 30 min after",
     status: "Paused",
-    triggered: 12,
-    converted: 8,
   },
 ];
 
@@ -81,14 +72,6 @@ function AutomationCard({ automation }) {
           <span className="mt-0.5 font-medium text-slate-600">Action:</span>
           {automation.action}
         </div>
-      </div>
-      <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-4 text-xs text-slate-500">
-        <span>
-          Triggered today: <span className="text-white">{automation.triggered}</span>
-        </span>
-        <span>
-          Converted: <span className="text-emerald-300">{automation.converted}</span>
-        </span>
       </div>
     </div>
   );
@@ -148,8 +131,6 @@ export default function AutomatedBookings() {
   } = useMissedCalls();
 
   const activeAutomations = automations.filter((a) => a.status === "Active").length;
-  const triggeredToday = automations.reduce((acc, a) => acc + a.triggered, 0);
-  const recoveredToday = automations.reduce((acc, a) => acc + a.converted, 0);
 
   async function handleRefresh() {
     try {
@@ -163,11 +144,9 @@ export default function AutomatedBookings() {
   return (
     <div className="grid gap-6 p-4 sm:p-6 lg:p-10">
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4">
         {[
           { label: "Automations Active", value: activeAutomations, icon: Bot, color: "text-amber-300" },
-          { label: "Triggered Today", value: triggeredToday, icon: Zap, color: "text-blue-300" },
-          { label: "Recovered Bookings", value: recoveredToday, icon: CheckCircle2, color: "text-emerald-300" },
           { label: "Pending Review", value: missedCalls.length, icon: AlertTriangle, color: "text-red-300" },
         ].map((s) => (
           <div key={s.label} className="card p-5">

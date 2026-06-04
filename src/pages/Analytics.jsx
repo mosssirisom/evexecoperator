@@ -4,14 +4,6 @@ import { useBookings } from "../hooks/useBookings";
 
 const PERIODS = ["Today", "7 Days", "30 Days", "All Time"];
 
-const topRoutes = [
-  { route: "Manchester Airport → Blackpool", count: 48, revenue: "£7,680" },
-  { route: "Manchester Airport → Lytham St Annes", count: 31, revenue: "£4,495" },
-  { route: "Liverpool Airport → Blackpool", count: 22, revenue: "£3,300" },
-  { route: "Blackpool → Manchester Airport", count: 19, revenue: "£3,040" },
-  { route: "Manchester Airport → Poulton-le-Fylde", count: 14, revenue: "£2,240" },
-];
-
 function BarChart({ bars }) {
   const max = Math.max(...bars.map((d) => d.value), 1);
   return (
@@ -78,7 +70,7 @@ export default function Analytics() {
       bars,
       totalRevenue: completedRevenue,
       totalBookings: todayBookings.length,
-      newCustomers: Math.max(1, Math.floor(todayBookings.length * 0.4)),
+      newCustomers: new Set(todayBookings.map((b) => b.phone || b.customer)).size,
       co2: `${co2kg}kg`,
       subRevenue: "Live today",
       peakDay: bars.reduce((a, b) => (b.value > a.value ? b : a), bars[0] ?? { label: "—", value: 0 }),
@@ -202,6 +194,21 @@ export default function Analytics() {
 
   const avgPerJob = totalBookings > 0 ? Math.round(totalRevenue / totalBookings) : 0;
 
+  const topRoutes = useMemo(() => {
+    const map = {};
+    bookings.forEach((b) => {
+      const key = b.route && b.route !== "—" ? b.route : null;
+      if (!key) return;
+      if (!map[key]) map[key] = { count: 0, revenue: 0 };
+      map[key].count += 1;
+      map[key].revenue += parsePrice(b);
+    });
+    return Object.entries(map)
+      .map(([route, { count, revenue }]) => ({ route, count, revenue }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }, [bookings]);
+
   return (
     <div className="grid gap-6 p-4 sm:p-6 lg:p-10">
       {/* Period selector */}
@@ -306,23 +313,29 @@ export default function Analytics() {
             <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Routes</p>
             <h2 className="mt-2 text-2xl font-semibold text-white">Top Routes</h2>
           </div>
-          <div className="space-y-4">
-            {topRoutes.map((r) => (
-              <div key={r.route}>
-                <div className="mb-1.5 flex items-center justify-between gap-4 text-sm">
-                  <span className="min-w-0 truncate text-slate-300">{r.route}</span>
-                  <span className="flex-shrink-0 font-semibold text-amber-300">{r.revenue}</span>
+          {topRoutes.length === 0 ? (
+            <p className="py-12 text-center text-sm text-slate-600">No route data yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {topRoutes.map((r) => (
+                <div key={r.route}>
+                  <div className="mb-1.5 flex items-center justify-between gap-4 text-sm">
+                    <span className="min-w-0 truncate text-slate-300">{r.route}</span>
+                    <span className="flex-shrink-0 font-semibold text-amber-300">
+                      £{r.revenue.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-white/5">
+                    <div
+                      className="h-full rounded-full bg-amber-400/50 transition-all duration-500"
+                      style={{ width: `${(r.count / topRoutes[0].count) * 100}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-right text-[10px] text-slate-600">{r.count} job{r.count !== 1 ? "s" : ""}</p>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-white/5">
-                  <div
-                    className="h-full rounded-full bg-amber-400/50 transition-all duration-500"
-                    style={{ width: `${(r.count / topRoutes[0].count) * 100}%` }}
-                  />
-                </div>
-                <p className="mt-1 text-right text-[10px] text-slate-600">{r.count} jobs</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
