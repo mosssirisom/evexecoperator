@@ -175,6 +175,91 @@ function ScheduleRow({ booking, onSelect }) {
   );
 }
 
+// ── Mobile status bottom-sheet picker ────────────────────────────────────────
+const SHEET_STATUSES = [
+  { value: "Dispatched",           color: "text-amber-300"   },
+  { value: "En Route",             color: "text-blue-300"    },
+  { value: "Passenger On Board",   color: "text-emerald-300" },
+  { value: "Completed",            color: "text-slate-300"   },
+  { value: "Cancelled",            color: "text-red-400"     },
+];
+
+function MobileStatusSheet({ booking, onUpdate, onClose }) {
+  const [pending, setPending] = useState(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+
+  const handleSelect = async (value) => {
+    if (value === booking.status) { onClose(); return; }
+    if (value === "Cancelled") { setConfirmCancel(true); return; }
+    setPending(value);
+    try { await onUpdate(booking.id, value); onClose(); }
+    catch { setPending(null); }
+  };
+
+  const handleConfirmCancel = async () => {
+    setConfirmCancel(false);
+    setPending("Cancelled");
+    try { await onUpdate(booking.id, "Cancelled"); onClose(); }
+    catch { setPending(null); }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-end sm:hidden">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full rounded-t-[28px] border-t border-white/10 bg-[#070D1F]">
+        <div className="flex justify-center pb-1 pt-3">
+          <div className="h-1 w-12 rounded-full bg-white/20" />
+        </div>
+        <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-amber-400">Update Status</p>
+            <p className="mt-0.5 text-sm font-semibold text-white">{booking.customer}</p>
+          </div>
+          <button onClick={onClose} className="text-slate-500 transition hover:text-white">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="max-h-72 overflow-y-auto px-3 py-2">
+          {confirmCancel ? (
+            <div className="px-2 py-4">
+              <p className="text-sm font-medium text-white">Cancel this booking?</p>
+              <p className="mt-1 text-xs text-slate-500">This cannot be undone.</p>
+              <div className="mt-4 flex gap-2">
+                <button onClick={handleConfirmCancel} className="flex-1 rounded-2xl bg-red-500/20 px-3 py-3 text-sm font-medium text-red-300 transition hover:bg-red-500/30">
+                  Yes, Cancel
+                </button>
+                <button onClick={() => setConfirmCancel(false)} className="flex-1 rounded-2xl border border-white/10 px-3 py-3 text-sm text-slate-400 transition hover:text-white">
+                  Keep Job
+                </button>
+              </div>
+            </div>
+          ) : (
+            SHEET_STATUSES.map((s) => {
+              const isCurrent = s.value === booking.status;
+              return (
+                <button
+                  key={s.value}
+                  onClick={() => handleSelect(s.value)}
+                  disabled={!!pending}
+                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm transition ${
+                    isCurrent ? "bg-amber-400/10 text-amber-300" : `${s.color} hover:bg-white/5`
+                  }`}
+                >
+                  <span className="flex-1 text-left">{s.value}</span>
+                  {isCurrent && <Check className="h-4 w-4 flex-shrink-0" />}
+                  {s.value === pending && <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin" />}
+                </button>
+              );
+            })
+          )}
+        </div>
+        <div className="h-8" />
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // ── Mobile driver bottom-sheet picker ────────────────────────────────────────
 function MobileDriverSheet({ booking, drivers, onAssign, onClose }) {
   const [pending, setPending] = useState(false);
@@ -267,6 +352,7 @@ function cardAccent(booking) {
 
 function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign }) {
   const [driverSheetOpen, setDriverSheetOpen] = useState(false);
+  const [statusSheetOpen, setStatusSheetOpen] = useState(false);
   const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
   const isCancelled = booking.status === "Cancelled";
   const statusLabel =
@@ -284,10 +370,10 @@ function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign
           : "border-white/5 bg-white/[0.02]"
       } ${isCancelled ? "opacity-50" : ""}`}
     >
-      {/* Left status accent stripe */}
-      <div className={`absolute left-3 top-4 bottom-4 w-0.5 rounded-full ${cardAccent(booking)}`} />
+      {/* Left accent stripe */}
+      <div className={`absolute left-2.5 top-3 bottom-3 w-0.5 rounded-full ${cardAccent(booking)}`} />
 
-      {/* Full-card tap target — real <button> for iOS */}
+      {/* Full-card tap target */}
       <button
         type="button"
         onClick={() => onSelect(booking)}
@@ -295,15 +381,14 @@ function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign
         aria-label={`View details for ${booking.customer}`}
       />
 
-      <div className="relative z-10 pl-6 pr-3 pb-2.5 pt-3">
-        {/* Top row — pointer-events-none so taps fall through to button */}
+      <div className="relative z-10 pl-5 pr-3 pt-3 pb-2.5">
+        {/* Top row */}
         <div className="pointer-events-none flex items-start gap-2">
           <div className="min-w-0 flex-1">
-            <div className="mb-0.5 flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5">
               {booking.priority && <AlertTriangle className="h-3 w-3 flex-shrink-0 text-red-400" />}
-              <span className="font-mono text-[10px] text-slate-700">{booking.id}</span>
+              <p className="truncate text-sm font-semibold text-white">{booking.customer}</p>
             </div>
-            <p className="text-sm font-semibold leading-snug text-white">{booking.customer}</p>
             <p className="mt-0.5 truncate text-xs text-slate-500">{booking.route}</p>
             {booking.flight && booking.flight !== "—" && (
               <p className="mt-0.5 text-[10px] text-slate-600">✈ {booking.flight}</p>
@@ -311,24 +396,25 @@ function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign
           </div>
           <div className="flex-shrink-0 text-right">
             <p className="text-sm font-bold text-amber-300">{booking.price}</p>
-            <p className="mt-0.5 text-xs text-slate-300">{booking.time}</p>
+            <p className="text-[11px] text-slate-400">{booking.time}</p>
             {booking.pickupTime && (
-              <ETACountdown pickupTime={booking.pickupTime} className="mt-0.5 text-[10px]" />
+              <ETACountdown pickupTime={booking.pickupTime} className="text-[10px]" />
             )}
           </div>
         </div>
 
-        {/* Bottom action bar — interactive elements, pointer-events auto */}
+        {/* Bottom action bar: status pill (tappable) | driver | phone */}
         <div className="mt-2 flex items-center gap-1.5 border-t border-white/5 pt-2">
-          <span
-            className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium pointer-events-none ${bookingStatusColor(booking.status)}`}
+          <button
+            onClick={(e) => { e.stopPropagation(); setStatusSheetOpen(true); }}
+            className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium transition active:opacity-70 ${bookingStatusColor(booking.status)}`}
           >
             {statusLabel}
-          </span>
+          </button>
           <button
             onClick={(e) => { e.stopPropagation(); setDriverSheetOpen(true); }}
             className={`min-w-0 flex-1 truncate text-left text-[11px] transition active:opacity-70 ${
-              booking.driverId ? "text-slate-400 hover:text-slate-200" : "font-medium text-amber-400/80 hover:text-amber-300"
+              booking.driverId ? "text-slate-400" : "font-medium text-amber-400/80"
             }`}
           >
             {booking.driver || "Unassigned"}
@@ -343,16 +429,16 @@ function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign
               <Phone className="h-3 w-3" />
             </a>
           )}
-          <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-            <StatusActionMenu
-              bookingId={booking.id}
-              currentStatus={booking.status}
-              onUpdate={onStatusUpdate}
-              dropUp
-            />
-          </div>
         </div>
       </div>
+
+      {statusSheetOpen && (
+        <MobileStatusSheet
+          booking={booking}
+          onUpdate={onStatusUpdate}
+          onClose={() => setStatusSheetOpen(false)}
+        />
+      )}
       {driverSheetOpen && (
         <MobileDriverSheet
           booking={booking}
@@ -533,13 +619,13 @@ export default function LiveDispatch() {
         )}
 
         {/* Stats strip */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-4">
           {[
             { label: "Active", value: stats.active, color: "text-amber-300", dot: "bg-amber-400" },
             { label: "Completed", value: stats.completed, color: "text-emerald-300", dot: "bg-emerald-400" },
             { label: "Attention", value: stats.pending, color: "text-red-300", dot: "bg-red-400" },
           ].map((s) => (
-            <div key={s.label} className="card flex flex-col items-center gap-0.5 p-3 text-center sm:flex-row sm:gap-5 sm:p-5 sm:text-left">
+            <div key={s.label} className="card flex flex-col items-center gap-0.5 p-2.5 text-center sm:flex-row sm:gap-5 sm:p-5 sm:text-left">
               <div className="flex items-center gap-1 sm:hidden">
                 <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${s.dot}`} />
                 <p className="text-[9px] uppercase tracking-widest text-slate-500">{s.label}</p>
