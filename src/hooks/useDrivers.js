@@ -28,12 +28,29 @@ export function useDrivers() {
     if (!isConfigured) return;
     setLoading(true);
     try {
-      const { data, error: err } = await supabase
-        .from("drivers")
-        .select("*")
-        .order("name");
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const [{ data, error: err }, { data: completedData }] = await Promise.all([
+        supabase.from("drivers").select("*").order("name"),
+        supabase
+          .from("bookings")
+          .select("driver_id")
+          .eq("status", "Completed")
+          .gte("pickup_time", today.toISOString())
+          .lt("pickup_time", tomorrow.toISOString()),
+      ]);
+
       if (err) { setError(err.message); return; }
-      setDrivers(data.map(shapedDriver));
+
+      const completedByDriver = {};
+      completedData?.forEach((b) => {
+        if (b.driver_id) completedByDriver[b.driver_id] = (completedByDriver[b.driver_id] || 0) + 1;
+      });
+
+      setDrivers(data.map((row) => ({ ...shapedDriver(row), completedToday: completedByDriver[row.id] || 0 })));
     } finally {
       setLoading(false);
     }

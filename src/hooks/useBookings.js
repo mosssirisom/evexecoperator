@@ -38,6 +38,7 @@ export function shapedBooking(row) {
     driverId: row.driver_id ?? null,
     price: row.price ? `£${Number(row.price).toFixed(0)}` : "TBC",
     status: row.status,
+    paymentStatus: row.payment_status ?? "Unpaid",
     priority: row.priority ?? false,
     notes: row.notes ?? "",
     updatedAt: row.updated_at ?? null,
@@ -343,5 +344,27 @@ export function useBookings() {
     }
   }, []);
 
-  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, refetch: fetchBookings };
+  // ─── updatePaymentStatus ───────────────────────────────────────────────────
+
+  const updatePaymentStatus = useCallback(async (id, paymentStatus) => {
+    const snapshot = bookingsRef.current;
+    setBookings((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, paymentStatus } : b))
+    );
+
+    if (!isConfigured) return;
+
+    try {
+      const { error: err } = await supabase
+        .from("bookings")
+        .update({ payment_status: paymentStatus })
+        .eq("ref", id);
+      if (err) throw new Error(err.message);
+    } catch (err) {
+      setBookings(snapshot);
+      throw err;
+    }
+  }, []);
+
+  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, updatePaymentStatus, refetch: fetchBookings };
 }

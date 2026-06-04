@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   Bot,
   PhoneMissed,
@@ -6,9 +6,12 @@ import {
   RefreshCw,
   AlertTriangle,
   Zap,
+  Plus,
 } from "lucide-react";
 import { useMissedCalls } from "../hooks/useMissedCalls";
+import { useBookings } from "../hooks/useBookings";
 import { useToast } from "../components/Toast";
+import BookingModal from "../components/BookingModal";
 
 const automations = [
   {
@@ -77,7 +80,7 @@ function AutomationCard({ automation }) {
   );
 }
 
-function MissedCallRow({ call, onResolve }) {
+function MissedCallRow({ call, onResolve, onBook }) {
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-4">
@@ -99,7 +102,6 @@ function MissedCallRow({ call, onResolve }) {
           <p className="text-sm text-white">{call.attempts}</p>
         </div>
         <div className="flex gap-2">
-          {/* Functional tel: link */}
           <a
             href={`tel:${call.caller.replace(/\s/g, "")}`}
             className="flex items-center gap-1.5 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-300 transition hover:bg-emerald-400/20"
@@ -107,6 +109,13 @@ function MissedCallRow({ call, onResolve }) {
             <Phone className="h-3.5 w-3.5" />
             Call
           </a>
+          <button
+            onClick={() => onBook?.(call)}
+            className="flex items-center gap-1.5 rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-300 transition hover:bg-amber-400/20"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Book
+          </button>
           <button
             onClick={() => onResolve?.(call.id)}
             className="rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-400 transition hover:border-amber-400/20 hover:text-amber-300"
@@ -121,6 +130,8 @@ function MissedCallRow({ call, onResolve }) {
 
 export default function AutomatedBookings() {
   const [activeTab, setActiveTab] = useState("queue");
+  const [bookingPrefill, setBookingPrefill] = useState(null);
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const toast = useToast();
   const {
     calls: missedCalls,
@@ -129,6 +140,7 @@ export default function AutomatedBookings() {
     resolve,
     refetch,
   } = useMissedCalls();
+  const { createBooking } = useBookings();
 
   const activeAutomations = automations.filter((a) => a.status === "Active").length;
 
@@ -141,7 +153,25 @@ export default function AutomatedBookings() {
     }
   }
 
+  const handleBook = useCallback((call) => {
+    setBookingPrefill({ phone: call.caller });
+    setBookingModalOpen(true);
+  }, []);
+
+  const handleCreateBooking = useCallback(async (form) => {
+    const result = await createBooking(form);
+    toast({ message: `Booking ${result.ref} created`, type: "success" });
+    return result;
+  }, [createBooking, toast]);
+
   return (
+    <>
+    <BookingModal
+      open={bookingModalOpen}
+      onClose={() => { setBookingModalOpen(false); setBookingPrefill(null); }}
+      onSubmit={handleCreateBooking}
+      initialValues={bookingPrefill}
+    />
     <div className="grid gap-6 p-4 sm:p-6 lg:p-10">
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4">
@@ -234,7 +264,7 @@ export default function AutomatedBookings() {
           ) : (
             <div className="space-y-3">
               {missedCalls.map((call) => (
-                <MissedCallRow key={call.id} call={call} onResolve={resolve} />
+                <MissedCallRow key={call.id} call={call} onResolve={resolve} onBook={handleBook} />
               ))}
               {missedCalls.length === 0 && (
                 <p className="py-8 text-center text-sm text-slate-600">
@@ -276,5 +306,6 @@ export default function AutomatedBookings() {
         </div>
       )}
     </div>
+    </>
   );
 }

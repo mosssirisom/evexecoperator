@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   X, Phone, Mail, Plane, MapPin, Clock, Car, PoundSterling,
   User, AlertTriangle, FileText, ChevronDown, Check, Edit3, Loader2, RefreshCw,
+  CreditCard,
 } from "lucide-react";
 import { bookingStatusColor } from "../lib/statusColor";
 import ETACountdown from "./ETACountdown";
@@ -212,6 +213,36 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
   );
 }
 
+const PAYMENT_STATES = [
+  { value: "Unpaid",   color: "border-red-400/30 bg-red-400/10 text-red-300",         dot: "bg-red-400" },
+  { value: "Invoiced", color: "border-amber-400/30 bg-amber-400/10 text-amber-300",   dot: "bg-amber-400" },
+  { value: "Paid",     color: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300", dot: "bg-emerald-400" },
+];
+
+function PaymentBadge({ paymentStatus, onUpdate }) {
+  const [pending, setPending] = useState(false);
+  const current = PAYMENT_STATES.find((s) => s.value === paymentStatus) ?? PAYMENT_STATES[0];
+  const next = PAYMENT_STATES[(PAYMENT_STATES.indexOf(current) + 1) % PAYMENT_STATES.length];
+
+  const handleClick = async () => {
+    if (pending) return;
+    setPending(true);
+    try { await onUpdate?.(next.value); } finally { setPending(false); }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={pending}
+      title={`Payment: ${current.value} — click to mark as ${next.value}`}
+      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50 ${current.color}`}
+    >
+      {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <span className={`h-2 w-2 rounded-full ${current.dot}`} />}
+      {current.value}
+    </button>
+  );
+}
+
 export default function BookingDetailDrawer({
   booking,
   drivers = [],
@@ -220,6 +251,7 @@ export default function BookingDetailDrawer({
   onAssignDriver,
   onUpdateNotes,
   onTogglePriority,
+  onUpdatePaymentStatus,
   onCreateReturn,
 }) {
   const [notes, setNotes] = useState(booking?.notes ?? "");
@@ -398,6 +430,18 @@ export default function BookingDetailDrawer({
                     : booking.time !== "—" ? booking.time : null
                 } />
                 <Row icon={PoundSterling} label="Price" value={booking.price} />
+                <div className="flex items-start gap-3">
+                  <CreditCard className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-600" />
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Payment</p>
+                    <div className="mt-1.5">
+                      <PaymentBadge
+                        paymentStatus={booking.paymentStatus ?? "Unpaid"}
+                        onUpdate={(ps) => onUpdatePaymentStatus?.(booking.id, ps)}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 

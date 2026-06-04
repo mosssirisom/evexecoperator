@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { TrendingUp, Leaf, PoundSterling, Users, Calendar } from "lucide-react";
+import { TrendingUp, Leaf, PoundSterling, Users, Calendar, Trophy, PieChart, CheckCircle2 } from "lucide-react";
 import { useBookings } from "../hooks/useBookings";
+import { useDrivers } from "../hooks/useDrivers";
 
 const PERIODS = ["Today", "7 Days", "30 Days", "All Time"];
 
@@ -22,9 +23,20 @@ function BarChart({ bars }) {
   );
 }
 
+const STATUS_COLORS = {
+  "Completed":                  { bar: "bg-emerald-400", text: "text-emerald-300" },
+  "Dispatched":                 { bar: "bg-amber-400",   text: "text-amber-300"   },
+  "En Route":                   { bar: "bg-blue-400",    text: "text-blue-300"    },
+  "Passenger On Board":         { bar: "bg-purple-400",  text: "text-purple-300"  },
+  "Unassigned":                 { bar: "bg-slate-500",   text: "text-slate-400"   },
+  "Cancelled":                  { bar: "bg-red-500",     text: "text-red-400"     },
+  "Unassigned / Missed Call Recovery": { bar: "bg-orange-500", text: "text-orange-400" },
+};
+
 export default function Analytics() {
   const [period, setPeriod] = useState("7 Days");
   const { bookings } = useBookings();
+  const { drivers } = useDrivers();
 
   const parsePrice = (b) => parseFloat(String(b.price).replace("£", "")) || 0;
 
@@ -209,6 +221,43 @@ export default function Analytics() {
       .slice(0, 5);
   }, [bookings]);
 
+  const statusBreakdown = useMemo(() => {
+    const map = {};
+    bookings.forEach((b) => {
+      map[b.status] = (map[b.status] || 0) + 1;
+    });
+    return Object.entries(map)
+      .map(([status, count]) => ({ status, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [bookings]);
+
+  const driverLeaderboard = useMemo(() => {
+    const completedMap = {};
+    const revenueMap = {};
+    bookings.forEach((b) => {
+      if (!b.driverId) return;
+      completedMap[b.driverId] = (completedMap[b.driverId] || 0) + (b.status === "Completed" ? 1 : 0);
+      revenueMap[b.driverId] = (revenueMap[b.driverId] || 0) + (b.status === "Completed" ? parsePrice(b) : 0);
+    });
+    return drivers
+      .map((d) => ({
+        id: d.id,
+        name: d.name,
+        vehicle: d.vehicle,
+        completed: completedMap[d.id] || 0,
+        revenue: revenueMap[d.id] || 0,
+        completedToday: d.completedToday || 0,
+      }))
+      .sort((a, b) => b.completed - a.completed)
+      .slice(0, 5);
+  }, [bookings, drivers]);
+
+  const cancellationRate = useMemo(() => {
+    const total = bookings.length;
+    const cancelled = bookings.filter((b) => b.status === "Cancelled").length;
+    return total > 0 ? Math.round((cancelled / total) * 100) : 0;
+  }, [bookings]);
+
   return (
     <div className="grid gap-6 p-4 sm:p-6 lg:p-10">
       {/* Period selector */}
@@ -276,6 +325,24 @@ export default function Analytics() {
         ))}
       </div>
 
+      {/* Cancellation rate inline stat */}
+      {bookings.length > 0 && (
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4">
+          <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+          <span className="text-sm text-slate-400">
+            Cancellation rate: <span className={`font-semibold ${cancellationRate > 10 ? "text-red-300" : "text-emerald-300"}`}>{cancellationRate}%</span>
+          </span>
+          <span className="text-slate-700">·</span>
+          <span className="text-sm text-slate-400">
+            Completed: <span className="font-semibold text-emerald-300">{bookings.filter((b) => b.status === "Completed").length}</span>
+          </span>
+          <span className="text-slate-700">·</span>
+          <span className="text-sm text-slate-400">
+            Active now: <span className="font-semibold text-amber-300">{bookings.filter((b) => ["Dispatched","En Route","Passenger On Board"].includes(b.status)).length}</span>
+          </span>
+        </div>
+      )}
+
       {/* Charts row */}
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         {/* Revenue bar chart */}
@@ -332,6 +399,85 @@ export default function Analytics() {
                     />
                   </div>
                   <p className="mt-1 text-right text-[10px] text-slate-600">{r.count} job{r.count !== 1 ? "s" : ""}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom row: Status breakdown + Driver leaderboard */}
+      <div className="grid gap-6 xl:grid-cols-2">
+        {/* Status breakdown */}
+        <div className="card p-5 sm:p-6">
+          <div className="mb-6 flex items-center gap-3">
+            <PieChart className="h-4 w-4 text-amber-400" />
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Breakdown</p>
+              <h2 className="mt-1 text-xl font-semibold text-white">Jobs by Status</h2>
+            </div>
+          </div>
+          {statusBreakdown.length === 0 ? (
+            <p className="py-10 text-center text-sm text-slate-600">No data yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {statusBreakdown.map(({ status, count }) => {
+                const pct = Math.round((count / bookings.length) * 100);
+                const c = STATUS_COLORS[status] ?? { bar: "bg-slate-500", text: "text-slate-400" };
+                return (
+                  <div key={status}>
+                    <div className="mb-1.5 flex items-center justify-between gap-4 text-xs">
+                      <span className={`font-medium ${c.text}`}>{status}</span>
+                      <span className="flex-shrink-0 text-slate-500">{count} job{count !== 1 ? "s" : ""} · {pct}%</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-white/5">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${c.bar} opacity-60`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Driver leaderboard */}
+        <div className="card p-5 sm:p-6">
+          <div className="mb-6 flex items-center gap-3">
+            <Trophy className="h-4 w-4 text-amber-400" />
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Performance</p>
+              <h2 className="mt-1 text-xl font-semibold text-white">Driver Leaderboard</h2>
+            </div>
+          </div>
+          {driverLeaderboard.length === 0 ? (
+            <p className="py-10 text-center text-sm text-slate-600">No drivers yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {driverLeaderboard.map((d, i) => (
+                <div key={d.id} className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3">
+                  <span className={`w-5 flex-shrink-0 text-center text-sm font-bold ${
+                    i === 0 ? "text-amber-300" : i === 1 ? "text-slate-300" : "text-slate-600"
+                  }`}>
+                    {i + 1}
+                  </span>
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-amber-400/10 text-xs font-semibold text-amber-300">
+                    {d.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-white">{d.name}</p>
+                    <p className="truncate text-xs text-slate-600">{d.vehicle}</p>
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    <p className="text-sm font-semibold text-emerald-300">{d.completed} jobs</p>
+                    <p className="text-xs text-slate-600">£{d.revenue.toLocaleString()}</p>
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    <p className="text-xs font-semibold text-amber-300">{d.completedToday}</p>
+                    <p className="text-[10px] text-slate-700">today</p>
+                  </div>
                 </div>
               ))}
             </div>

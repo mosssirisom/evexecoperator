@@ -462,6 +462,7 @@ export default function LiveDispatch() {
   const [modalOpen, setModalOpen] = useState(false);
   const [returnPrefill, setReturnPrefill] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const searchRef = useRef(null);
 
   const toast = useToast();
   const {
@@ -476,6 +477,7 @@ export default function LiveDispatch() {
     assignDriver,
     updateNotes,
     togglePriority,
+    updatePaymentStatus,
   } = useBookings();
   const { drivers } = useDrivers();
 
@@ -485,14 +487,24 @@ export default function LiveDispatch() {
     if (searchParams.get("view") === "schedule") setView("schedule");
   }, [searchParams]);
 
-  // "N" keyboard shortcut opens the new booking modal
+  // Keyboard shortcuts: N = new booking, / or F = focus search
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key !== "n" || modalOpen || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+      if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
       const tag = document.activeElement?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      e.preventDefault();
-      setModalOpen(true);
+      const inInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+
+      if (e.key === "n" && !modalOpen && !inInput) {
+        e.preventDefault();
+        setModalOpen(true);
+        return;
+      }
+
+      if ((e.key === "/" || e.key === "f") && !inInput) {
+        e.preventDefault();
+        searchRef.current?.focus();
+        return;
+      }
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
@@ -544,6 +556,15 @@ export default function LiveDispatch() {
     toast({ message: `Booking ${result.ref} created`, type: "success" });
     return result;
   }, [createBooking, toast]);
+
+  const handleUpdatePaymentStatus = useCallback(async (id, ps) => {
+    try {
+      await updatePaymentStatus(id, ps);
+      setSelectedBooking((prev) => (prev?.id === id ? { ...prev, paymentStatus: ps } : prev));
+    } catch (err) {
+      toast({ message: err?.message ?? "Failed to update payment status", type: "error" });
+    }
+  }, [updatePaymentStatus, toast]);
 
   const handleCreateReturn = useCallback((booking) => {
     const flip = (dir) =>
@@ -637,6 +658,7 @@ export default function LiveDispatch() {
           onAssignDriver={handleAssignDriver}
           onUpdateNotes={handleUpdateNotes}
           onTogglePriority={handleTogglePriority}
+          onUpdatePaymentStatus={handleUpdatePaymentStatus}
           onCreateReturn={handleCreateReturn}
         />
       )}
@@ -751,10 +773,11 @@ export default function LiveDispatch() {
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" />
                   <input
+                    ref={searchRef}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search customer, flight, ref…"
-                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-2.5 pl-9 pr-9 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-amber-400/30 sm:py-3 lg:w-64"
+                    placeholder="Search customer, flight, ref… (/)"
+                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-2.5 pl-9 pr-9 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-amber-400/30 sm:py-3 lg:w-72"
                   />
                   {search && (
                     <button
