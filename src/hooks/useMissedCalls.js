@@ -56,5 +56,21 @@ export function useMissedCalls() {
     await fetchCalls();
   }, [fetchCalls]);
 
-  return { calls, loading, error, resolve, refetch: fetchCalls };
+  const resolveAll = useCallback(async () => {
+    if (!isConfigured) {
+      setCalls([]);
+      return;
+    }
+    const { error: err } = await supabase
+      .from("missed_calls")
+      .update({ resolved: true })
+      .eq("resolved", false);
+    if (err) {
+      setError(err.message);
+      throw new Error(err.message);
+    }
+    await fetchCalls();
+  }, [fetchCalls]);
+
+  return { calls, loading, error, resolve, resolveAll, refetch: fetchCalls };
 }

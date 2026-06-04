@@ -372,6 +372,8 @@ function SecuritySettings({ state, set }) {
   );
 }
 
+const STORAGE_KEY = "evexec_settings";
+
 const INITIAL = {
   business: {
     name: "EV Exec",
@@ -404,9 +406,25 @@ const INITIAL = {
   },
 };
 
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return INITIAL;
+    const saved = JSON.parse(raw);
+    return {
+      business: { ...INITIAL.business, ...saved.business },
+      notifications: { ...INITIAL.notifications, ...saved.notifications },
+      fleet: { ...INITIAL.fleet, ...saved.fleet },
+      security: { ...INITIAL.security, ...saved.security },
+    };
+  } catch {
+    return INITIAL;
+  }
+}
+
 export default function Settings() {
   const [active, setActive] = useState("business");
-  const [settings, setSettings] = useState(INITIAL);
+  const [settings, setSettings] = useState(loadSettings);
   const toast = useToast();
 
   function set(section) {
@@ -418,7 +436,12 @@ export default function Settings() {
   }
 
   function handleSave() {
-    toast({ message: "Settings saved successfully", type: "success" });
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      toast({ message: "Settings saved successfully", type: "success" });
+    } catch {
+      toast({ message: "Failed to save — storage may be full", type: "error" });
+    }
   }
 
   const sectionContent = {

@@ -16,7 +16,7 @@ const pageMeta = {
   "/settings": { label: "System", title: "Settings" },
 };
 
-function NotificationPopover({ calls, onClose, onNavigate }) {
+function NotificationPopover({ calls, onClose, onNavigate, onResolve, onResolveAll }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -32,9 +32,20 @@ function NotificationPopover({ calls, onClose, onNavigate }) {
     >
       <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400">Alerts</p>
-        <button onClick={onClose} className="text-slate-500 hover:text-white transition">
-          <X className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex items-center gap-2">
+          {calls.length > 0 && (
+            <button
+              onClick={onResolveAll}
+              className="text-[10px] text-slate-400 hover:text-amber-300 transition"
+              title="Mark all as read"
+            >
+              Mark all read
+            </button>
+          )}
+          <button onClick={onClose} className="text-slate-500 hover:text-white transition">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
       <div className="max-h-72 overflow-y-auto">
         {calls.length === 0 ? (
@@ -48,6 +59,13 @@ function NotificationPopover({ calls, onClose, onNavigate }) {
                 <p className="mt-0.5 text-xs text-slate-500 truncate">{c.notes || "Missed call"}</p>
                 <p className="mt-0.5 text-[10px] text-slate-600">{c.time}</p>
               </div>
+              <button
+                onClick={() => onResolve(c.id)}
+                className="mt-0.5 flex-shrink-0 text-slate-600 hover:text-white transition"
+                title="Dismiss"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
             </div>
           ))
         )}
@@ -70,7 +88,7 @@ export default function Layout() {
   const meta = pageMeta[pathname] ?? pageMeta["/"];
   const [searchOpen, setSearchOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
-  const { calls } = useMissedCalls();
+  const { calls, resolve, resolveAll } = useMissedCalls();
   const alertCount = calls.length;
 
   // Keep browser tab title in sync with the active page
@@ -183,6 +201,8 @@ export default function Layout() {
                     calls={calls}
                     onClose={() => setBellOpen(false)}
                     onNavigate={() => { setBellOpen(false); navigate("/bookings"); }}
+                    onResolve={resolve}
+                    onResolveAll={resolveAll}
                   />
                 )}
               </div>
