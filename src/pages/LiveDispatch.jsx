@@ -17,7 +17,7 @@ import DispatchButton from "../components/DispatchButton";
 import BookingDetailDrawer from "../components/BookingDetailDrawer";
 import ETACountdown from "../components/ETACountdown";
 import {
-  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2,
+  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2, Phone, ChevronDown,
 } from "lucide-react";
 import { useToast } from "../components/Toast";
 import { useBookings } from "../hooks/useBookings";
@@ -176,24 +176,33 @@ function ScheduleRow({ booking, onSelect }) {
 }
 
 // ── Mobile booking card ───────────────────────────────────────────────────────
-// Uses an invisible <button> overlay for iOS tap compatibility (iOS only fires
-// click on elements that are either <button>, <a>, or have cursor:pointer + onclick).
-// The overlay button sits behind the card content at z-0; interactive children
-// are z-10 so they receive their own events without propagating to the overlay.
+function cardAccent(booking) {
+  if (booking.priority) return "bg-red-500";
+  if (["Dispatched", "En Route", "Passenger On Board"].includes(booking.status)) return "bg-amber-400";
+  if (booking.status === "Completed") return "bg-emerald-400";
+  if (booking.status === "Cancelled") return "bg-slate-700";
+  return "bg-slate-600/50";
+}
+
 function BookingCard({ booking, onSelect, onStatusUpdate }) {
   const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
+  const isCancelled = booking.status === "Cancelled";
+  const statusLabel = booking.status === "Unassigned / Missed Call Recovery" ? "Missed Call" : booking.status;
 
   return (
     <div
-      className={`relative w-full overflow-visible rounded-2xl border p-4 transition ${
+      className={`relative overflow-visible rounded-2xl border transition ${
         booking.priority
           ? "border-red-500/20 bg-red-500/[0.04]"
           : isActive
-          ? "border-amber-400/20 bg-amber-400/[0.03]"
+          ? "border-amber-400/15 bg-amber-400/[0.03]"
           : "border-white/5 bg-white/[0.02]"
-      }`}
+      } ${isCancelled ? "opacity-50" : ""}`}
     >
-      {/* Invisible full-card tap target — a real <button> so iOS registers the tap */}
+      {/* Left status accent stripe */}
+      <div className={`absolute left-3 top-4 bottom-4 w-0.5 rounded-full ${cardAccent(booking)}`} />
+
+      {/* Full-card tap target — real <button> for iOS */}
       <button
         type="button"
         onClick={() => onSelect(booking)}
@@ -201,39 +210,61 @@ function BookingCard({ booking, onSelect, onStatusUpdate }) {
         aria-label={`View details for ${booking.customer}`}
       />
 
-      {/* Card content — z-10 so it renders above the tap target */}
-      <div className="relative z-10">
-        {/* Top row: info + price/time (pointer-events-none so taps reach the button) */}
-        <div className="pointer-events-none flex items-start justify-between gap-3">
+      <div className="relative z-10 pl-6 pr-4 pb-3 pt-4">
+        {/* Top row — pointer-events-none so taps fall through to button */}
+        <div className="pointer-events-none flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <div className="mb-1.5 flex flex-wrap items-center gap-2">
+            <div className="mb-1 flex items-center gap-2">
               {booking.priority && <AlertTriangle className="h-3 w-3 flex-shrink-0 text-red-400" />}
-              <span className="font-mono text-[10px] text-slate-500">{booking.id}</span>
-              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${bookingStatusColor(booking.status)}`}>
-                {booking.status === "Unassigned / Missed Call Recovery" ? "Missed Call" : booking.status}
-              </span>
+              <span className="font-mono text-[10px] text-slate-600">{booking.id}</span>
             </div>
-            <p className="text-sm font-semibold text-white">{booking.customer}</p>
+            <p className="text-sm font-semibold leading-snug text-white">{booking.customer}</p>
             <p className="mt-0.5 truncate text-xs text-slate-500">{booking.route}</p>
+            {booking.flight && booking.flight !== "—" && (
+              <p className="mt-0.5 text-[10px] text-slate-600">✈ {booking.flight}</p>
+            )}
           </div>
           <div className="flex-shrink-0 text-right">
-            <p className="text-base font-semibold text-amber-300">{booking.price}</p>
-            <p className="mt-0.5 text-xs text-slate-500">{booking.time}</p>
-            {booking.pickupTime && <ETACountdown pickupTime={booking.pickupTime} className="mt-0.5 text-[10px]" />}
+            <p className="text-base font-bold text-amber-300">{booking.price}</p>
+            <p className="mt-0.5 text-xs text-white">{booking.time}</p>
+            {booking.pickupTime && (
+              <ETACountdown pickupTime={booking.pickupTime} className="mt-0.5 text-[10px]" />
+            )}
           </div>
         </div>
 
-        {/* Bottom row: driver name + status menu — pointer-events auto for interaction */}
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/5 pt-3">
-          <p className={`pointer-events-none truncate text-xs ${booking.driver && booking.driver !== "Unassigned" ? "text-slate-400" : "font-medium text-amber-400/80"}`}>
+        {/* Bottom action bar — interactive elements, pointer-events auto */}
+        <div className="mt-3 flex items-center gap-2 border-t border-white/5 pt-2.5">
+          <span
+            className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium pointer-events-none ${bookingStatusColor(booking.status)}`}
+          >
+            {statusLabel}
+          </span>
+          <p
+            className={`min-w-0 flex-1 truncate text-xs pointer-events-none ${
+              booking.driverId ? "text-slate-400" : "font-medium text-amber-400/80"
+            }`}
+          >
             {booking.driver || "Unassigned"}
           </p>
-          <StatusActionMenu
-            bookingId={booking.id}
-            currentStatus={booking.status}
-            onUpdate={onStatusUpdate}
-            dropUp
-          />
+          {booking.phone && (
+            <a
+              href={`tel:${booking.phone}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-emerald-400/25 bg-emerald-400/10 text-emerald-300 transition active:bg-emerald-400/20"
+              aria-label={`Call ${booking.customer}`}
+            >
+              <Phone className="h-3.5 w-3.5" />
+            </a>
+          )}
+          <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+            <StatusActionMenu
+              bookingId={booking.id}
+              currentStatus={booking.status}
+              onUpdate={onStatusUpdate}
+              dropUp
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -410,13 +441,17 @@ export default function LiveDispatch() {
         {/* Stats strip */}
         <div className="grid grid-cols-3 gap-3 sm:gap-4">
           {[
-            { label: "Active", value: stats.active, color: "text-amber-300" },
-            { label: "Completed", value: stats.completed, color: "text-emerald-300" },
-            { label: "Attention", value: stats.pending, color: "text-red-300" },
+            { label: "Active", value: stats.active, color: "text-amber-300", dot: "bg-amber-400" },
+            { label: "Completed", value: stats.completed, color: "text-emerald-300", dot: "bg-emerald-400" },
+            { label: "Attention", value: stats.pending, color: "text-red-300", dot: "bg-red-400" },
           ].map((s) => (
             <div key={s.label} className="card flex flex-col items-center gap-1 p-4 text-center sm:flex-row sm:gap-5 sm:p-5 sm:text-left">
-              <p className={`text-2xl font-semibold sm:text-4xl ${s.color}`}>{s.value}</p>
-              <p className="text-[11px] text-slate-400 sm:text-sm">{s.label}</p>
+              <div className="flex items-center gap-1.5 sm:hidden">
+                <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
+                <p className="text-[10px] uppercase tracking-widest text-slate-500">{s.label}</p>
+              </div>
+              <p className={`text-3xl font-bold sm:text-4xl ${s.color}`}>{s.value}</p>
+              <p className="hidden text-sm text-slate-400 sm:block">{s.label}</p>
             </div>
           ))}
         </div>
@@ -434,6 +469,11 @@ export default function LiveDispatch() {
             >
               <List className="h-4 w-4" />
               Board
+              {activeFilter !== "All" && filtered.length > 0 && (
+                <span className="rounded-full bg-amber-400/20 px-1.5 text-xs text-amber-300">
+                  {filtered.length}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setView("schedule")}
@@ -452,10 +492,11 @@ export default function LiveDispatch() {
               )}
             </button>
           </div>
+          {/* Desktop new booking button */}
           <button
             onClick={() => setModalOpen(true)}
             title="New Booking (N)"
-            className="rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
+            className="hidden rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400 sm:block"
           >
             + New Booking
           </button>
@@ -517,7 +558,7 @@ export default function LiveDispatch() {
                 {/* Status filter chips — horizontally scrollable */}
                 <div className="flex items-center gap-2">
                   <Filter className="h-3.5 w-3.5 flex-shrink-0 text-slate-500" />
-                  <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {STATUS_FILTERS.map((f) => (
                       <button
                         key={f}
@@ -532,6 +573,15 @@ export default function LiveDispatch() {
                       </button>
                     ))}
                   </div>
+                  {activeFilter !== "All" && (
+                    <button
+                      onClick={() => setActiveFilter("All")}
+                      className="flex-shrink-0 text-slate-600 hover:text-white transition"
+                      title="Clear filter"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -668,6 +718,14 @@ export default function LiveDispatch() {
           </div>
         )}
       </div>
+
+      {/* Mobile floating "+ New Booking" button */}
+      <button
+        onClick={() => setModalOpen(true)}
+        className="fixed bottom-24 right-4 z-40 flex items-center gap-2 rounded-2xl bg-amber-500 px-5 py-3.5 text-sm font-bold text-black shadow-2xl shadow-amber-500/30 transition active:scale-95 sm:hidden"
+      >
+        + New Booking
+      </button>
     </>
   );
 }
