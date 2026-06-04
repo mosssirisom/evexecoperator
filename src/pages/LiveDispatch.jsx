@@ -17,7 +17,7 @@ import DispatchButton from "../components/DispatchButton";
 import BookingDetailDrawer from "../components/BookingDetailDrawer";
 import ETACountdown from "../components/ETACountdown";
 import {
-  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2, Phone, ChevronDown,
+  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2, Phone, ChevronDown, Check, Car,
 } from "lucide-react";
 import { useToast } from "../components/Toast";
 import { useBookings } from "../hooks/useBookings";
@@ -175,6 +175,87 @@ function ScheduleRow({ booking, onSelect }) {
   );
 }
 
+// ── Mobile driver bottom-sheet picker ────────────────────────────────────────
+function MobileDriverSheet({ booking, drivers, onAssign, onClose }) {
+  const [pending, setPending] = useState(false);
+
+  const handleSelect = async (driverId) => {
+    if (driverId === booking.driverId) { onClose(); return; }
+    setPending(true);
+    try {
+      await onAssign(booking.id, driverId);
+      onClose();
+    } catch {
+      setPending(false);
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-end sm:hidden">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full rounded-t-[28px] border-t border-white/10 bg-[#070D1F]">
+        {/* Drag handle */}
+        <div className="flex justify-center pb-1 pt-3">
+          <div className="h-1 w-12 rounded-full bg-white/20" />
+        </div>
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-amber-400">Assign Driver</p>
+            <p className="mt-0.5 text-sm font-semibold text-white">{booking.customer}</p>
+          </div>
+          <button onClick={onClose} className="text-slate-500 transition hover:text-white">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        {/* Driver options */}
+        <div className="max-h-72 overflow-y-auto px-3 py-2">
+          {/* Unassigned */}
+          <button
+            onClick={() => handleSelect(null)}
+            disabled={pending}
+            className={`flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-sm transition ${
+              !booking.driverId ? "bg-amber-400/10 text-amber-300" : "text-slate-400 hover:bg-white/5"
+            }`}
+          >
+            <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-slate-700" />
+            <span className="flex-1 text-left">Unassigned</span>
+            {!booking.driverId && <Check className="h-4 w-4 flex-shrink-0" />}
+          </button>
+          {/* Drivers */}
+          {drivers.map((d) => {
+            const isCurrent = d.id === booking.driverId;
+            return (
+              <button
+                key={d.id}
+                onClick={() => handleSelect(d.id)}
+                disabled={pending}
+                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-sm transition ${
+                  isCurrent ? "bg-amber-400/10 text-amber-300" : "text-slate-300 hover:bg-white/5"
+                }`}
+              >
+                <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${driverDot(d.status)}`} />
+                <span className="flex-1 text-left font-medium">{d.name}</span>
+                <span className="text-xs text-slate-600">{d.vehicle || d.status}</span>
+                {isCurrent && <Check className="h-4 w-4 flex-shrink-0 ml-1" />}
+              </button>
+            );
+          })}
+          {pending && (
+            <div className="flex items-center justify-center gap-2 py-4 text-xs text-slate-500">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Assigning…
+            </div>
+          )}
+        </div>
+        {/* iOS safe-area spacer */}
+        <div className="h-8" />
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // ── Mobile booking card ───────────────────────────────────────────────────────
 function cardAccent(booking) {
   if (booking.priority) return "bg-red-500";
@@ -184,7 +265,8 @@ function cardAccent(booking) {
   return "bg-slate-600/50";
 }
 
-function BookingCard({ booking, onSelect, onStatusUpdate }) {
+function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign }) {
+  const [driverSheetOpen, setDriverSheetOpen] = useState(false);
   const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
   const isCancelled = booking.status === "Cancelled";
   const statusLabel = booking.status === "Unassigned / Missed Call Recovery" ? "Missed Call" : booking.status;
@@ -240,13 +322,14 @@ function BookingCard({ booking, onSelect, onStatusUpdate }) {
           >
             {statusLabel}
           </span>
-          <p
-            className={`min-w-0 flex-1 truncate text-xs pointer-events-none ${
-              booking.driverId ? "text-slate-400" : "font-medium text-amber-400/80"
+          <button
+            onClick={(e) => { e.stopPropagation(); setDriverSheetOpen(true); }}
+            className={`min-w-0 flex-1 truncate text-left text-xs transition active:opacity-70 ${
+              booking.driverId ? "text-slate-400 hover:text-slate-200" : "font-medium text-amber-400/80 hover:text-amber-300"
             }`}
           >
             {booking.driver || "Unassigned"}
-          </p>
+          </button>
           {booking.phone && (
             <a
               href={`tel:${booking.phone}`}
@@ -267,6 +350,14 @@ function BookingCard({ booking, onSelect, onStatusUpdate }) {
           </div>
         </div>
       </div>
+      {driverSheetOpen && (
+        <MobileDriverSheet
+          booking={booking}
+          drivers={drivers}
+          onAssign={onAssign}
+          onClose={() => setDriverSheetOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -601,6 +692,8 @@ export default function LiveDispatch() {
                       booking={t}
                       onSelect={setSelectedBooking}
                       onStatusUpdate={handleStatusUpdate}
+                      drivers={drivers}
+                      onAssign={handleAssignDriver}
                     />
                   ))}
               {!loading && filtered.length === 0 && (
