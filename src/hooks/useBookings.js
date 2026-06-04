@@ -250,11 +250,31 @@ export function useBookings() {
   // ─── assignDriver ──────────────────────────────────────────────────────────
 
   const assignDriver = useCallback(async (id, driverId, driverName) => {
+    const current = bookingsRef.current.find((b) => b.id === id);
+    const currentStatus = current?.status ?? "";
+
+    // Auto-transition status when driver assignment changes
+    let newStatus = null;
+    if (driverId) {
+      if (currentStatus === "Unassigned" || currentStatus === "Unassigned / Missed Call Recovery") {
+        newStatus = "Dispatched";
+      }
+    } else {
+      if (currentStatus === "Dispatched" || currentStatus === "Unassigned / Missed Call Recovery") {
+        newStatus = "Unassigned";
+      }
+    }
+
     const snapshot = bookingsRef.current;
     setBookings((prev) =>
       prev.map((b) =>
         b.id === id
-          ? { ...b, driverId: driverId || null, driver: driverName ?? (driverId ? b.driver : "Unassigned") }
+          ? {
+              ...b,
+              driverId: driverId || null,
+              driver: driverName ?? (driverId ? b.driver : "Unassigned"),
+              ...(newStatus ? { status: newStatus } : {}),
+            }
           : b
       )
     );
@@ -262,9 +282,12 @@ export function useBookings() {
     if (!isConfigured) return;
 
     try {
+      const update = { driver_id: driverId || null };
+      if (newStatus) update.status = newStatus;
+
       const { error: err } = await supabase
         .from("bookings")
-        .update({ driver_id: driverId || null })
+        .update(update)
         .eq("ref", id);
       if (err) throw new Error(err.message);
     } catch (err) {
