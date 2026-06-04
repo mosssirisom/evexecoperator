@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 
 // Delays filtering until the user stops typing, avoiding expensive re-renders on each keystroke
@@ -16,12 +17,114 @@ import DispatchButton from "../components/DispatchButton";
 import BookingDetailDrawer from "../components/BookingDetailDrawer";
 import ETACountdown from "../components/ETACountdown";
 import {
-  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle,
+  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2,
 } from "lucide-react";
 import { useToast } from "../components/Toast";
 import { useBookings } from "../hooks/useBookings";
 import { useDrivers } from "../hooks/useDrivers";
 import { bookingStatusColor } from "../lib/statusColor";
+
+function driverDot(status) {
+  if (status === "Available") return "bg-emerald-400";
+  if (status === "On Trip") return "bg-amber-400";
+  return "bg-slate-600";
+}
+
+// Renders in a portal so the dropdown escapes the overflow-x-auto table wrapper
+function InlineDriverCell({ bookingId, currentDriverId, drivers, onAssign }) {
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef(null);
+  const dropRef = useRef(null);
+  const current = drivers.find((d) => d.id === currentDriverId);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e) => {
+      if (!btnRef.current?.contains(e.target) && !dropRef.current?.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", h);
+    return () => document.removeEventListener("pointerdown", h);
+  }, [open]);
+
+  const handleOpen = () => {
+    if (pending) return;
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 4, left: r.left });
+    }
+    setOpen((v) => !v);
+  };
+
+  const handleAssign = async (dId) => {
+    setOpen(false);
+    setPending(true);
+    try { await onAssign(bookingId, dId); } finally { setPending(false); }
+  };
+
+  return (
+    <div>
+      <button
+        ref={btnRef}
+        onClick={handleOpen}
+        disabled={pending}
+        className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs transition hover:bg-white/5 disabled:opacity-50 ${
+          current ? "text-slate-300" : "font-medium text-amber-400 hover:text-amber-300"
+        }`}
+      >
+        {pending ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : current ? (
+          <>
+            <span className={`h-2 w-2 flex-shrink-0 rounded-full ${driverDot(current.status)}`} />
+            {current.name}
+          </>
+        ) : (
+          <span className="rounded-full border border-dashed border-amber-400/40 px-2 py-0.5">
+            + Assign
+          </span>
+        )}
+      </button>
+      {open &&
+        !pending &&
+        createPortal(
+          <div
+            ref={dropRef}
+            className="fixed z-[200] w-56 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl"
+            style={{ top: pos.top, left: pos.left }}
+          >
+            <button
+              onClick={() => handleAssign(null)}
+              className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-white/5 ${
+                !currentDriverId ? "text-amber-300" : "text-slate-500"
+              }`}
+            >
+              <span className="h-2 w-2 rounded-full bg-slate-700" />
+              Unassigned
+            </button>
+            {drivers.length > 0 && <div className="mx-4 my-1 border-t border-white/5" />}
+            {drivers.map((d) => (
+              <button
+                key={d.id}
+                onClick={() => handleAssign(d.id)}
+                className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-white/5 ${
+                  d.id === currentDriverId ? "text-amber-300" : "text-slate-300"
+                }`}
+              >
+                <span className={`h-2 w-2 flex-shrink-0 rounded-full ${driverDot(d.status)}`} />
+                <span className="flex-1 text-left">{d.name}</span>
+                <span className="text-slate-600">{d.vehicle || d.status}</span>
+              </button>
+            ))}
+          </div>,
+          document.body
+        )}
+    </div>
+  );
+}
 
 const STATUS_FILTERS = [
   "All",
@@ -122,7 +225,9 @@ function BookingCard({ booking, onSelect, onStatusUpdate }) {
 
         {/* Bottom row: driver name + status menu — pointer-events auto for interaction */}
         <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/5 pt-3">
-          <p className="pointer-events-none truncate text-xs text-slate-400">{booking.driver || "Unassigned"}</p>
+          <p className={`pointer-events-none truncate text-xs ${booking.driver && booking.driver !== "Unassigned" ? "text-slate-400" : "font-medium text-amber-400/80"}`}>
+            {booking.driver || "Unassigned"}
+          </p>
           <StatusActionMenu
             bookingId={booking.id}
             currentStatus={booking.status}
@@ -515,7 +620,14 @@ export default function LiveDispatch() {
                       <td className="py-4 pr-6">
                         <ETACountdown pickupTime={t.pickupTime} />
                       </td>
-                      <td className="py-4 pr-6 text-slate-300">{t.driver}</td>
+                      <td className="py-4 pr-6" onClick={(e) => e.stopPropagation()}>
+                        <InlineDriverCell
+                          bookingId={t.id}
+                          currentDriverId={t.driverId}
+                          drivers={drivers}
+                          onAssign={handleAssignDriver}
+                        />
+                      </td>
                       <td className="py-4 pr-6 font-semibold text-amber-300">{t.price}</td>
                       <td className="py-4 pr-6" onClick={(e) => e.stopPropagation()}>
                         <StatusActionMenu

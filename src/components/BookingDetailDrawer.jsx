@@ -116,6 +116,12 @@ function StatusPicker({ currentStatus, onUpdate }) {
   );
 }
 
+function driverDot(status) {
+  if (status === "Available") return "bg-emerald-400";
+  if (status === "On Trip") return "bg-amber-400";
+  return "bg-slate-600";
+}
+
 function DriverPicker({ currentDriverId, drivers, onAssign }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -141,40 +147,63 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
         disabled={pending}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-xs text-slate-300 transition hover:border-amber-400/20 hover:text-amber-300 disabled:opacity-60 disabled:cursor-not-allowed"
+        className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
+          current
+            ? "border-white/10 bg-white/[0.02] text-white hover:border-amber-400/20"
+            : "border-dashed border-amber-400/30 bg-amber-400/[0.04] text-amber-300 hover:border-amber-400/50 hover:bg-amber-400/[0.06]"
+        }`}
       >
         {pending ? (
-          <><Loader2 className="h-3 w-3 animate-spin" />Assigning…</>
+          <>
+            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+            <span className="flex-1 text-left text-slate-400">Assigning…</span>
+          </>
+        ) : current ? (
+          <>
+            <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${driverDot(current.status)}`} />
+            <span className="flex-1 text-left font-medium">{current.name}</span>
+            <span className="text-xs text-slate-500">{current.vehicle}</span>
+          </>
         ) : (
-          <><Car className="h-3 w-3" />{current?.name ?? "Unassigned"}<ChevronDown className="h-3 w-3" /></>
+          <>
+            <Car className="h-4 w-4 flex-shrink-0" />
+            <span className="flex-1 text-left font-medium">Assign a driver…</span>
+          </>
         )}
+        <ChevronDown className="h-4 w-4 flex-shrink-0 text-slate-500" />
       </button>
       {open && !pending && (
         <div
           role="listbox"
           aria-label="Assign driver"
-          className="absolute left-0 top-full z-[60] mt-1 w-52 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl"
+          className="absolute left-0 right-0 top-full z-[60] mt-1 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl"
         >
           <button
             role="option"
             aria-selected={currentDriverId == null}
             onClick={() => handleAssign(null)}
-            className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-slate-500 transition hover:bg-white/5"
+            className={`flex w-full items-center gap-3 px-4 py-3 text-sm transition hover:bg-white/5 ${
+              currentDriverId == null ? "text-amber-300" : "text-slate-500"
+            }`}
           >
+            <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
             Unassigned
           </button>
+          {drivers.length > 0 && <div className="mx-4 my-1 border-t border-white/5" />}
           {drivers.map((d) => (
             <button
               key={d.id}
               role="option"
               aria-selected={d.id === currentDriverId}
               onClick={() => handleAssign(d.id)}
-              className={`flex w-full items-center justify-between px-4 py-3 text-xs transition hover:bg-white/5 ${
+              className={`flex w-full items-center gap-3 px-4 py-3 text-sm transition hover:bg-white/5 ${
                 d.id === currentDriverId ? "text-amber-300" : "text-slate-300"
               }`}
             >
-              <span>{d.name}</span>
-              <span className="text-slate-600">{d.status}</span>
+              <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${driverDot(d.status)}`} />
+              <span className="flex-1 text-left">{d.name}</span>
+              <span className="text-xs text-slate-600">{d.vehicle || d.status}</span>
+              {d.id === currentDriverId && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
             </button>
           ))}
         </div>
