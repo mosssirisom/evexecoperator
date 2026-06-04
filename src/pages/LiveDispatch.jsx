@@ -269,7 +269,10 @@ function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign
   const [driverSheetOpen, setDriverSheetOpen] = useState(false);
   const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
   const isCancelled = booking.status === "Cancelled";
-  const statusLabel = booking.status === "Unassigned / Missed Call Recovery" ? "Missed Call" : booking.status;
+  const statusLabel =
+    booking.status === "Unassigned / Missed Call Recovery" ? "Missed Call" :
+    booking.status === "Passenger On Board" ? "On Board" :
+    booking.status;
 
   return (
     <div
@@ -292,13 +295,13 @@ function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign
         aria-label={`View details for ${booking.customer}`}
       />
 
-      <div className="relative z-10 pl-6 pr-4 pb-3 pt-4">
+      <div className="relative z-10 pl-6 pr-3 pb-2.5 pt-3">
         {/* Top row — pointer-events-none so taps fall through to button */}
-        <div className="pointer-events-none flex items-start gap-3">
+        <div className="pointer-events-none flex items-start gap-2">
           <div className="min-w-0 flex-1">
-            <div className="mb-1 flex items-center gap-2">
+            <div className="mb-0.5 flex items-center gap-1.5">
               {booking.priority && <AlertTriangle className="h-3 w-3 flex-shrink-0 text-red-400" />}
-              <span className="font-mono text-[10px] text-slate-600">{booking.id}</span>
+              <span className="font-mono text-[10px] text-slate-700">{booking.id}</span>
             </div>
             <p className="text-sm font-semibold leading-snug text-white">{booking.customer}</p>
             <p className="mt-0.5 truncate text-xs text-slate-500">{booking.route}</p>
@@ -307,8 +310,8 @@ function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign
             )}
           </div>
           <div className="flex-shrink-0 text-right">
-            <p className="text-base font-bold text-amber-300">{booking.price}</p>
-            <p className="mt-0.5 text-xs text-white">{booking.time}</p>
+            <p className="text-sm font-bold text-amber-300">{booking.price}</p>
+            <p className="mt-0.5 text-xs text-slate-300">{booking.time}</p>
             {booking.pickupTime && (
               <ETACountdown pickupTime={booking.pickupTime} className="mt-0.5 text-[10px]" />
             )}
@@ -316,7 +319,7 @@ function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign
         </div>
 
         {/* Bottom action bar — interactive elements, pointer-events auto */}
-        <div className="mt-3 flex items-center gap-2 border-t border-white/5 pt-2.5">
+        <div className="mt-2 flex items-center gap-1.5 border-t border-white/5 pt-2">
           <span
             className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium pointer-events-none ${bookingStatusColor(booking.status)}`}
           >
@@ -324,7 +327,7 @@ function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign
           </span>
           <button
             onClick={(e) => { e.stopPropagation(); setDriverSheetOpen(true); }}
-            className={`min-w-0 flex-1 truncate text-left text-xs transition active:opacity-70 ${
+            className={`min-w-0 flex-1 truncate text-left text-[11px] transition active:opacity-70 ${
               booking.driverId ? "text-slate-400 hover:text-slate-200" : "font-medium text-amber-400/80 hover:text-amber-300"
             }`}
           >
@@ -334,10 +337,10 @@ function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign
             <a
               href={`tel:${booking.phone}`}
               onClick={(e) => e.stopPropagation()}
-              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-emerald-400/25 bg-emerald-400/10 text-emerald-300 transition active:bg-emerald-400/20"
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl border border-emerald-400/25 bg-emerald-400/10 text-emerald-300 transition active:bg-emerald-400/20"
               aria-label={`Call ${booking.customer}`}
             >
-              <Phone className="h-3.5 w-3.5" />
+              <Phone className="h-3 w-3" />
             </a>
           )}
           <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -522,7 +525,7 @@ export default function LiveDispatch() {
         />
       )}
 
-      <div className="grid gap-4 p-4 sm:gap-6 sm:p-6 lg:p-10">
+      <div className="grid gap-3 p-3 sm:gap-6 sm:p-6 lg:p-10">
         {error && (
           <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
             Failed to load transfers: {error}
@@ -530,18 +533,18 @@ export default function LiveDispatch() {
         )}
 
         {/* Stats strip */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
           {[
             { label: "Active", value: stats.active, color: "text-amber-300", dot: "bg-amber-400" },
             { label: "Completed", value: stats.completed, color: "text-emerald-300", dot: "bg-emerald-400" },
             { label: "Attention", value: stats.pending, color: "text-red-300", dot: "bg-red-400" },
           ].map((s) => (
-            <div key={s.label} className="card flex flex-col items-center gap-1 p-4 text-center sm:flex-row sm:gap-5 sm:p-5 sm:text-left">
-              <div className="flex items-center gap-1.5 sm:hidden">
-                <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
-                <p className="text-[10px] uppercase tracking-widest text-slate-500">{s.label}</p>
+            <div key={s.label} className="card flex flex-col items-center gap-0.5 p-3 text-center sm:flex-row sm:gap-5 sm:p-5 sm:text-left">
+              <div className="flex items-center gap-1 sm:hidden">
+                <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${s.dot}`} />
+                <p className="text-[9px] uppercase tracking-widest text-slate-500">{s.label}</p>
               </div>
-              <p className={`text-3xl font-bold sm:text-4xl ${s.color}`}>{s.value}</p>
+              <p className={`text-2xl font-bold sm:text-4xl ${s.color}`}>{s.value}</p>
               <p className="hidden text-sm text-slate-400 sm:block">{s.label}</p>
             </div>
           ))}
@@ -618,15 +621,16 @@ export default function LiveDispatch() {
           </div>
         ) : (
           /* ── Board view ─────────────────────────────────────────────────── */
-          <div className="card p-4 sm:p-6">
-            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
+          <div className="card p-3 sm:p-6">
+            <div className="mb-3 flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between sm:mb-4 sm:gap-3">
+              {/* Heading — hidden on mobile to save vertical space */}
+              <div className="hidden sm:block">
                 <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Dispatch Board</p>
-                <h2 className="mt-1.5 text-xl font-semibold text-white sm:text-2xl">All Transfers</h2>
+                <h2 className="mt-1.5 text-2xl font-semibold text-white">All Transfers</h2>
               </div>
 
               {/* Search + filter row */}
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2 sm:gap-3">
                 {/* Search input */}
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" />
@@ -634,7 +638,7 @@ export default function LiveDispatch() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search customer, flight, ref…"
-                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-3 pl-9 pr-9 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-amber-400/30 lg:w-64"
+                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-2.5 pl-9 pr-9 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-amber-400/30 sm:py-3 lg:w-64"
                   />
                   {search && (
                     <button
@@ -647,14 +651,14 @@ export default function LiveDispatch() {
                 </div>
 
                 {/* Status filter chips — horizontally scrollable */}
-                <div className="flex items-center gap-2">
-                  <Filter className="h-3.5 w-3.5 flex-shrink-0 text-slate-500" />
-                  <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex items-center gap-1.5">
+                  <Filter className="h-3 w-3 flex-shrink-0 text-slate-600 sm:h-3.5 sm:w-3.5 sm:text-slate-500" />
+                  <div className="flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-1.5">
                     {STATUS_FILTERS.map((f) => (
                       <button
                         key={f}
                         onClick={() => setActiveFilter(f)}
-                        className={`flex-shrink-0 rounded-full border px-3 py-2 text-xs font-medium transition ${
+                        className={`flex-shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition sm:px-3 sm:py-1.5 sm:text-xs ${
                           activeFilter === f
                             ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
                             : "border-white/10 text-slate-500 hover:border-white/20 hover:text-slate-300"
@@ -678,7 +682,7 @@ export default function LiveDispatch() {
             </div>
 
             {/* Mobile card layout */}
-            <div className="grid gap-3 sm:hidden">
+            <div className="grid gap-2 sm:hidden">
               {loading && transfers.length === 0
                 ? [1, 2, 3].map((i) => (
                     <div key={i} className="animate-pulse rounded-2xl border border-white/5 bg-white/[0.02] p-4">
@@ -815,7 +819,7 @@ export default function LiveDispatch() {
       {/* Mobile floating "+ New Booking" button */}
       <button
         onClick={() => setModalOpen(true)}
-        className="fixed bottom-24 right-4 z-40 flex items-center gap-2 rounded-2xl bg-amber-500 px-5 py-3.5 text-sm font-bold text-black shadow-2xl shadow-amber-500/30 transition active:scale-95 sm:hidden"
+        className="fixed bottom-[5.5rem] right-4 z-40 flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-3 text-sm font-bold text-black shadow-xl shadow-amber-500/25 transition active:scale-95 sm:hidden"
       >
         + New Booking
       </button>
