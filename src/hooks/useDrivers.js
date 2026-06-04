@@ -13,6 +13,7 @@ function shapedDriver(row) {
     vehicle: row.vehicle ?? "—",
     plate: row.plate ?? "—",
     phone: row.phone ?? "—",
+    email: row.email ?? null,
     completedToday: 0,
     rating: row.rating ?? 5.0,
   };
@@ -57,6 +58,7 @@ export function useDrivers() {
   const createDriver = useCallback(async (form) => {
     const name = form.name?.trim();
     const phone = form.phone?.trim() || null;
+    const email = form.email?.trim() || null;
     const vehicle = form.vehicle?.trim() || null;
     const plate = form.plate?.trim() || null;
 
@@ -70,6 +72,7 @@ export function useDrivers() {
     const { error: err } = await supabase.from("drivers").insert({
       name,
       phone,
+      email,
       vehicle,
       plate,
       status: "Available",
@@ -82,6 +85,7 @@ export function useDrivers() {
   const updateDriver = useCallback(async (id, form) => {
     const name = form.name?.trim();
     const phone = form.phone?.trim() || null;
+    const email = form.email?.trim() || null;
     const vehicle = form.vehicle?.trim() || null;
     const plate = form.plate?.trim() || null;
 
@@ -94,7 +98,7 @@ export function useDrivers() {
 
     const { error: err } = await supabase
       .from("drivers")
-      .update({ name, phone, vehicle, plate })
+      .update({ name, phone, email, vehicle, plate })
       .eq("id", id);
     if (err) throw new Error(err.message);
     await fetchDrivers();

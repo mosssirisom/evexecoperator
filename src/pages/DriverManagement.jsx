@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Car, Phone, Star, CheckCircle2, Clock, UserX, MoreVertical, Plus, X,
-  User, Hash, Truck, MapPin, ExternalLink, Edit2, Trash2,
+  User, Hash, Truck, MapPin, ExternalLink, Edit2, Trash2, Mail,
 } from "lucide-react";
 import { useDrivers } from "../hooks/useDrivers";
 import { useBookings } from "../hooks/useBookings";
@@ -21,16 +21,17 @@ function statusBadge(status) {
 
 // ── Shared driver form fields ─────────────────────────────────────────────────
 const DRIVER_FIELDS = [
-  { key: "name",    label: "Full Name",    placeholder: "James Whitmore",   icon: User  },
-  { key: "phone",   label: "Phone",        placeholder: "+44 7700 900000",  icon: Phone },
-  { key: "vehicle", label: "Vehicle",      placeholder: "Tesla Model Y",    icon: Truck },
-  { key: "plate",   label: "Plate Number", placeholder: "EV21 XYZ",         icon: Hash  },
+  { key: "name",    label: "Full Name",    placeholder: "James Whitmore",        icon: User,  type: "text"  },
+  { key: "phone",   label: "Phone",        placeholder: "+44 7700 900000",       icon: Phone, type: "tel"   },
+  { key: "email",   label: "Email",        placeholder: "driver@example.com",    icon: Mail,  type: "email" },
+  { key: "vehicle", label: "Vehicle",      placeholder: "Tesla Model Y",         icon: Truck, type: "text"  },
+  { key: "plate",   label: "Plate Number", placeholder: "EV21 XYZ",              icon: Hash,  type: "text"  },
 ];
 
 // ── Driver form modal (used for both Add and Edit) ────────────────────────────
 function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
   const [form, setForm] = useState(
-    initial ?? { name: "", phone: "", vehicle: "", plate: "" }
+    initial ?? { name: "", phone: "", email: "", vehicle: "", plate: "" }
   );
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -76,15 +77,15 @@ function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
         {/* Form */}
         <div className="flex-1 overflow-y-auto overscroll-contain">
           <form onSubmit={handleSubmit} className="grid gap-4 p-6">
-            {DRIVER_FIELDS.map(({ key, label, placeholder, icon: Icon }) => (
+            {DRIVER_FIELDS.map(({ key, label, placeholder, icon: Icon, type }) => (
               <div key={key}>
                 <label className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-500">
                   <Icon className="h-3.5 w-3.5" />
                   {label}{key === "name" && <span className="text-red-400">*</span>}
                 </label>
                 <input
-                  type="text"
-                  value={form[key]}
+                  type={type}
+                  value={form[key] ?? ""}
                   onChange={set(key)}
                   placeholder={placeholder}
                   required={key === "name"}
@@ -281,6 +282,16 @@ function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob, onEdit, onDe
         <Phone className="h-3.5 w-3.5 text-slate-500" />
         Call Driver
       </a>
+      {driver.email && (
+        <a
+          href={`mailto:${driver.email}`}
+          onClick={onClose}
+          className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-slate-300 transition hover:bg-white/5"
+        >
+          <Mail className="h-3.5 w-3.5 text-slate-500" />
+          Email Driver
+        </a>
+      )}
       <button
         onClick={() => { onAssignJob(driver); onClose(); }}
         className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs text-slate-300 transition hover:bg-white/5"
@@ -397,6 +408,15 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
           <Phone className="h-4 w-4 text-slate-600" />
           {driver.phone}
         </a>
+        {driver.email && (
+          <a
+            href={`mailto:${driver.email}`}
+            className="flex items-center gap-2 truncate text-slate-400 transition hover:text-white"
+          >
+            <Mail className="h-4 w-4 flex-shrink-0 text-slate-600" />
+            {driver.email}
+          </a>
+        )}
         <div className="flex items-center gap-2 text-slate-400">
           <Clock className="h-4 w-4 text-slate-600" />
           {driver.job}
@@ -515,7 +535,7 @@ export default function DriverManagement() {
         <DriverFormModal
           title="Edit Driver"
           submitLabel="Save Changes"
-          initial={{ name: editModal.name, phone: editModal.phone === "—" ? "" : editModal.phone, vehicle: editModal.vehicle === "—" ? "" : editModal.vehicle, plate: editModal.plate === "—" ? "" : editModal.plate }}
+          initial={{ name: editModal.name, phone: editModal.phone === "—" ? "" : editModal.phone, email: editModal.email ?? "", vehicle: editModal.vehicle === "—" ? "" : editModal.vehicle, plate: editModal.plate === "—" ? "" : editModal.plate }}
           onClose={() => setEditModal(null)}
           onSubmit={handleEditDriver}
         />
