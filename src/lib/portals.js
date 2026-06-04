@@ -12,7 +12,7 @@ export const PORTALS = {
   bookingForm: {
     label: "Customer Booking Form",
     description: "Public-facing booking page customers use to request a transfer",
-    url: import.meta.env.VITE_BOOKING_FORM_URL ?? "https://evexec.co.uk/book",
+    url: import.meta.env.VITE_BOOKING_FORM_URL ?? "https://www.evexec.co.uk/#quote",
     envKey: "VITE_BOOKING_FORM_URL",
   },
   customerAccount: {
