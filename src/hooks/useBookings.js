@@ -214,9 +214,10 @@ export function useBookings() {
           airport:        form.airport,
           destination:    dest,
           pickup_time:    pickup,
-          driver_id:      driverRow?.id ?? null,
-          price:          form.price ?? null,
-          status:         driverRow ? "Dispatched" : "Unassigned",
+          driver_id:          driverRow?.id ?? null,
+          assigned_driver_id: driverRow?.id ?? null,
+          price:              form.price ?? null,
+          status:             driverRow ? "Dispatched" : "Unassigned",
           notes:          form.notes?.trim() || null,
         });
 
@@ -283,7 +284,7 @@ export function useBookings() {
     if (!isConfigured) return;
 
     try {
-      const update = { driver_id: driverId || null };
+      const update = { driver_id: driverId || null, assigned_driver_id: driverId || null };
       if (newStatus) update.status = newStatus;
 
       const { error: err } = await supabase
