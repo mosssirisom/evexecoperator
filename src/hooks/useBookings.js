@@ -19,24 +19,19 @@ export function shapedBooking(row) {
     customer: row.customer_name,
     phone: row.customer_phone ?? null,
     email: row.customer_email ?? null,
-    flight: row.flight ?? "—",
+    flight: row.flight_number ?? "—",
     route:
-      [row.airport, row.destination].filter(Boolean).join(" → ") ||
-      row.destination ||
+      [row.airport, row.dropoff_address].filter(Boolean).join(" → ") ||
+      row.dropoff_address ||
       "—",
     airport: row.airport ?? null,
-    destination: row.destination ?? null,
+    destination: row.dropoff_address ?? null,
     direction: row.direction ?? null,
-    time: row.pickup_time
-      ? new Date(row.pickup_time).toLocaleTimeString("en-GB", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "—",
-    pickupTime: row.pickup_time ?? null,
+    time: row.travel_time ? row.travel_time.slice(0, 5) : "—",
+    pickupTime: row.travel_time ?? null,
     driver: row.drivers?.name ?? "Unassigned",
     driverId: row.driver_id ?? null,
-    price: row.price ? `£${Number(row.price).toFixed(0)}` : "TBC",
+    price: row.quoted_price ? `£${Number(row.quoted_price).toFixed(0)}` : "TBC",
     status: row.status,
     paymentStatus: row.payment_status ?? "Unpaid",
     priority: row.priority ?? false,
@@ -76,7 +71,8 @@ export function useBookings() {
       const { data, count, error: err } = await supabase
         .from("bookings")
         .select("*, drivers!driver_id(name)", { count: "exact" })
-        .order("pickup_time", { ascending: true })
+        .order("travel_date", { ascending: true })
+        .order("travel_time", { ascending: true })
         .range(0, PAGE_SIZE - 1);
       if (fetchIdRef.current !== myId) return; // stale — a newer fetch is in flight
       if (err) { setError(err.message); return; }
@@ -98,7 +94,8 @@ export function useBookings() {
       const { data, error: err } = await supabase
         .from("bookings")
         .select("*, drivers!driver_id(name)")
-        .order("pickup_time", { ascending: true })
+        .order("travel_date", { ascending: true })
+        .order("travel_time", { ascending: true })
         .range(from, from + PAGE_SIZE - 1);
       if (err) throw new Error(err.message);
       setBookings((prev) => {
@@ -184,11 +181,6 @@ export function useBookings() {
           ? form.customAddress.trim()
           : form.destination;
 
-      const pickup =
-        form.date && form.time
-          ? new Date(`${form.date}T${form.time}`).toISOString()
-          : null;
-
       if (!isConfigured) throw new Error("Database not configured. Please add Supabase credentials.");
 
       const { data: driverRow } = form.driver
@@ -206,19 +198,20 @@ export function useBookings() {
         ref = generateBookingRef();
         const { error: insertErr } = await supabase.from("bookings").insert({
           ref,
-          customer_name:  sanitizeText(form.customer, 120),
-          customer_phone: sanitizeText(form.phone, 30),
-          customer_email: form.email?.trim() || null,
-          flight:         form.flight?.trim() || null,
-          direction:      form.direction,
-          airport:        form.airport,
-          destination:    dest,
-          pickup_time:    pickup,
+          customer_name:      sanitizeText(form.customer, 120),
+          customer_phone:     sanitizeText(form.phone, 30),
+          customer_email:     form.email?.trim() || null,
+          flight_number:      form.flight?.trim() || null,
+          direction:          form.direction,
+          airport:            form.airport,
+          dropoff_address:    dest,
+          travel_date:        form.date || null,
+          travel_time:        form.time || null,
           driver_id:          driverRow?.id ?? null,
           assigned_driver_id: driverRow?.id ?? null,
-          price:              form.price ?? null,
+          quoted_price:       form.price ? Number(form.price) : null,
           status:             driverRow ? "Dispatched" : "Unassigned",
-          notes:          form.notes?.trim() || null,
+          notes:              form.notes?.trim() || null,
         });
 
         if (!insertErr) { succeeded = true; break; }
@@ -236,7 +229,7 @@ export function useBookings() {
         customer: form.customer,
         route: `${form.airport} → ${dest}`,
         flight: form.flight,
-        pickupTime: pickup,
+        pickupTime: form.date && form.time ? `${form.date}T${form.time}` : null,
         price: form.price ? `£${form.price}` : "TBC",
         driver: driverRow?.name ?? null,
         status: createdStatus,
