@@ -7,11 +7,14 @@ import {
   AlertTriangle,
   Zap,
   Plus,
+  MessageSquare,
+  Loader2,
 } from "lucide-react";
 import { useMissedCalls } from "../hooks/useMissedCalls";
 import { useBookings } from "../hooks/useBookings";
 import { useToast } from "../components/Toast";
 import BookingModal from "../components/BookingModal";
+import { sendSms, missedCallRecoverySms } from "../lib/edgeFunctions";
 
 const automations = [
   {
@@ -81,6 +84,20 @@ function AutomationCard({ automation }) {
 }
 
 function MissedCallRow({ call, onResolve, onBook }) {
+  const [smsPending, setSmsPending] = useState(false);
+  const [smsStatus, setSmsStatus] = useState(null); // "sent" | "unconfigured" | "error"
+
+  const handleSendSms = useCallback(async () => {
+    if (smsPending) return;
+    setSmsPending(true);
+    setSmsStatus(null);
+    const result = await sendSms({ to: call.caller, message: missedCallRecoverySms(), bookingRef: call.id });
+    setSmsPending(false);
+    if (result.ok) setSmsStatus("sent");
+    else if (!result.configured) setSmsStatus("unconfigured");
+    else setSmsStatus("error");
+  }, [call, smsPending]);
+
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-4">
@@ -101,7 +118,7 @@ function MissedCallRow({ call, onResolve, onBook }) {
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Attempts</p>
           <p className="text-sm text-white">{call.attempts}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <a
             href={`tel:${call.caller.replace(/\s/g, "")}`}
             className="flex items-center gap-1.5 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-300 transition hover:bg-emerald-400/20"
@@ -109,6 +126,21 @@ function MissedCallRow({ call, onResolve, onBook }) {
             <Phone className="h-3.5 w-3.5" />
             Call
           </a>
+          <button
+            onClick={handleSendSms}
+            disabled={smsPending || smsStatus === "sent"}
+            title={smsStatus === "unconfigured" ? "Add TWILIO_ACCOUNT_SID to Supabase secrets to enable" : "Send recovery SMS"}
+            className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs transition ${
+              smsStatus === "sent"
+                ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+                : smsStatus === "unconfigured"
+                ? "border-slate-500/30 bg-slate-500/10 text-slate-500"
+                : "border-blue-400/20 bg-blue-400/10 text-blue-300 hover:bg-blue-400/20"
+            }`}
+          >
+            {smsPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MessageSquare className="h-3.5 w-3.5" />}
+            {smsStatus === "sent" ? "Sent!" : smsStatus === "unconfigured" ? "SMS (setup needed)" : "Send SMS"}
+          </button>
           <button
             onClick={() => onBook?.(call)}
             className="flex items-center gap-1.5 rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-300 transition hover:bg-amber-400/20"

@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { TrendingUp, Leaf, PoundSterling, Users, Calendar, Trophy, PieChart, CheckCircle2 } from "lucide-react";
+import { TrendingUp, Leaf, PoundSterling, Users, Calendar, Trophy, PieChart, CheckCircle2, Download } from "lucide-react";
 import { useBookings } from "../hooks/useBookings";
 import { useDrivers } from "../hooks/useDrivers";
+import { exportBookingsCsv } from "../lib/exportCsv";
 
 const PERIODS = ["Today", "7 Days", "30 Days", "All Time"];
 
@@ -281,6 +282,13 @@ export default function Analytics() {
             Live data
           </span>
         )}
+        <button
+          onClick={() => exportBookingsCsv(bookings, `evexec-bookings-${new Date().toISOString().split("T")[0]}.csv`)}
+          className="ml-auto flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-slate-400 transition hover:border-white/20 hover:text-white"
+        >
+          <Download className="h-4 w-4" />
+          Export CSV
+        </button>
       </div>
 
       {/* KPI cards */}

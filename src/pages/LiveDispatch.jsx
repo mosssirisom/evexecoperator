@@ -23,6 +23,7 @@ import { useToast } from "../components/Toast";
 import { useBookings } from "../hooks/useBookings";
 import { useDrivers } from "../hooks/useDrivers";
 import { bookingStatusColor } from "../lib/statusColor";
+import { sendSms, bookingConfirmationSms } from "../lib/edgeFunctions";
 
 function driverDot(status) {
   if (status === "Available") return "bg-emerald-400";
@@ -554,8 +555,23 @@ export default function LiveDispatch() {
   const handleCreateBooking = useCallback(async (form) => {
     const result = await createBooking(form);
     toast({ message: `Booking ${result.ref} created`, type: "success" });
+
+    if (form.phone) {
+      const dest = form.destination === "Custom address…" ? form.customAddress : form.destination;
+      const driverName = drivers.find((d) => d.id === form.driver)?.name ?? "Unassigned";
+      const pickupTime = form.date && form.time ? new Date(`${form.date}T${form.time}`).toISOString() : null;
+      const message = bookingConfirmationSms({
+        id: result.ref,
+        customer: form.customer,
+        route: `${form.airport} → ${dest}`,
+        pickupTime,
+        driver: driverName,
+      });
+      sendSms({ to: form.phone, message, bookingRef: result.ref }).catch(() => {});
+    }
+
     return result;
-  }, [createBooking, toast]);
+  }, [createBooking, toast, drivers]);
 
   const handleUpdatePaymentStatus = useCallback(async (id, ps) => {
     try {

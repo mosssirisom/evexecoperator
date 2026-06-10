@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   X, Phone, Mail, Plane, MapPin, Clock, Car, PoundSterling,
   User, AlertTriangle, FileText, ChevronDown, Check, Edit3, Loader2, RefreshCw,
-  CreditCard,
+  CreditCard, MessageSquare, ExternalLink, Receipt,
 } from "lucide-react";
 import { bookingStatusColor } from "../lib/statusColor";
 import ETACountdown from "./ETACountdown";
+import InvoiceModal from "./InvoiceModal";
+import { sendSms, checkFlight, createPaymentLink, bookingConfirmationSms } from "../lib/edgeFunctions";
 
 const STATUSES = [
   "Unassigned", "Dispatched", "En Route",
@@ -257,12 +259,64 @@ export default function BookingDetailDrawer({
   const [notes, setNotes] = useState(booking?.notes ?? "");
   const [editingNotes, setEditingNotes] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [smsPending, setSmsPending] = useState(false);
+  const [smsStatus, setSmsStatus] = useState(null); // "sent" | "unconfigured" | "error"
+  const [flightInfo, setFlightInfo] = useState(null);
+  const [flightPending, setFlightPending] = useState(false);
+  const [payLinkPending, setPayLinkPending] = useState(false);
+  const [payLinkUrl, setPayLinkUrl] = useState(null);
   const drawerRef = useRef(null);
 
   useEffect(() => {
     setNotes(booking?.notes ?? "");
     setEditingNotes(false);
+    setFlightInfo(null);
+    setSmsStatus(null);
+    setPayLinkUrl(null);
   }, [booking?.id, booking?.notes]);
+
+  const handleSendSms = useCallback(async () => {
+    if (!booking.phone || smsPending) return;
+    setSmsPending(true);
+    setSmsStatus(null);
+    const msg = bookingConfirmationSms(booking);
+    const result = await sendSms({ to: booking.phone, message: msg, bookingRef: booking.id });
+    setSmsPending(false);
+    if (result.ok) setSmsStatus("sent");
+    else if (!result.configured) setSmsStatus("unconfigured");
+    else setSmsStatus("error");
+  }, [booking, smsPending]);
+
+  const handleCheckFlight = useCallback(async () => {
+    const fn = booking.flight && booking.flight !== "—" ? booking.flight : null;
+    if (!fn || flightPending) return;
+    setFlightPending(true);
+    setFlightInfo(null);
+    const pickupDate = booking.pickupTime ? booking.pickupTime.split("T")[0] : undefined;
+    const result = await checkFlight({ flightNumber: fn, date: pickupDate });
+    setFlightPending(false);
+    if (result.ok) setFlightInfo({ ...result.flight, configured: result.configured });
+  }, [booking, flightPending]);
+
+  const handleCreatePaymentLink = useCallback(async () => {
+    if (payLinkPending) return;
+    const rawPrice = String(booking.price ?? "").replace(/[^0-9.]/g, "");
+    const amount = rawPrice ? Math.round(parseFloat(rawPrice) * 100) : 0;
+    if (!amount) return;
+    setPayLinkPending(true);
+    setPayLinkUrl(null);
+    const result = await createPaymentLink({
+      bookingRef: booking.id,
+      amount,
+      description: `Airport transfer — ${booking.route}`,
+      customerEmail: booking.email ?? undefined,
+    });
+    setPayLinkPending(false);
+    if (result.ok && result.url) setPayLinkUrl(result.url);
+    else if (!result.configured) setPayLinkUrl("unconfigured");
+    else setPayLinkUrl("error");
+  }, [booking, payLinkPending]);
 
   // Close on outside click (pointerdown fires on touch too)
   useEffect(() => {
@@ -305,6 +359,10 @@ export default function BookingDetailDrawer({
 
   return (
     <>
+      {invoiceOpen && (
+        <InvoiceModal booking={booking} onClose={() => setInvoiceOpen(false)} />
+      )}
+
       {/* Backdrop */}
       <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
 
@@ -394,6 +452,21 @@ export default function BookingDetailDrawer({
                             WhatsApp
                           </a>
                         )}
+                        <button
+                          onClick={handleSendSms}
+                          disabled={smsPending}
+                          className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] transition disabled:opacity-50 ${
+                            smsStatus === "sent"
+                              ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+                              : smsStatus === "unconfigured"
+                              ? "border-slate-500/30 bg-slate-500/10 text-slate-500"
+                              : "border-blue-400/20 bg-blue-400/10 text-blue-300 hover:bg-blue-400/20"
+                          }`}
+                          title={smsStatus === "unconfigured" ? "Add TWILIO_ACCOUNT_SID to Supabase secrets to enable" : "Send booking confirmation SMS"}
+                        >
+                          {smsPending ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <MessageSquare className="h-2.5 w-2.5" />}
+                          {smsStatus === "sent" ? "Sent!" : smsStatus === "unconfigured" ? "SMS (setup needed)" : "Confirm SMS"}
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -420,7 +493,51 @@ export default function BookingDetailDrawer({
               <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-400">Journey</p>
               <div className="space-y-3">
                 <Row icon={MapPin} label="Route" value={booking.route} />
-                <Row icon={Plane} label="Flight" value={booking.flight !== "—" ? booking.flight : null} />
+                {booking.flight && booking.flight !== "—" && (
+                  <div className="flex items-start gap-3">
+                    <Plane className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-600" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Flight</p>
+                          <p className="mt-0.5 text-sm text-white">{booking.flight}</p>
+                        </div>
+                        <button
+                          onClick={handleCheckFlight}
+                          disabled={flightPending}
+                          className="flex flex-shrink-0 items-center gap-1 rounded-lg border border-blue-400/20 bg-blue-400/10 px-2 py-1 text-[10px] font-semibold text-blue-300 transition hover:bg-blue-400/20 disabled:opacity-60"
+                        >
+                          {flightPending ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <RefreshCw className="h-2.5 w-2.5" />}
+                          Check status
+                        </button>
+                      </div>
+                      {flightInfo && (
+                        <div className="mt-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs">
+                          {flightInfo.configured === false ? (
+                            <p className="text-slate-500">Live tracking needs an AeroDataBox API key — add AERODATABOX_API_KEY to Supabase secrets.</p>
+                          ) : (
+                            <>
+                              <p className="font-semibold text-white">
+                                {flightInfo.status}
+                                {flightInfo.delayMins > 0 ? ` · +${flightInfo.delayMins}m delay` : ""}
+                              </p>
+                              <p className="mt-0.5 text-slate-400">
+                                {flightInfo.origin} → {flightInfo.destination} · {flightInfo.airline}
+                              </p>
+                              {flightInfo.estimatedArrival && (
+                                <p className="mt-0.5 text-slate-400">
+                                  Est. arrival: {new Date(flightInfo.estimatedArrival).toLocaleString("en-GB", {
+                                    weekday: "short", hour: "2-digit", minute: "2-digit",
+                                  })}
+                                </p>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <Row icon={Clock} label="Pickup time" value={
                   booking.pickupTime
                     ? new Date(booking.pickupTime).toLocaleString("en-GB", {
@@ -432,14 +549,48 @@ export default function BookingDetailDrawer({
                 <Row icon={PoundSterling} label="Price" value={booking.price} />
                 <div className="flex items-start gap-3">
                   <CreditCard className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-600" />
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Payment</p>
-                    <div className="mt-1.5">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
                       <PaymentBadge
                         paymentStatus={booking.paymentStatus ?? "Unpaid"}
                         onUpdate={(ps) => onUpdatePaymentStatus?.(booking.id, ps)}
                       />
+                      {booking.paymentStatus !== "Paid" && (
+                        <button
+                          onClick={handleCreatePaymentLink}
+                          disabled={payLinkPending}
+                          className="flex items-center gap-1 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-300 transition hover:bg-emerald-400/20 disabled:opacity-60"
+                        >
+                          {payLinkPending ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <ExternalLink className="h-2.5 w-2.5" />}
+                          Send payment link
+                        </button>
+                      )}
                     </div>
+                    {payLinkUrl === "unconfigured" && (
+                      <p className="mt-1.5 text-xs text-slate-500">Add STRIPE_SECRET_KEY to Supabase secrets to enable payment links.</p>
+                    )}
+                    {payLinkUrl === "error" && (
+                      <p className="mt-1.5 text-xs text-red-400">Couldn't create payment link. Please try again.</p>
+                    )}
+                    {payLinkUrl && payLinkUrl !== "unconfigured" && payLinkUrl !== "error" && (
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <a
+                          href={payLinkUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="truncate text-xs text-blue-300 hover:underline"
+                        >
+                          {payLinkUrl}
+                        </a>
+                        <button
+                          onClick={() => navigator.clipboard?.writeText(payLinkUrl)}
+                          className="flex-shrink-0 text-[10px] text-slate-400 hover:text-white"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -538,6 +689,13 @@ export default function BookingDetailDrawer({
               >
                 <AlertTriangle className="h-4 w-4" />
                 {booking.priority ? "Remove Priority" : "Mark Priority"}
+              </button>
+              <button
+                onClick={() => setInvoiceOpen(true)}
+                title="Print invoice / receipt"
+                className="flex min-h-[44px] items-center justify-center rounded-2xl border border-white/10 px-4 py-2.5 text-sm text-slate-400 transition hover:border-white/20 hover:text-white"
+              >
+                <Receipt className="h-4 w-4" />
               </button>
               <button
                 onClick={onClose}
