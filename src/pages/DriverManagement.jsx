@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Car, Phone, Star, CheckCircle2, Clock, UserX, MoreVertical, Plus, X,
-  User, Hash, Truck, MapPin, ExternalLink, Edit2, Trash2, Mail,
+  User, Hash, Truck, MapPin, ExternalLink, Edit2, Trash2, Mail, KeyRound, Copy, Check,
 } from "lucide-react";
 import { useDrivers } from "../hooks/useDrivers";
 import { useBookings } from "../hooks/useBookings";
@@ -257,6 +257,51 @@ function AssignJobModal({ driver, bookings, onAssign, onClose }) {
   );
 }
 
+// ── Driver credential modal (shown once after a driver is added) ──────────────
+function DriverCredentialModal({ name, password, onClose }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(password);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative z-10 w-full max-w-sm rounded-3xl border border-white/10 bg-[#0B132B] p-6 shadow-2xl">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-400/10">
+          <KeyRound className="h-5 w-5 text-amber-300" />
+        </div>
+        <h2 className="text-lg font-semibold text-white">{name}'s driver app login</h2>
+        <p className="mt-2 text-sm text-slate-400">
+          Share this temporary password with {name} so they can sign in to the driver app. For
+          security, it won't be shown again.
+        </p>
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <span className="font-mono text-lg tracking-widest text-amber-300">{password}</span>
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-300 transition hover:border-amber-400/30 hover:text-amber-300"
+          >
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-6 w-full rounded-2xl bg-amber-500 py-3 text-sm font-semibold text-black transition hover:bg-amber-400"
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Driver context menu (MoreVertical) ────────────────────────────────────────
 function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob, onEdit, onDelete }) {
   const ref = useRef(null);
@@ -456,6 +501,7 @@ export default function DriverManagement() {
   const [addModal, setAddModal] = useState(false);
   const [editModal, setEditModal] = useState(null);   // driver object to edit
   const [deleteModal, setDeleteModal] = useState(null); // driver object to delete
+  const [credentialModal, setCredentialModal] = useState(null); // { name, password }
 
   const available = drivers.filter((d) => ["Available", "Available soon"].includes(d.status)).length;
   const active = drivers.filter((d) => ["En route", "Passenger onboard"].includes(d.status)).length;
@@ -487,9 +533,12 @@ export default function DriverManagement() {
   };
 
   const handleAddDriver = async (form) => {
-    await createDriver(form);
+    const result = await createDriver(form);
     toast({ message: `${form.name} added to the fleet`, type: "success" });
     setAddModal(false);
+    if (result?.password) {
+      setCredentialModal({ name: form.name, password: result.password });
+    }
   };
 
   const handleEditDriver = async (form) => {
@@ -545,6 +594,13 @@ export default function DriverManagement() {
           driver={deleteModal}
           onClose={() => setDeleteModal(null)}
           onConfirm={handleDeleteDriver}
+        />
+      )}
+      {credentialModal && (
+        <DriverCredentialModal
+          name={credentialModal.name}
+          password={credentialModal.password}
+          onClose={() => setCredentialModal(null)}
         />
       )}
 

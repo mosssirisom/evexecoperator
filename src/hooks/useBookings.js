@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase, isConfigured } from "../lib/supabase";
 import { useRealtimeBookings } from "./useRealtimeBookings";
 import { dispatchJobToDriverApp, updateJobStatus } from "../lib/driverApp";
+import { getFleetSettings } from "../lib/settings";
 import {
   validateBookingPayload,
   validateStatusTransition,
@@ -29,11 +30,31 @@ function routeFromRow(row) {
   return "—";
 }
 
+const DIRECTION_AIRPORT_TO_DEST = "Airport → Destination";
+const DIRECTION_DEST_TO_AIRPORT = "Destination → Airport";
+
+// The booking website writes a static "Airport to Destination" string into
+// `direction` regardless of the actual journey, with the real direction
+// only reflected in `journey_type` ("To Airport" / "From Airport"). Use
+// `journey_type` as the source of truth when present, otherwise normalise
+// whatever `direction` value we have to one of the two canonical strings.
+export function normalizeDirection(direction, journeyType) {
+  const jt = (journeyType || "").trim().toLowerCase();
+  if (jt === "to airport") return DIRECTION_DEST_TO_AIRPORT;
+  if (jt === "from airport") return DIRECTION_AIRPORT_TO_DEST;
+
+  const dir = (direction || "").trim().toLowerCase();
+  if (dir.startsWith("airport")) return DIRECTION_AIRPORT_TO_DEST;
+  if (dir.startsWith("destination")) return DIRECTION_DEST_TO_AIRPORT;
+
+  return direction || null;
+}
+
 export function shapedBooking(row) {
   const pickupTime = row.pickup_time || combineDateTime(row.travel_date, row.travel_time);
   const price = row.price ?? row.quoted_price ?? null;
   const flight = row.flight || row.flight_number || "—";
-  const direction = row.direction || row.journey_type || null;
+  const direction = normalizeDirection(row.direction, row.journey_type);
   const destination = row.destination || row.dropoff_address || row.pickup_location || null;
 
   return {
@@ -64,6 +85,38 @@ export function shapedBooking(row) {
     updatedAt: row.updated_at ?? null,
     createdAt: row.created_at ?? null,
   };
+}
+
+// Keep the assigned driver's status roughly in sync with their active job so
+// the fleet board doesn't show two independent states that can drift apart.
+const DRIVER_STATUS_FOR_BOOKING_STATUS = {
+  Dispatched: "En route",
+  "En Route": "En route",
+  "Passenger On Board": "Passenger onboard",
+};
+
+async function syncDriverStatusForBooking(driverId, bookingStatus, bookingRef) {
+  const mapped = DRIVER_STATUS_FOR_BOOKING_STATUS[bookingStatus];
+  if (mapped) {
+    const { error } = await supabase.from("drivers").update({ status: mapped }).eq("id", driverId);
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  if (bookingStatus === "Completed" || bookingStatus === "Cancelled") {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("ref")
+      .eq("driver_id", driverId)
+      .in("status", ["Dispatched", "En Route", "Passenger On Board"])
+      .neq("ref", bookingRef);
+    if (error) throw new Error(error.message);
+
+    if (!data || data.length === 0) {
+      const { error: updErr } = await supabase.from("drivers").update({ status: "Available" }).eq("id", driverId);
+      if (updErr) throw new Error(updErr.message);
+    }
+  }
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -174,6 +227,12 @@ export function useBookings() {
       updateJobStatus(id, status).catch((err) => {
         console.warn("[DriverApp] Status sync failed:", err.message);
       });
+
+      if (current?.driverId) {
+        syncDriverStatusForBooking(current.driverId, status, id).catch((err) => {
+          console.warn("[Driver] Status sync failed:", err.message);
+        });
+      }
     } catch (err) {
       setBookings(snapshot);
       throw err;
@@ -196,13 +255,22 @@ export function useBookings() {
 
       if (!isConfigured) throw new Error("Database not configured. Please add Supabase credentials.");
 
-      const { data: driverRow } = form.driver
-        ? await supabase
-            .from("drivers")
-            .select("id, name")
-            .eq("id", form.driver)
-            .single()
-        : { data: null };
+      let driverRow = null;
+      if (form.driver) {
+        const { data } = await supabase
+          .from("drivers")
+          .select("id, name")
+          .eq("id", form.driver)
+          .single();
+        driverRow = data;
+      } else if (getFleetSettings().autoAssign) {
+        const { data } = await supabase
+          .from("drivers")
+          .select("id, name")
+          .eq("status", "Available")
+          .order("rating", { ascending: false });
+        driverRow = data?.[0] ?? null;
+      }
 
       let ref;
       let succeeded = false;
@@ -361,4 +429,62 @@ export function useBookings() {
   }, []);
 
   return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, updatePaymentStatus, refetch: fetchBookings };
+}
+
+// Dedicated query for "today's" bookings (by pickup_time), independent of the
+// PAGE_SIZE cap on useBookings() — so today's totals stay accurate even once
+// the operator has more than PAGE_SIZE bookings on file.
+export function useTodayBookings() {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchIdRef = useRef(0);
+
+  const fetchToday = useCallback(async () => {
+    if (!isConfigured) return;
+    const myId = ++fetchIdRef.current;
+    setLoading(true);
+    try {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+
+      const { data, error: err } = await supabase
+        .from("bookings")
+        .select("*, drivers!driver_id(name)")
+        .gte("pickup_time", start.toISOString())
+        .lt("pickup_time", end.toISOString())
+        .order("pickup_time", { ascending: true });
+      if (fetchIdRef.current !== myId) return;
+      if (err) { setError(err.message); return; }
+      setBookings((data || []).map(shapedBooking));
+      setError(null);
+    } finally {
+      if (fetchIdRef.current === myId) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchToday();
+  }, [fetchToday]);
+
+  useRealtimeBookings(fetchToday);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fetchToday();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [fetchToday]);
+
+  useEffect(() => {
+    if (!isConfigured) return;
+    const id = setInterval(fetchToday, 60_000);
+    return () => clearInterval(id);
+  }, [fetchToday]);
+
+  return { bookings, loading, error, refetch: fetchToday };
 }

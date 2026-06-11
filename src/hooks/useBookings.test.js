@@ -8,6 +8,7 @@ const { mockChain, mockSupabase } = vi.hoisted(() => {
   const chain = {
     select: vi.fn(),
     order:  vi.fn(),
+    range:  vi.fn(),
     eq:     vi.fn(),
     single: vi.fn(),
     insert: vi.fn(),
@@ -48,7 +49,7 @@ import { useBookings, shapedBooking } from "./useBookings";
 beforeEach(() => {
   vi.clearAllMocks();
   Object.values(mockChain).forEach((fn) => fn.mockReturnValue(mockChain));
-  mockChain.order.mockResolvedValue({ data: [], error: null });
+  mockChain.range.mockResolvedValue({ data: [], count: 0, error: null });
   mockChain.single.mockResolvedValue({ data: null, error: null });
   mockChain.eq.mockResolvedValue({ data: [], error: null });
   mockChain.insert.mockResolvedValue({ error: null });
@@ -70,11 +71,12 @@ function validForm(overrides = {}) {
   };
 }
 
-// Prime the order mock to return `rows` for the next N calls.
-// Pass N=2 to survive React 18 strict-mode double-invoke of effects.
+// Prime the range mock (the terminal call in fetchBookings) to return `rows`
+// for the next N calls. Pass N=2 to survive React 18 strict-mode double-invoke
+// of effects.
 function primeRows(rows, times = 2) {
   for (let i = 0; i < times; i++) {
-    mockChain.order.mockResolvedValueOnce({ data: rows, error: null });
+    mockChain.range.mockResolvedValueOnce({ data: rows, count: rows.length, error: null });
   }
 }
 
@@ -142,7 +144,7 @@ describe("useBookings — createBooking", () => {
         customer_name: "Test Customer",
         airport: "Manchester Airport (MAN)",
         destination: "Blackpool",
-        status: "Dispatched",
+        status: "Unassigned",
       })
     );
   });

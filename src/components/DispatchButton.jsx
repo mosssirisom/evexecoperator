@@ -3,7 +3,9 @@ import { Send, CheckCircle2, Loader2, AlertTriangle, ExternalLink } from "lucide
 import { dispatchJobToDriverApp } from "../lib/driverApp";
 import { driverJobUrl } from "../lib/portals";
 
-export default function DispatchButton({ booking, driverName }) {
+const DISPATCHABLE_STATUSES = ["Unassigned", "Unassigned / Missed Call Recovery"];
+
+export default function DispatchButton({ booking, driverName, currentStatus, onDispatched }) {
   const [state, setState] = useState("idle"); // idle | loading | success | error
   const [errMsg, setErrMsg] = useState("");
   const timerRef = useRef(null);
@@ -28,6 +30,9 @@ export default function DispatchButton({ booking, driverName }) {
       });
       setState("success");
       timerRef.current = setTimeout(() => setState("idle"), 3000);
+      if (DISPATCHABLE_STATUSES.includes(currentStatus)) {
+        onDispatched?.();
+      }
     } catch (e) {
       setErrMsg(e.message);
       setState("error");

@@ -4,6 +4,19 @@ import { useRealtimeDrivers } from "./useRealtimeBookings";
 
 const PHONE_RE = /^[+\d][\d\s\-().]{4,}$/;
 
+// Excludes visually ambiguous characters (0/O, 1/l/I).
+const PASSWORD_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+
+export function generateDriverPassword(length = 10) {
+  const values = new Uint32Array(length);
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(values);
+  } else {
+    for (let i = 0; i < length; i++) values[i] = Math.floor(Math.random() * 0xffffffff);
+  }
+  return Array.from(values, (n) => PASSWORD_CHARS[n % PASSWORD_CHARS.length]).join("");
+}
+
 function shapedDriver(row) {
   return {
     id: row.id,
@@ -86,6 +99,7 @@ export function useDrivers() {
 
     if (!isConfigured) throw new Error("Database not configured.");
 
+    const password = generateDriverPassword();
     const { error: err } = await supabase.from("drivers").insert({
       name,
       phone,
@@ -94,10 +108,11 @@ export function useDrivers() {
       plate,
       status: "Available",
       rating: 5.0,
-      password: "evexec2026",
+      password,
     });
     if (err) throw new Error(err.message);
     await fetchDrivers();
+    return { password };
   }, [fetchDrivers]);
 
   const updateDriver = useCallback(async (id, form) => {

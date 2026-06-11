@@ -22,6 +22,7 @@ import {
 import { useToast } from "../components/Toast";
 import { useBookings } from "../hooks/useBookings";
 import { useDrivers } from "../hooks/useDrivers";
+import { useFleetSettings } from "../hooks/useFleetSettings";
 import { bookingStatusColor } from "../lib/statusColor";
 import { sendSms, bookingConfirmationSms } from "../lib/edgeFunctions";
 
@@ -139,7 +140,7 @@ const STATUS_FILTERS = [
 ];
 
 // ── Schedule view row ─────────────────────────────────────────────────────────
-function ScheduleRow({ booking, onSelect }) {
+function ScheduleRow({ booking, onSelect, showPrices }) {
   const now = Date.now();
   const ts = booking.pickupTime ? new Date(booking.pickupTime).getTime() : null;
   const isPast = ts && ts < now - 30 * 60 * 1000;
@@ -169,7 +170,7 @@ function ScheduleRow({ booking, onSelect }) {
         <p className="truncate text-xs text-slate-500">{booking.route}</p>
       </div>
       <div className="flex-shrink-0 text-right">
-        <p className="text-xs font-semibold text-amber-300">{booking.price}</p>
+        {showPrices && <p className="text-xs font-semibold text-amber-300">{booking.price}</p>}
         <p className="text-xs text-slate-600">{booking.driver}</p>
       </div>
     </button>
@@ -351,7 +352,7 @@ function cardAccent(booking) {
   return "bg-slate-600/50";
 }
 
-function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign }) {
+function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign, showPrices }) {
   const [driverSheetOpen, setDriverSheetOpen] = useState(false);
   const [statusSheetOpen, setStatusSheetOpen] = useState(false);
   const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
@@ -396,7 +397,7 @@ function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign
             )}
           </div>
           <div className="flex-shrink-0 text-right">
-            <p className="text-sm font-bold text-amber-300">{booking.price}</p>
+            {showPrices && <p className="text-sm font-bold text-amber-300">{booking.price}</p>}
             <p className="text-[11px] text-slate-400">{booking.time}</p>
             {booking.pickupTime && (
               <ETACountdown pickupTime={booking.pickupTime} className="text-[10px]" />
@@ -481,6 +482,7 @@ export default function LiveDispatch() {
     updatePaymentStatus,
   } = useBookings();
   const { drivers } = useDrivers();
+  const fleet = useFleetSettings();
 
   const debouncedSearch = useDebounce(search, 200);
 
@@ -656,6 +658,13 @@ export default function LiveDispatch() {
     return transfers.find((t) => t.id === selectedBooking.id) ?? selectedBooking;
   }, [selectedBooking, transfers]);
 
+  const tableHeaders = useMemo(() => {
+    const base = ["Job ID", "Customer", "Route", "Flight", "Pickup", "ETA", "Driver"];
+    if (fleet.showPrices) base.push("Price");
+    base.push("Status", "");
+    return base;
+  }, [fleet.showPrices]);
+
   return (
     <>
       <BookingModal
@@ -764,7 +773,7 @@ export default function LiveDispatch() {
             </div>
             <div className="space-y-3">
               {schedule.map((b) => (
-                <ScheduleRow key={b.id} booking={b} onSelect={setSelectedBooking} />
+                <ScheduleRow key={b.id} booking={b} onSelect={setSelectedBooking} showPrices={fleet.showPrices} />
               ))}
               {schedule.length === 0 && (
                 <p className="py-12 text-center text-sm text-slate-600">
@@ -853,6 +862,7 @@ export default function LiveDispatch() {
                       onStatusUpdate={handleStatusUpdate}
                       drivers={drivers}
                       onAssign={handleAssignDriver}
+                      showPrices={fleet.showPrices}
                     />
                   ))}
               {!loading && filtered.length === 0 && (
@@ -867,16 +877,14 @@ export default function LiveDispatch() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/5 text-left">
-                    {["Job ID", "Customer", "Route", "Flight", "Pickup", "ETA", "Driver", "Price", "Status", ""].map(
-                      (h) => (
-                        <th
-                          key={h}
-                          className="pb-4 pr-6 text-[10px] font-normal uppercase tracking-[0.2em] text-slate-600"
-                        >
-                          {h}
-                        </th>
-                      )
-                    )}
+                    {tableHeaders.map((h) => (
+                      <th
+                        key={h}
+                        className="pb-4 pr-6 text-[10px] font-normal uppercase tracking-[0.2em] text-slate-600"
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.03]">
@@ -884,7 +892,7 @@ export default function LiveDispatch() {
                     transfers.length === 0 &&
                     [1, 2, 3, 4].map((i) => (
                       <tr key={i} className="animate-pulse">
-                        {[...Array(10)].map((_, j) => (
+                        {tableHeaders.map((_, j) => (
                           <td key={j} className="py-4 pr-6">
                             <div
                               className="h-3 rounded-full bg-white/[0.04]"
@@ -930,7 +938,9 @@ export default function LiveDispatch() {
                           onAssign={handleAssignDriver}
                         />
                       </td>
-                      <td className="py-4 pr-6 font-semibold text-amber-300">{t.price}</td>
+                      {fleet.showPrices && (
+                        <td className="py-4 pr-6 font-semibold text-amber-300">{t.price}</td>
+                      )}
                       <td className="py-4 pr-6" onClick={(e) => e.stopPropagation()}>
                         <StatusActionMenu
                           bookingId={t.id}
@@ -939,7 +949,12 @@ export default function LiveDispatch() {
                         />
                       </td>
                       <td className="py-4" onClick={(e) => e.stopPropagation()}>
-                        <DispatchButton booking={t} driverName={t.driver} />
+                        <DispatchButton
+                          booking={t}
+                          driverName={t.driver}
+                          currentStatus={t.status}
+                          onDispatched={() => handleStatusUpdate(t.id, "Dispatched")}
+                        />
                       </td>
                     </tr>
                   ))}
