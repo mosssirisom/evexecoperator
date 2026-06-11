@@ -1,10 +1,14 @@
-import React, { useMemo, useState } from "react";
-import { TrendingUp, Leaf, PoundSterling, Users, Calendar, Trophy, PieChart, CheckCircle2, Download } from "lucide-react";
-import { useBookings } from "../hooks/useBookings";
+import React, { useEffect, useMemo, useState } from "react";
+import { TrendingUp, Leaf, PoundSterling, Users, Calendar, Trophy, PieChart, CheckCircle2, Download, Loader2 } from "lucide-react";
+import { useBookings, useTodayBookings } from "../hooks/useBookings";
 import { useDrivers } from "../hooks/useDrivers";
 import { exportBookingsCsv } from "../lib/exportCsv";
 
 const PERIODS = ["Today", "7 Days", "30 Days", "All Time"];
+
+// Safety cap on how many bookings we'll auto-page in for the longer analytics
+// periods, so a very large dataset can't trigger unbounded fetching.
+const STATS_FETCH_CAP = 1000;
 
 function BarChart({ bars }) {
   const max = Math.max(...bars.map((d) => d.value), 1);
@@ -36,25 +40,24 @@ const STATUS_COLORS = {
 
 export default function Analytics() {
   const [period, setPeriod] = useState("7 Days");
-  const { bookings } = useBookings();
+  const { bookings, totalCount, loading, loadingMore, loadMore } = useBookings();
+  const { bookings: todayBookings } = useTodayBookings();
   const { drivers } = useDrivers();
 
   const parsePrice = (b) => parseFloat(String(b.price).replace("£", "")) || 0;
 
+  // ── Auto-page in older bookings for the "7 Days" / "30 Days" / "All Time"
+  // periods so their stats aren't silently limited to the most recent page.
+  useEffect(() => {
+    if (period === "Today") return;
+    if (loading || loadingMore) return;
+    if (bookings.length >= totalCount) return;
+    if (bookings.length >= STATS_FETCH_CAP) return;
+    loadMore();
+  }, [period, loading, loadingMore, bookings.length, totalCount, loadMore]);
+
   // ── Build live "Today" data from real bookings ──────────────────────────────
   const todayData = useMemo(() => {
-    const now = new Date();
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(todayStart);
-    todayEnd.setDate(todayEnd.getDate() + 1);
-
-    const todayBookings = bookings.filter((b) => {
-      if (!b.pickupTime) return false;
-      const d = new Date(b.pickupTime);
-      return d >= todayStart && d < todayEnd;
-    });
-
     const completedRevenue = todayBookings
       .filter((b) => b.status === "Completed")
       .reduce((acc, b) => acc + parsePrice(b), 0);
@@ -88,7 +91,7 @@ export default function Analytics() {
       subRevenue: "Live today",
       peakDay: bars.reduce((a, b) => (b.value > a.value ? b : a), bars[0] ?? { label: "—", value: 0 }),
     };
-  }, [bookings]);
+  }, [todayBookings]);
 
   // ── Build real data for 7 Days / 30 Days / All Time from actual bookings ────
   const liveData = useMemo(() => {
@@ -276,10 +279,16 @@ export default function Analytics() {
             {p}
           </button>
         ))}
-        {isToday && (
+        {isToday ? (
           <span className="flex items-center gap-1.5 text-xs text-emerald-400">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             Live data
+          </span>
+        ) : bookings.length < totalCount && (
+          <span className="flex items-center gap-1.5 text-xs text-slate-500">
+            {loadingMore && <Loader2 className="h-3 w-3 animate-spin" />}
+            Showing {bookings.length.toLocaleString()} of {totalCount.toLocaleString()} bookings
+            {bookings.length >= STATS_FETCH_CAP ? " (capped)" : loadingMore ? "…" : ""}
           </span>
         )}
         <button

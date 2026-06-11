@@ -19,7 +19,7 @@ import BookingModal from "../components/BookingModal";
 import ETACountdown from "../components/ETACountdown";
 import { useToast } from "../components/Toast";
 import { bookingStatusColor } from "../lib/statusColor";
-import { useBookings } from "../hooks/useBookings";
+import { useBookings, useTodayBookings } from "../hooks/useBookings";
 import { useDrivers } from "../hooks/useDrivers";
 import { useMissedCalls } from "../hooks/useMissedCalls";
 import { PORTALS } from "../lib/portals";
@@ -275,7 +275,8 @@ export default function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const navigate = useNavigate();
   const toast = useToast();
-  const { bookings, loading: bookingsLoading, error: bookingsError, createBooking } = useBookings();
+  const { bookings, totalCount, loading: bookingsLoading, error: bookingsError, createBooking } = useBookings();
+  const { bookings: todayBookings } = useTodayBookings();
   const { drivers } = useDrivers();
   const { calls } = useMissedCalls();
 
@@ -290,20 +291,20 @@ export default function Dashboard() {
     [bookings]
   );
 
-  const totalRevenue = useMemo(
+  const todayRevenue = useMemo(
     () =>
-      bookings
+      todayBookings
         .filter((b) => b.status === "Completed")
         .reduce((acc, b) => acc + (parseFloat(String(b.price).replace("£", "")) || 0), 0),
-    [bookings]
+    [todayBookings]
   );
 
   const metrics = useMemo(
     () => [
       {
         title: "Total Bookings Today",
-        value: bookings.length,
-        sub: totalRevenue > 0 ? `£${totalRevenue.toLocaleString()} confirmed revenue` : "Tracking live",
+        value: todayBookings.length,
+        sub: todayRevenue > 0 ? `£${todayRevenue.toLocaleString()} confirmed revenue` : "Tracking live",
         icon: ShieldCheck,
       },
       {
@@ -320,12 +321,12 @@ export default function Dashboard() {
       },
       {
         title: "CO₂ Savings",
-        value: `${Math.round(bookings.length * 7.3)}kg`,
+        value: `${Math.round(totalCount * 7.3)}kg`,
         sub: "Estimated vs equivalent petrol fleet",
         icon: Leaf,
       },
     ],
-    [bookings, activeCount, totalRevenue, calls]
+    [todayBookings, todayRevenue, activeCount, totalCount, calls]
   );
 
   return (
