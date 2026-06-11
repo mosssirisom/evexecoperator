@@ -8,11 +8,13 @@ import {
   BarChart3,
   Settings,
   Navigation,
-  UserCircle2,
+  LogOut,
   Car,
   BookOpen,
 } from "lucide-react";
 import { PORTALS } from "../lib/portals";
+import { useAuth } from "../contexts/AuthContext";
+import { isConfigured } from "../lib/supabase";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, to: "/" },
@@ -24,6 +26,8 @@ const navItems = [
 ];
 
 export default function Sidebar() {
+  const { signOut } = useAuth();
+
   return (
     <>
       {/* Desktop: fixed left rail */}
@@ -82,12 +86,16 @@ export default function Sidebar() {
           </a>
         </div>
 
-        <button
-          title="Profile"
-          className="flex h-14 w-14 items-center justify-center rounded-2xl text-slate-500 transition hover:bg-white/5 hover:text-white"
-        >
-          <UserCircle2 className="h-6 w-6" />
-        </button>
+        {isConfigured && (
+          <button
+            type="button"
+            title="Sign out"
+            onClick={signOut}
+            className="flex h-14 w-14 items-center justify-center rounded-2xl text-slate-500 transition hover:bg-white/5 hover:text-red-300"
+          >
+            <LogOut className="h-6 w-6" />
+          </button>
+        )}
       </aside>
 
       {/* Mobile: fixed bottom tab bar */}

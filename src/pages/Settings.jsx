@@ -15,8 +15,10 @@ import {
   BookOpen,
   UserCircle,
   Loader2,
+  LogOut,
 } from "lucide-react";
 import { useToast } from "../components/Toast";
+import { useAuth } from "../contexts/AuthContext";
 import { isConfigured } from "../lib/supabase";
 import { PORTALS } from "../lib/portals";
 import { getIntegrationStatus } from "../lib/edgeFunctions";
@@ -403,29 +405,58 @@ function SecurityFact({ label, value }) {
 }
 
 function SecuritySettings() {
+  const { user, signOut } = useAuth();
+
+  if (!isConfigured) {
+    return (
+      <div className="space-y-5">
+        <div className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.04] p-5">
+          <div className="flex items-start gap-3">
+            <Shield className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
+            <div>
+              <p className="font-medium text-white">Demo mode — sign-in disabled</p>
+              <p className="mt-1 text-sm leading-6 text-slate-400">
+                Supabase isn't configured for this environment, so operator sign-in is bypassed and
+                the dashboard runs on local mock data.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="space-y-3">
+          <SecurityFact label="Authentication" value="Disabled — no Supabase project connected" />
+          <SecurityFact label="Database access" value="Local mock data only" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.04] p-5">
+      <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.04] p-5">
         <div className="flex items-start gap-3">
-          <Shield className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
+          <Shield className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-400" />
           <div>
-            <p className="font-medium text-white">No operator login yet</p>
+            <p className="font-medium text-white">Signed in</p>
             <p className="mt-1 text-sm leading-6 text-slate-400">
-              This dashboard doesn't have per-operator accounts, so password, two-factor and session
-              controls don't apply here. Anyone who can reach this URL with a working anon key has the
-              access described below.
+              You're signed in as <span className="text-white">{user?.email}</span>. Operator
+              sign-in is required to view this dashboard — anyone without valid credentials is
+              redirected to the sign-in screen.
             </p>
           </div>
         </div>
       </div>
       <div className="space-y-3">
-        <SecurityFact label="Database access" value="Supabase Row Level Security policies on the anon role" />
-        <SecurityFact label="Edge Functions" value="Require a valid Supabase key (JWT verification enabled)" />
-        <SecurityFact
-          label="Recommended"
-          value="Restrict who can reach this dashboard's URL at the hosting level until per-operator accounts are added"
-        />
+        <SecurityFact label="Operator account" value={user?.email || "—"} />
+        <SecurityFact label="Authentication" value="Supabase Auth — email & password sign-in required" />
+        <SecurityFact label="Database access" value="Row Level Security grants full access to signed-in operators" />
       </div>
+      <button
+        onClick={signOut}
+        className="flex items-center gap-2 rounded-2xl border border-white/10 px-5 py-3 text-sm font-medium text-slate-300 transition hover:border-red-400/30 hover:text-red-300"
+      >
+        <LogOut className="h-4 w-4" />
+        Sign out
+      </button>
     </div>
   );
 }

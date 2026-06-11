@@ -6,6 +6,7 @@ import LiveClock from "./LiveClock";
 import RealtimeDot from "./RealtimeDot";
 import { useMissedCalls } from "../hooks/useMissedCalls";
 import { PORTALS } from "../lib/portals";
+import { useAuth } from "../contexts/AuthContext";
 
 const pageMeta = {
   "/": { label: "EV Exec", title: "Operator Dashboard" },
@@ -89,6 +90,7 @@ export default function Layout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const { calls, resolve, resolveAll } = useMissedCalls();
+  const { user } = useAuth();
   const alertCount = calls.length;
 
   // Keep browser tab title in sync with the active page
@@ -217,11 +219,11 @@ export default function Layout() {
                 className="glass hidden items-center gap-3 rounded-2xl px-3 py-2 transition hover:bg-white/10 lg:flex"
                 title="Settings"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-400/10 text-sm font-semibold text-amber-300">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-amber-400/10 text-sm font-semibold text-amber-300">
                   EV
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-white">Operator</p>
+                <div className="min-w-0 max-w-[160px]">
+                  <p className="truncate text-sm font-medium text-white">{user?.email || "Operator"}</p>
                   <p className="text-xs text-slate-500">Control Room</p>
                 </div>
               </button>
