@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { X, Plane, MapPin, Clock, User, Car, PoundSterling, ChevronDown } from "lucide-react";
 import { useDrivers } from "../hooks/useDrivers";
+import { useFleetSettings } from "../hooks/useFleetSettings";
+import { parseRate } from "../lib/settings";
 
 const AIRPORTS = [
   "Manchester Airport (MAN)",
@@ -19,14 +21,9 @@ const DESTINATIONS = [
   "Custom address…",
 ];
 
-function getSuggestedPrice(airport) {
-  try {
-    const saved = JSON.parse(localStorage.getItem("evexec_settings") || "{}");
-    const fleet = saved.fleet || {};
-    const parse = (s) => { const n = parseInt(String(s || "").replace(/[^0-9]/g, ""), 10); return n > 0 ? n : null; };
-    if (airport.includes("MAN")) return parse(fleet.rateMan);
-    if (airport.includes("LPL")) return parse(fleet.rateLpl);
-  } catch {}
+function getSuggestedPrice(airport, fleet) {
+  if (airport.includes("MAN")) return parseRate(fleet.rateMan);
+  if (airport.includes("LPL")) return parseRate(fleet.rateLpl);
   return null;
 }
 
@@ -92,10 +89,12 @@ const empty = {
   driver: "",
   price: "",
   notes: "",
+  extras: { waitingTime: false, childSeat: false },
 };
 
 export default function BookingModal({ open, onClose, onSubmit, initialValues }) {
   const { drivers } = useDrivers();
+  const fleet = useFleetSettings();
   const vehicles = useMemo(
     () => drivers.map((d) => ({ id: d.id, label: `${d.name} — ${d.vehicle}` })),
     [drivers]
@@ -163,12 +162,22 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues })
     []
   );
 
+  const setExtra = useCallback(
+    (key) => (value) => setForm((f) => ({ ...f, extras: { ...f.extras, [key]: value } })),
+    []
+  );
+
   useEffect(() => {
     if (!form.airport || !form.destination || form.destination === "Custom address…") return;
     if (form.price) return; // don't override a pre-filled price
-    const suggested = getSuggestedPrice(form.airport);
+    const suggested = getSuggestedPrice(form.airport, fleet);
     if (suggested !== null) setForm((f) => ({ ...f, price: String(suggested) }));
-  }, [form.airport, form.destination]);
+  }, [form.airport, form.destination, fleet]);
+
+  const surcharge =
+    (form.extras.waitingTime ? parseRate(fleet.rateWaiting) || 0 : 0) +
+    (form.extras.childSeat ? parseRate(fleet.rateChildSeat) || 0 : 0);
+  const totalPrice = (form.price ? Number(form.price) || 0 : 0) + surcharge;
 
   function validate() {
     const e = {};
@@ -193,7 +202,7 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues })
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const numPrice = form.price ? Number(form.price) || null : null;
+      const numPrice = totalPrice > 0 ? totalPrice : null;
       await onSubmit?.({ ...form, price: numPrice });
       setSubmitted(true);
       closeTimerRef.current = setTimeout(onClose, 1200);
@@ -341,6 +350,28 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues })
               </Field>
             </div>
 
+            {/* Extras */}
+            <div className="flex flex-wrap gap-x-6 gap-y-3">
+              <label className="flex items-center gap-2 text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={form.extras.waitingTime}
+                  onChange={(e) => setExtra("waitingTime")(e.target.checked)}
+                  className="h-4 w-4 rounded border-white/20 bg-white/[0.03] accent-amber-400"
+                />
+                Waiting time {fleet.rateWaiting && `(+${fleet.rateWaiting})`}
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={form.extras.childSeat}
+                  onChange={(e) => setExtra("childSeat")(e.target.checked)}
+                  className="h-4 w-4 rounded border-white/20 bg-white/[0.03] accent-amber-400"
+                />
+                Child seat {fleet.rateChildSeat && `(+${fleet.rateChildSeat})`}
+              </label>
+            </div>
+
             {/* Notes */}
             <Field label="Notes (optional)">
               <textarea
@@ -371,7 +402,7 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues })
                 disabled={submitting}
                 className="flex-1 rounded-2xl bg-amber-500 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {submitting ? "Creating…" : `Create Booking${form.price ? ` — £${form.price}` : ""}`}
+                {submitting ? "Creating…" : `Create Booking${totalPrice ? ` — £${totalPrice}` : ""}`}
               </button>
             </div>
           </form>

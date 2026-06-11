@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Building2,
   Bell,
@@ -14,10 +14,13 @@ import {
   Globe,
   BookOpen,
   UserCircle,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "../components/Toast";
 import { isConfigured } from "../lib/supabase";
 import { PORTALS } from "../lib/portals";
+import { getIntegrationStatus } from "../lib/edgeFunctions";
+import { loadSettings, saveSettings } from "../lib/settings";
 
 const SECTIONS = [
   { key: "business", label: "Business", icon: Building2 },
@@ -234,12 +237,14 @@ function PortalRow({ portalKey, toast }) {
   );
 }
 
-function IntegrationItem({ name, description, connected, onAction, actionLabel }) {
+function IntegrationItem({ name, description, connected, onAction, actionLabel, checking }) {
   return (
     <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.02] p-5">
       <div className="flex items-start gap-3">
         <div className="mt-0.5">
-          {connected ? (
+          {checking ? (
+            <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+          ) : connected ? (
             <CheckCircle2 className="h-4 w-4 text-emerald-400" />
           ) : (
             <Circle className="h-4 w-4 text-slate-600" />
@@ -265,6 +270,25 @@ function IntegrationItem({ name, description, connected, onAction, actionLabel }
 }
 
 function IntegrationSettings({ toast }) {
+  const [integrations, setIntegrations] = useState(null);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getIntegrationStatus().then((result) => {
+      if (cancelled) return;
+      setIntegrations(result.ok ? result.integrations : null);
+      setChecking(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const twilio = integrations?.twilio ?? false;
+  const stripe = integrations?.stripe ?? false;
+  const aerodatabox = integrations?.aerodatabox ?? false;
+
   return (
     <div className="space-y-8">
       {/* Portals & Website */}
@@ -283,7 +307,11 @@ function IntegrationSettings({ toast }) {
 
       {/* Backend services */}
       <div>
-        <p className="mb-4 text-xs uppercase tracking-[0.28em] text-amber-400">Backend Services</p>
+        <p className="mb-1 text-xs uppercase tracking-[0.28em] text-amber-400">Backend Services</p>
+        <p className="mb-4 text-xs text-slate-500">
+          Status is read live from your Supabase Edge Function secrets — nothing here can be toggled
+          from the dashboard. Add the relevant secrets in the Supabase project to switch a service on.
+        </p>
         <div className="space-y-4">
           <IntegrationItem
             name="Supabase"
@@ -310,15 +338,48 @@ function IntegrationSettings({ toast }) {
           />
           <IntegrationItem
             name="Twilio"
-            description="SMS & voice for missed call recovery"
-            connected={false}
-            onAction={() => toast({ message: "Twilio integration coming soon", type: "info" })}
+            description="SMS for missed call recovery & booking confirmations"
+            connected={twilio}
+            checking={checking}
+            actionLabel={checking ? "Checking…" : twilio ? "Connected" : "Setup needed"}
+            onAction={() =>
+              toast({
+                message: twilio
+                  ? "Twilio is configured — SMS sending is live"
+                  : "Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER to your Supabase Edge Function secrets",
+                type: twilio ? "success" : "info",
+              })
+            }
           />
           <IntegrationItem
             name="Stripe"
-            description="Payment processing & invoicing"
-            connected={false}
-            onAction={() => toast({ message: "Stripe integration coming soon", type: "info" })}
+            description="Payment links & invoicing"
+            connected={stripe}
+            checking={checking}
+            actionLabel={checking ? "Checking…" : stripe ? "Connected" : "Setup needed"}
+            onAction={() =>
+              toast({
+                message: stripe
+                  ? "Stripe is configured — payment links are live"
+                  : "Add STRIPE_SECRET_KEY to your Supabase Edge Function secrets",
+                type: stripe ? "success" : "info",
+              })
+            }
+          />
+          <IntegrationItem
+            name="AeroDataBox"
+            description="Live flight status for the Flight Delay Monitor"
+            connected={aerodatabox}
+            checking={checking}
+            actionLabel={checking ? "Checking…" : aerodatabox ? "Connected" : "Setup needed"}
+            onAction={() =>
+              toast({
+                message: aerodatabox
+                  ? "AeroDataBox is configured — flight status checks are live"
+                  : "Add AERODATABOX_API_KEY to your Supabase Edge Function secrets",
+                type: aerodatabox ? "success" : "info",
+              })
+            }
           />
           <IntegrationItem
             name="Google Maps API"
@@ -332,94 +393,41 @@ function IntegrationSettings({ toast }) {
   );
 }
 
-function SecuritySettings({ state, set }) {
+function SecurityFact({ label, value }) {
   return (
-    <div className="space-y-5">
-      <TextInput
-        label="Current Password"
-        value={state.currentPassword}
-        onChange={set("currentPassword")}
-        type="password"
-        placeholder="••••••••"
-      />
-      <TextInput
-        label="New Password"
-        value={state.newPassword}
-        onChange={set("newPassword")}
-        type="password"
-        placeholder="••••••••"
-      />
-      <TextInput
-        label="Confirm New Password"
-        value={state.confirmPassword}
-        onChange={set("confirmPassword")}
-        type="password"
-        placeholder="••••••••"
-      />
-      <ToggleRow
-        label="Two-factor authentication"
-        description="Adds an extra layer of login security"
-        value={state.twoFactor}
-        onChange={set("twoFactor")}
-      />
-      <ToggleRow
-        label="Session timeout (30 minutes)"
-        description="Auto-logout after inactivity"
-        value={state.sessionTimeout}
-        onChange={set("sessionTimeout")}
-      />
+    <div className="rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">{label}</p>
+      <p className="mt-1 text-sm text-slate-300">{value}</p>
     </div>
   );
 }
 
-const STORAGE_KEY = "evexec_settings";
-
-const INITIAL = {
-  business: {
-    name: "EV Exec",
-    email: "operator@evexec.co.uk",
-    phone: "+44 1253 000000",
-    address: "Blackpool, Lancashire, UK",
-  },
-  notifications: {
-    newBooking: true,
-    missedCall: true,
-    driverStatus: true,
-    flightDelay: true,
-    dailySummary: false,
-    weeklyReport: false,
-  },
-  fleet: {
-    rateMan: "£160",
-    rateLpl: "£145",
-    rateWaiting: "£15",
-    rateChildSeat: "£10",
-    showPrices: true,
-    autoAssign: false,
-  },
-  security: {
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-    twoFactor: false,
-    sessionTimeout: true,
-  },
-};
-
-function loadSettings() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return INITIAL;
-    const saved = JSON.parse(raw);
-    return {
-      business: { ...INITIAL.business, ...saved.business },
-      notifications: { ...INITIAL.notifications, ...saved.notifications },
-      fleet: { ...INITIAL.fleet, ...saved.fleet },
-      security: { ...INITIAL.security, ...saved.security },
-    };
-  } catch {
-    return INITIAL;
-  }
+function SecuritySettings() {
+  return (
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.04] p-5">
+        <div className="flex items-start gap-3">
+          <Shield className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
+          <div>
+            <p className="font-medium text-white">No operator login yet</p>
+            <p className="mt-1 text-sm leading-6 text-slate-400">
+              This dashboard doesn't have per-operator accounts, so password, two-factor and session
+              controls don't apply here. Anyone who can reach this URL with a working anon key has the
+              access described below.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="space-y-3">
+        <SecurityFact label="Database access" value="Supabase Row Level Security policies on the anon role" />
+        <SecurityFact label="Edge Functions" value="Require a valid Supabase key (JWT verification enabled)" />
+        <SecurityFact
+          label="Recommended"
+          value="Restrict who can reach this dashboard's URL at the hosting level until per-operator accounts are added"
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function Settings() {
@@ -437,7 +445,7 @@ export default function Settings() {
 
   function handleSave() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      saveSettings(settings);
       toast({ message: "Settings saved successfully", type: "success" });
     } catch {
       toast({ message: "Failed to save — storage may be full", type: "error" });
@@ -449,8 +457,10 @@ export default function Settings() {
     notifications: <NotificationSettings state={settings.notifications} set={set("notifications")} />,
     fleet: <FleetSettings state={settings.fleet} set={set("fleet")} />,
     integrations: <IntegrationSettings toast={toast} />,
-    security: <SecuritySettings state={settings.security} set={set("security")} />,
+    security: <SecuritySettings />,
   };
+
+  const showSaveButton = active !== "integrations" && active !== "security";
 
   return (
     <div className="p-4 sm:p-6 lg:p-10">
@@ -511,7 +521,7 @@ export default function Settings() {
             </h2>
           </div>
           {sectionContent[active]}
-          {active !== "integrations" && (
+          {showSaveButton && (
             <div className="mt-8 flex justify-end">
               <button
                 onClick={handleSave}

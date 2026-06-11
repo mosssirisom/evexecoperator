@@ -46,6 +46,14 @@ export function createPaymentLink(opts) {
   return invoke("create-payment-link", opts);
 }
 
+/**
+ * Check which third-party integrations have their secrets configured.
+ * Returns { ok, configured, integrations?: { twilio, stripe, aerodatabox }, reason? }
+ */
+export function getIntegrationStatus() {
+  return invoke("integration-status", {});
+}
+
 /** Builds a booking confirmation SMS message. */
 export function bookingConfirmationSms(booking) {
   const time = booking.pickupTime
