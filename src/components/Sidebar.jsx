@@ -18,7 +18,7 @@ const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, to: "/" },
   { label: "Dispatch", icon: Route, to: "/dispatch" },
   { label: "Drivers", icon: Users, to: "/drivers" },
-  { label: "Bookings", icon: Bot, to: "/bookings" },
+  { label: "Automation", icon: Bot, to: "/bookings" },
   { label: "Analytics", icon: BarChart3, to: "/analytics" },
   { label: "Settings", icon: Settings, to: "/settings" },
 ];

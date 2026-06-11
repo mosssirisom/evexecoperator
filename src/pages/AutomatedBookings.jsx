@@ -20,35 +20,35 @@ const automations = [
   {
     id: "AUTO-01",
     name: "Missed Call SMS Recovery",
-    trigger: "Missed inbound call",
-    action: "Send SMS with booking link within 2 min",
-    status: "Active",
+    trigger: "Missed inbound call appears in the queue below",
+    action: "Operator clicks \"Send SMS\" to text a booking link to the caller",
+    mode: "manual",
   },
   {
     id: "AUTO-02",
     name: "Incomplete Enquiry Follow-up",
     trigger: "Web form partial submission",
     action: "Email follow-up after 15 min",
-    status: "Active",
+    mode: "planned",
   },
   {
     id: "AUTO-03",
     name: "Flight Delay Monitor",
-    trigger: "Flight status change detected",
-    action: "Alert driver + update pickup time",
-    status: "Active",
+    trigger: "Operator opens a booking with a flight number",
+    action: "Click \"Check Flight\" to pull live status from AeroDataBox",
+    mode: "manual",
   },
   {
     id: "AUTO-04",
     name: "Post-Trip Review Request",
     trigger: "Job marked Completed",
     action: "Send review request SMS 30 min after",
-    status: "Paused",
+    mode: "planned",
   },
 ];
 
 function AutomationCard({ automation }) {
-  const [active, setActive] = useState(automation.status === "Active");
+  const isManual = automation.mode === "manual";
 
   return (
     <div className="rounded-3xl border border-white/5 bg-white/[0.02] p-5 transition hover:border-amber-400/10 hover:bg-white/[0.03]">
@@ -56,17 +56,16 @@ function AutomationCard({ automation }) {
         <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-amber-400/10">
           <Zap className="h-4 w-4 text-amber-400" />
         </div>
-        <button
-          onClick={() => setActive((v) => !v)}
-          className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${
-            active
-              ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20"
-              : "border-slate-500/30 bg-slate-500/10 text-slate-400 hover:bg-slate-500/20"
+        <span
+          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
+            isManual
+              ? "border-blue-400/30 bg-blue-400/10 text-blue-300"
+              : "border-slate-500/30 bg-slate-500/10 text-slate-400"
           }`}
-          title={active ? "Click to pause" : "Click to activate"}
+          title={isManual ? "Triggered manually by an operator" : "Not yet implemented"}
         >
-          {active ? "Active" : "Paused"}
-        </button>
+          {isManual ? "Manual Trigger" : "Planned"}
+        </span>
       </div>
       <h3 className="mt-4 font-semibold text-white">{automation.name}</h3>
       <div className="mt-3 space-y-2">
@@ -174,7 +173,7 @@ export default function AutomatedBookings() {
   } = useMissedCalls();
   const { createBooking } = useBookings();
 
-  const activeAutomations = automations.filter((a) => a.status === "Active").length;
+  const manualTools = automations.filter((a) => a.mode === "manual").length;
 
   async function handleRefresh() {
     try {
@@ -208,7 +207,7 @@ export default function AutomatedBookings() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4">
         {[
-          { label: "Automations Active", value: activeAutomations, icon: Bot, color: "text-amber-300" },
+          { label: "Manual Tools Live", value: manualTools, icon: Bot, color: "text-amber-300" },
           { label: "Pending Review", value: missedCalls.length, icon: AlertTriangle, color: "text-red-300" },
         ].map((s) => (
           <div key={s.label} className="card p-5">
@@ -316,7 +315,8 @@ export default function AutomatedBookings() {
               <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Workflows</p>
               <h2 className="mt-2 text-2xl font-semibold text-white">Active Automations</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Click the status badge on any automation to toggle it on or off.
+                "Manual Trigger" tools are live now and used from the booking detail view or the
+                missed call queue. "Planned" automations are on the roadmap and not yet active.
               </p>
             </div>
             <button
