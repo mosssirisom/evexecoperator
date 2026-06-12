@@ -31,7 +31,7 @@ vi.mock("../lib/supabase", () => ({
   isConfigured: true,
 }));
 
-import { useRealtimeBookings, useRealtimeDrivers } from "./useRealtimeBookings";
+import { useRealtimeBookings, useRealtimeDrivers, useRealtimeAuditLog } from "./useRealtimeBookings";
 
 beforeEach(() => {
   channels.length = 0;
@@ -104,6 +104,20 @@ describe("useRealtimeDrivers", () => {
     expect(channels[0].on).toHaveBeenCalledWith(
       "postgres_changes",
       { event: "*", schema: "public", table: "drivers" },
+      expect.any(Function)
+    );
+  });
+});
+
+describe("useRealtimeAuditLog", () => {
+  it("subscribes to postgres_changes on the audit_log table", () => {
+    const onUpdate = vi.fn();
+    renderHook(() => useRealtimeAuditLog(onUpdate));
+
+    expect(mockSupabase.channel.mock.calls[0][0]).toMatch(/^audit_log-realtime-/);
+    expect(channels[0].on).toHaveBeenCalledWith(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "audit_log" },
       expect.any(Function)
     );
   });

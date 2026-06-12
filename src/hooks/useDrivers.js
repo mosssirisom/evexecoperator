@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase, isConfigured } from "../lib/supabase";
 import { useRealtimeDrivers } from "./useRealtimeBookings";
+import { logActivity } from "../lib/auditLog";
 
 const PHONE_RE = /^[+\d][\d\s\-().]{4,}$/;
 
@@ -36,6 +37,11 @@ export function useDrivers() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const driversRef = useRef(drivers);
+  useEffect(() => {
+    driversRef.current = drivers;
+  }, [drivers]);
 
   const fetchDrivers = useCallback(async () => {
     if (!isConfigured) return;
@@ -77,11 +83,20 @@ export function useDrivers() {
 
   const updateStatus = useCallback(async (id, status) => {
     if (!isConfigured) throw new Error("Database not configured.");
+    const current = driversRef.current.find((d) => d.id === id);
     const { error: err } = await supabase
       .from("drivers")
       .update({ status })
       .eq("id", id);
     if (err) throw new Error(err.message);
+
+    logActivity({
+      action: "driver.status_changed",
+      entityType: "driver",
+      entityId: id,
+      details: { name: current?.name, from: current?.status ?? null, to: status },
+    });
+
     await fetchDrivers();
   }, [fetchDrivers]);
 
@@ -111,6 +126,14 @@ export function useDrivers() {
       password,
     });
     if (err) throw new Error(err.message);
+
+    logActivity({
+      action: "driver.created",
+      entityType: "driver",
+      entityId: name,
+      details: { name },
+    });
+
     await fetchDrivers();
     return { password };
   }, [fetchDrivers]);
@@ -134,16 +157,33 @@ export function useDrivers() {
       .update({ name, phone, email, vehicle, plate })
       .eq("id", id);
     if (err) throw new Error(err.message);
+
+    logActivity({
+      action: "driver.updated",
+      entityType: "driver",
+      entityId: id,
+      details: { name },
+    });
+
     await fetchDrivers();
   }, [fetchDrivers]);
 
   const deleteDriver = useCallback(async (id) => {
     if (!isConfigured) throw new Error("Database not configured.");
+    const current = driversRef.current.find((d) => d.id === id);
     const { error: err } = await supabase
       .from("drivers")
       .delete()
       .eq("id", id);
     if (err) throw new Error(err.message);
+
+    logActivity({
+      action: "driver.deleted",
+      entityType: "driver",
+      entityId: id,
+      details: { name: current?.name },
+    });
+
     await fetchDrivers();
   }, [fetchDrivers]);
 

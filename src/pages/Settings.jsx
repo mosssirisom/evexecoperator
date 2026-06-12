@@ -16,6 +16,7 @@ import {
   UserCircle,
   Loader2,
   LogOut,
+  History,
 } from "lucide-react";
 import { useToast } from "../components/Toast";
 import { useAuth } from "../contexts/AuthContext";
@@ -23,6 +24,7 @@ import { isConfigured } from "../lib/supabase";
 import { PORTALS } from "../lib/portals";
 import { getIntegrationStatus } from "../lib/edgeFunctions";
 import { loadSettings, saveSettings } from "../lib/settings";
+import { useAuditLog } from "../hooks/useAuditLog";
 
 const SECTIONS = [
   { key: "business", label: "Business", icon: Building2 },
@@ -30,6 +32,7 @@ const SECTIONS = [
   { key: "fleet", label: "Fleet & Pricing", icon: Car },
   { key: "integrations", label: "Integrations", icon: Plug },
   { key: "security", label: "Security", icon: Shield },
+  { key: "activity", label: "Activity Log", icon: History },
 ];
 
 function Toggle({ value, onChange }) {
@@ -461,6 +464,96 @@ function SecuritySettings() {
   );
 }
 
+function describeActivity(entry) {
+  const d = entry.details ?? {};
+  switch (entry.action) {
+    case "booking.created":
+      return `Created booking ${entry.entityId} for ${d.customer ?? "a customer"}${d.driver ? ` and assigned ${d.driver}` : ""}`;
+    case "booking.status_changed":
+      return `Changed booking ${entry.entityId} status from ${d.from ?? "—"} to ${d.to ?? "—"}`;
+    case "booking.driver_assigned":
+      return `Assigned ${d.to ?? "a driver"} to booking ${entry.entityId}`;
+    case "booking.driver_unassigned":
+      return `Unassigned ${d.from ?? "the driver"} from booking ${entry.entityId}`;
+    case "booking.payment_status_changed":
+      return `Marked booking ${entry.entityId} payment as ${d.to ?? "—"}`;
+    case "driver.status_changed":
+      return `Changed ${d.name ?? "a driver"}'s status from ${d.from ?? "—"} to ${d.to ?? "—"}`;
+    case "driver.created":
+      return `Added driver ${d.name ?? entry.entityId} to the fleet`;
+    case "driver.updated":
+      return `Updated driver ${d.name ?? entry.entityId}`;
+    case "driver.deleted":
+      return `Removed driver ${d.name ?? entry.entityId} from the fleet`;
+    case "missed_call.resolved":
+      return `Resolved missed call ${entry.entityId}`;
+    case "missed_call.resolved_all":
+      return "Resolved all outstanding missed calls";
+    default:
+      return `${entry.action} — ${entry.entityType} ${entry.entityId}`;
+  }
+}
+
+function formatActivityTime(iso) {
+  return new Date(iso).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function ActivityLogSettings() {
+  const { entries, loading, error } = useAuditLog();
+
+  if (!isConfigured) {
+    return (
+      <div className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.04] p-5">
+        <div className="flex items-start gap-3">
+          <History className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
+          <div>
+            <p className="font-medium text-white">Activity log unavailable in demo mode</p>
+            <p className="mt-1 text-sm leading-6 text-slate-400">
+              Supabase isn't configured for this environment, so operator actions aren't recorded.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {error && (
+        <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
+          Failed to load activity log: {error}
+        </div>
+      )}
+
+      {loading && entries.length === 0 ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-2xl border border-white/5 bg-white/[0.02] p-4" />
+          ))}
+        </div>
+      ) : entries.length === 0 ? (
+        <p className="py-10 text-center text-sm text-slate-600">No activity recorded yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {entries.map((entry) => (
+            <div key={entry.id} className="rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4">
+              <p className="text-sm text-white">{describeActivity(entry)}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {entry.actorEmail} · {formatActivityTime(entry.createdAt)}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Settings() {
   const [active, setActive] = useState("business");
   const [settings, setSettings] = useState(loadSettings);
@@ -489,9 +582,10 @@ export default function Settings() {
     fleet: <FleetSettings state={settings.fleet} set={set("fleet")} />,
     integrations: <IntegrationSettings toast={toast} />,
     security: <SecuritySettings />,
+    activity: <ActivityLogSettings />,
   };
 
-  const showSaveButton = active !== "integrations" && active !== "security";
+  const showSaveButton = active !== "integrations" && active !== "security" && active !== "activity";
 
   return (
     <div className="p-4 sm:p-6 lg:p-10">

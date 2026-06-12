@@ -47,3 +47,7 @@ export function useRealtimeBookings(onUpdate) {
 export function useRealtimeDrivers(onUpdate) {
   useRealtimeTable("drivers", onUpdate);
 }
+
+export function useRealtimeAuditLog(onUpdate) {
+  useRealtimeTable("audit_log", onUpdate);
+}

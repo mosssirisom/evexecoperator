@@ -3,6 +3,7 @@ import { supabase, isConfigured } from "../lib/supabase";
 import { useRealtimeBookings } from "./useRealtimeBookings";
 import { dispatchJobToDriverApp, updateJobStatus } from "../lib/driverApp";
 import { getFleetSettings } from "../lib/settings";
+import { logActivity } from "../lib/auditLog";
 import {
   validateBookingPayload,
   validateStatusTransition,
@@ -233,6 +234,13 @@ export function useBookings() {
           console.warn("[Driver] Status sync failed:", err.message);
         });
       }
+
+      logActivity({
+        action: "booking.status_changed",
+        entityType: "booking",
+        entityId: id,
+        details: { from: current?.status ?? null, to: status },
+      });
     } catch (err) {
       setBookings(snapshot);
       throw err;
@@ -313,6 +321,13 @@ export function useBookings() {
         status: createdStatus,
       }).catch(() => {});
 
+      logActivity({
+        action: "booking.created",
+        entityType: "booking",
+        entityId: ref,
+        details: { customer: form.customer, status: createdStatus, driver: driverRow?.name ?? null },
+      });
+
       await fetchBookings();
       return { ref };
     },
@@ -359,6 +374,13 @@ export function useBookings() {
         .update(update)
         .eq("ref", id);
       if (err) throw new Error(err.message);
+
+      logActivity({
+        action: driverId ? "booking.driver_assigned" : "booking.driver_unassigned",
+        entityType: "booking",
+        entityId: id,
+        details: { from: current?.driver ?? null, to: driverName ?? null },
+      });
     } catch (err) {
       setBookings(snapshot);
       throw err;
@@ -422,6 +444,13 @@ export function useBookings() {
         .update({ payment_status: paymentStatus })
         .eq("ref", id);
       if (err) throw new Error(err.message);
+
+      logActivity({
+        action: "booking.payment_status_changed",
+        entityType: "booking",
+        entityId: id,
+        details: { to: paymentStatus },
+      });
     } catch (err) {
       setBookings(snapshot);
       throw err;

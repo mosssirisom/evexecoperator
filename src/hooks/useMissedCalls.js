@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase, isConfigured } from "../lib/supabase";
+import { logActivity } from "../lib/auditLog";
 
 function shapedCall(row) {
   return {
@@ -53,6 +54,7 @@ export function useMissedCalls() {
       setError(err.message);
       throw new Error(err.message);
     }
+    logActivity({ action: "missed_call.resolved", entityType: "missed_call", entityId: id });
     await fetchCalls();
   }, [fetchCalls]);
 
@@ -69,6 +71,7 @@ export function useMissedCalls() {
       setError(err.message);
       throw new Error(err.message);
     }
+    logActivity({ action: "missed_call.resolved_all", entityType: "missed_call", entityId: "all" });
     await fetchCalls();
   }, [fetchCalls]);
 
