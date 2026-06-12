@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { TrendingUp, Leaf, PoundSterling, Users, Calendar, Trophy, PieChart, CheckCircle2, Download, Loader2 } from "lucide-react";
 import { useBookings, useTodayBookings } from "../hooks/useBookings";
 import { useDrivers } from "../hooks/useDrivers";
+import { useAnalyticsSummary } from "../hooks/useAnalyticsSummary";
 import { exportBookingsCsv } from "../lib/exportCsv";
 
 const PERIODS = ["Today", "7 Days", "30 Days", "All Time"];
@@ -43,6 +44,7 @@ export default function Analytics() {
   const { bookings, totalCount, loading, loadingMore, loadMore } = useBookings();
   const { bookings: todayBookings } = useTodayBookings();
   const { drivers } = useDrivers();
+  const { totals: summaryTotals, statusBreakdown: summaryStatusBreakdown } = useAnalyticsSummary();
 
   const parsePrice = (b) => parseFloat(String(b.price).replace("£", "")) || 0;
 
@@ -194,16 +196,36 @@ export default function Analytics() {
   const isToday = period === "Today";
   const periodData = isToday ? null : liveData[period];
 
+  // "All Time" totals come from server-side aggregates over the full
+  // bookings table when available, so they aren't limited by STATS_FETCH_CAP.
+  const allTimeOverride = period === "All Time" && Boolean(summaryTotals);
+
   const bars = isToday ? todayData.bars : periodData?.bars ?? [];
   const totalRevenue = isToday
     ? todayData.totalRevenue
+    : allTimeOverride
+    ? summaryTotals.totalRevenue
     : bars.reduce((acc, d) => acc + d.value, 0);
   const totalBookings = isToday
     ? todayData.totalBookings
+    : allTimeOverride
+    ? summaryTotals.totalBookings
     : bars.reduce((acc, d) => acc + d.bookings, 0);
-  const newCustomers = isToday ? todayData.newCustomers : periodData?.newCustomers ?? 0;
-  const co2 = isToday ? todayData.co2 : periodData?.co2 ?? "—";
-  const subRevenue = isToday ? todayData.subRevenue : periodData?.subRevenue ?? "";
+  const newCustomers = isToday
+    ? todayData.newCustomers
+    : allTimeOverride
+    ? summaryTotals.uniqueCustomers
+    : periodData?.newCustomers ?? 0;
+  const co2 = isToday
+    ? todayData.co2
+    : allTimeOverride
+    ? `${Math.round(summaryTotals.totalBookings * 7.3).toLocaleString()}kg`
+    : periodData?.co2 ?? "—";
+  const subRevenue = isToday
+    ? todayData.subRevenue
+    : allTimeOverride
+    ? "All-time totals"
+    : periodData?.subRevenue ?? "";
   const peakDay = isToday
     ? todayData.peakDay
     : bars.reduce((a, b) => (b.value > a.value ? b : a), bars[0] ?? { label: "—", value: 0 });
@@ -225,7 +247,9 @@ export default function Analytics() {
       .slice(0, 5);
   }, [bookings]);
 
-  const statusBreakdown = useMemo(() => {
+  // Status breakdown comes from the server-side aggregate over the full
+  // bookings table when available, falling back to the loaded page.
+  const clientStatusBreakdown = useMemo(() => {
     const map = {};
     bookings.forEach((b) => {
       map[b.status] = (map[b.status] || 0) + 1;
@@ -234,6 +258,9 @@ export default function Analytics() {
       .map(([status, count]) => ({ status, count }))
       .sort((a, b) => b.count - a.count);
   }, [bookings]);
+
+  const statusBreakdown = summaryTotals ? summaryStatusBreakdown : clientStatusBreakdown;
+  const statusBreakdownTotal = statusBreakdown.reduce((sum, s) => sum + s.count, 0);
 
   const driverLeaderboard = useMemo(() => {
     const completedMap = {};
@@ -257,10 +284,19 @@ export default function Analytics() {
   }, [bookings, drivers]);
 
   const cancellationRate = useMemo(() => {
+    if (summaryTotals) {
+      return summaryTotals.totalBookings > 0
+        ? Math.round((summaryTotals.cancelledBookings / summaryTotals.totalBookings) * 100)
+        : 0;
+    }
     const total = bookings.length;
     const cancelled = bookings.filter((b) => b.status === "Cancelled").length;
     return total > 0 ? Math.round((cancelled / total) * 100) : 0;
-  }, [bookings]);
+  }, [bookings, summaryTotals]);
+
+  const completedCount = summaryTotals
+    ? summaryTotals.completedBookings
+    : bookings.filter((b) => b.status === "Completed").length;
 
   return (
     <div className="grid gap-6 p-4 sm:p-6 lg:p-10">
@@ -287,8 +323,11 @@ export default function Analytics() {
         ) : bookings.length < totalCount && (
           <span className="flex items-center gap-1.5 text-xs text-slate-500">
             {loadingMore && <Loader2 className="h-3 w-3 animate-spin" />}
-            Showing {bookings.length.toLocaleString()} of {totalCount.toLocaleString()} bookings
-            {bookings.length >= STATS_FETCH_CAP ? " (capped)" : loadingMore ? "…" : ""}
+            {allTimeOverride
+              ? `Chart based on ${bookings.length.toLocaleString()} of ${totalCount.toLocaleString()} bookings — totals reflect all bookings`
+              : `Showing ${bookings.length.toLocaleString()} of ${totalCount.toLocaleString()} bookings${
+                  bookings.length >= STATS_FETCH_CAP ? " (capped)" : loadingMore ? "…" : ""
+                }`}
           </span>
         )}
         <button
@@ -343,7 +382,7 @@ export default function Analytics() {
       </div>
 
       {/* Cancellation rate inline stat */}
-      {bookings.length > 0 && (
+      {(bookings.length > 0 || summaryTotals) && (
         <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4">
           <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
           <span className="text-sm text-slate-400">
@@ -351,7 +390,7 @@ export default function Analytics() {
           </span>
           <span className="text-slate-700">·</span>
           <span className="text-sm text-slate-400">
-            Completed: <span className="font-semibold text-emerald-300">{bookings.filter((b) => b.status === "Completed").length}</span>
+            Completed: <span className="font-semibold text-emerald-300">{completedCount}</span>
           </span>
           <span className="text-slate-700">·</span>
           <span className="text-sm text-slate-400">
@@ -439,7 +478,7 @@ export default function Analytics() {
           ) : (
             <div className="space-y-3">
               {statusBreakdown.map(({ status, count }) => {
-                const pct = Math.round((count / bookings.length) * 100);
+                const pct = statusBreakdownTotal > 0 ? Math.round((count / statusBreakdownTotal) * 100) : 0;
                 const c = STATUS_COLORS[status] ?? { bar: "bg-slate-500", text: "text-slate-400" };
                 return (
                   <div key={status}>

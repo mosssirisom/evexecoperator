@@ -51,3 +51,7 @@ export function useRealtimeDrivers(onUpdate) {
 export function useRealtimeAuditLog(onUpdate) {
   useRealtimeTable("audit_log", onUpdate);
 }
+
+export function useRealtimeErrorLog(onUpdate) {
+  useRealtimeTable("error_log", onUpdate);
+}

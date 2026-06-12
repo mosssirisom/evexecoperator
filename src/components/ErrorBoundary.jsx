@@ -1,5 +1,6 @@
 import React from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { logError } from "../lib/errorLog";
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -13,6 +14,11 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, info) {
     console.error("[ErrorBoundary] Caught render error:", error, info.componentStack);
+    logError({
+      message: error.message,
+      stack: error.stack,
+      componentStack: info.componentStack,
+    });
   }
 
   render() {

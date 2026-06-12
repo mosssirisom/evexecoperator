@@ -17,6 +17,7 @@ import {
   Loader2,
   LogOut,
   History,
+  AlertTriangle,
 } from "lucide-react";
 import { useToast } from "../components/Toast";
 import { useAuth } from "../contexts/AuthContext";
@@ -25,6 +26,7 @@ import { PORTALS } from "../lib/portals";
 import { getIntegrationStatus } from "../lib/edgeFunctions";
 import { loadSettings, saveSettings } from "../lib/settings";
 import { useAuditLog } from "../hooks/useAuditLog";
+import { useErrorLog } from "../hooks/useErrorLog";
 
 const SECTIONS = [
   { key: "business", label: "Business", icon: Building2 },
@@ -33,6 +35,7 @@ const SECTIONS = [
   { key: "integrations", label: "Integrations", icon: Plug },
   { key: "security", label: "Security", icon: Shield },
   { key: "activity", label: "Activity Log", icon: History },
+  { key: "errors", label: "Error Log", icon: AlertTriangle },
 ];
 
 function Toggle({ value, onChange }) {
@@ -554,6 +557,67 @@ function ActivityLogSettings() {
   );
 }
 
+function formatErrorTime(iso) {
+  return new Date(iso).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function ErrorLogSettings() {
+  const { entries, loading, error } = useErrorLog();
+
+  if (!isConfigured) {
+    return (
+      <div className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.04] p-5">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
+          <div>
+            <p className="font-medium text-white">Error log unavailable in demo mode</p>
+            <p className="mt-1 text-sm leading-6 text-slate-400">
+              Supabase isn't configured for this environment, so client-side errors aren't recorded.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {error && (
+        <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
+          Failed to load error log: {error}
+        </div>
+      )}
+
+      {loading && entries.length === 0 ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-2xl border border-white/5 bg-white/[0.02] p-4" />
+          ))}
+        </div>
+      ) : entries.length === 0 ? (
+        <p className="py-10 text-center text-sm text-slate-600">No errors recorded yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {entries.map((entry) => (
+            <div key={entry.id} className="rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4">
+              <p className="text-sm text-white">{entry.message}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {entry.userEmail} · {formatErrorTime(entry.createdAt)}
+                {entry.url ? ` · ${entry.url}` : ""}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Settings() {
   const [active, setActive] = useState("business");
   const [settings, setSettings] = useState(loadSettings);
@@ -583,9 +647,11 @@ export default function Settings() {
     integrations: <IntegrationSettings toast={toast} />,
     security: <SecuritySettings />,
     activity: <ActivityLogSettings />,
+    errors: <ErrorLogSettings />,
   };
 
-  const showSaveButton = active !== "integrations" && active !== "security" && active !== "activity";
+  const showSaveButton =
+    active !== "integrations" && active !== "security" && active !== "activity" && active !== "errors";
 
   return (
     <div className="p-4 sm:p-6 lg:p-10">
