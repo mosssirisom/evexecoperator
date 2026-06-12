@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import {
   Car, Phone, Star, CheckCircle2, Clock, UserX, MoreVertical, Plus, X,
   User, Hash, Truck, MapPin, ExternalLink, Edit2, Trash2, Mail, KeyRound, Copy, Check,
+  AlertTriangle, BadgeCheck, ShieldCheck, Wrench, FileWarning,
 } from "lucide-react";
 import { useDrivers } from "../hooks/useDrivers";
 import { useBookings } from "../hooks/useBookings";
 import { useToast } from "../components/Toast";
 import { bookingStatusColor } from "../lib/statusColor";
 import { PORTALS } from "../lib/portals";
+import { getDriverComplianceIssues, getDriverComplianceStatus, getFleetComplianceAlerts } from "../lib/compliance";
 
 function statusBadge(status) {
   if (status === "Available") return "text-emerald-300 bg-emerald-400/10 border-emerald-400/20";
@@ -28,10 +30,84 @@ const DRIVER_FIELDS = [
   { key: "plate",   label: "Plate Number", placeholder: "EV21 XYZ",              icon: Hash,  type: "text"  },
 ];
 
+// ── Compliance document fields ────────────────────────────────────────────────
+const COMPLIANCE_FIELDS = [
+  { key: "licenceExpiry",   label: "Licence Expiry",   icon: BadgeCheck,  type: "date" },
+  { key: "insuranceExpiry", label: "Insurance Expiry", icon: ShieldCheck, type: "date" },
+  { key: "motExpiry",       label: "MOT Expiry",       icon: Wrench,      type: "date" },
+];
+
+const COMPLIANCE_BADGE_STYLES = {
+  expired:  "border-red-400/20 bg-red-400/10 text-red-300",
+  expiring: "border-amber-400/20 bg-amber-400/10 text-amber-300",
+};
+
+function formatExpiry(date) {
+  return new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+// ── Driver compliance badge (shown on the driver card) ─────────────────────────
+function DriverComplianceBadge({ driver }) {
+  const status = getDriverComplianceStatus(driver);
+  if (status === "valid") return null;
+
+  const issues = getDriverComplianceIssues(driver);
+  const title = issues
+    .map((i) => `${i.label}: ${i.status === "expired" ? "expired" : "expiring"}${i.expiry ? ` ${formatExpiry(i.expiry)}` : ""}`)
+    .join(" · ");
+
+  return (
+    <span
+      title={title}
+      className={`flex items-center gap-1 self-start rounded-full border px-3 py-1 text-xs font-medium ${COMPLIANCE_BADGE_STYLES[status]}`}
+    >
+      <AlertTriangle className="h-3.5 w-3.5" />
+      {status === "expired" ? "Docs expired" : "Docs expiring"}
+    </span>
+  );
+}
+
+// ── Fleet-wide compliance alerts banner ─────────────────────────────────────────
+function ComplianceAlertsBanner({ alerts }) {
+  if (alerts.length === 0) return null;
+
+  return (
+    <div className="card border-amber-400/20 bg-amber-400/[0.04] p-5">
+      <div className="flex items-start gap-4">
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-400/10">
+          <FileWarning className="h-5 w-5 text-amber-300" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Compliance</p>
+          <h3 className="mt-1 text-lg font-semibold text-white">
+            {alerts.length} driver{alerts.length > 1 ? "s" : ""} need attention
+          </h3>
+          <div className="mt-3 space-y-2">
+            {alerts.map(({ driver, issues }) => (
+              <div key={driver.id} className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-medium text-white">{driver.name}</span>
+                {issues.map((issue) => (
+                  <span
+                    key={issue.key}
+                    className={`rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${COMPLIANCE_BADGE_STYLES[issue.status]}`}
+                  >
+                    {issue.label} {issue.status === "expired" ? "expired" : "expiring"}
+                    {issue.expiry ? ` · ${formatExpiry(issue.expiry)}` : ""}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Driver form modal (used for both Add and Edit) ────────────────────────────
 function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
   const [form, setForm] = useState(
-    initial ?? { name: "", phone: "", email: "", vehicle: "", plate: "" }
+    initial ?? { name: "", phone: "", email: "", vehicle: "", plate: "", licenceExpiry: "", insuranceExpiry: "", motExpiry: "" }
   );
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -93,6 +169,26 @@ function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
                 />
               </div>
             ))}
+
+            <div className="mt-2 border-t border-white/5 pt-4">
+              <p className="mb-3 text-xs uppercase tracking-[0.2em] text-slate-500">Compliance Documents</p>
+              <div className="grid gap-4">
+                {COMPLIANCE_FIELDS.map(({ key, label, icon: Icon, type }) => (
+                  <div key={key}>
+                    <label className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-500">
+                      <Icon className="h-3.5 w-3.5" />
+                      {label}
+                    </label>
+                    <input
+                      type={type}
+                      value={form[key] ?? ""}
+                      onChange={set(key)}
+                      className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 transition focus:border-amber-400/40 [color-scheme:dark]"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {submitError && (
               <p className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-xs text-red-300">
@@ -435,11 +531,14 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
         </div>
       </div>
 
-      <span
-        className={`self-start rounded-full border px-3 py-1 text-xs font-medium ${statusBadge(driver.status)}`}
-      >
-        {driver.status}
-      </span>
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className={`self-start rounded-full border px-3 py-1 text-xs font-medium ${statusBadge(driver.status)}`}
+        >
+          {driver.status}
+        </span>
+        <DriverComplianceBadge driver={driver} />
+      </div>
 
       <div className="space-y-3 text-sm">
         <div className="flex items-center gap-2 text-slate-400">
@@ -506,6 +605,8 @@ export default function DriverManagement() {
   const available = drivers.filter((d) => ["Available", "Available soon"].includes(d.status)).length;
   const active = drivers.filter((d) => ["En route", "Passenger onboard"].includes(d.status)).length;
   const offDuty = drivers.length - active - available;
+
+  const complianceAlerts = useMemo(() => getFleetComplianceAlerts(drivers), [drivers]);
 
   const todayJobs = useMemo(() => {
     const today = new Date();
@@ -584,7 +685,16 @@ export default function DriverManagement() {
         <DriverFormModal
           title="Edit Driver"
           submitLabel="Save Changes"
-          initial={{ name: editModal.name, phone: editModal.phone === "—" ? "" : editModal.phone, email: editModal.email ?? "", vehicle: editModal.vehicle === "—" ? "" : editModal.vehicle, plate: editModal.plate === "—" ? "" : editModal.plate }}
+          initial={{
+            name: editModal.name,
+            phone: editModal.phone === "—" ? "" : editModal.phone,
+            email: editModal.email ?? "",
+            vehicle: editModal.vehicle === "—" ? "" : editModal.vehicle,
+            plate: editModal.plate === "—" ? "" : editModal.plate,
+            licenceExpiry: editModal.licenceExpiry ?? "",
+            insuranceExpiry: editModal.insuranceExpiry ?? "",
+            motExpiry: editModal.motExpiry ?? "",
+          }}
           onClose={() => setEditModal(null)}
           onSubmit={handleEditDriver}
         />
@@ -623,6 +733,9 @@ export default function DriverManagement() {
             </div>
           ))}
         </div>
+
+        {/* Compliance alerts */}
+        <ComplianceAlertsBanner alerts={complianceAlerts} />
 
         {/* Section header + Add Driver */}
         <div className="flex flex-wrap items-center justify-between gap-3">

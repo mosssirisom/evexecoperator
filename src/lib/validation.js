@@ -159,6 +159,23 @@ export function validateBookingPayload(form) {
     );
 }
 
+// ─── Date validation ──────────────────────────────────────────────────────────
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Validates an optional YYYY-MM-DD date string, returning it unchanged or
+ * null if empty. Throws ValidationError if the value is present but invalid.
+ */
+export function validateOptionalDate(value, label) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  if (!DATE_RE.test(trimmed) || isNaN(new Date(trimmed).getTime())) {
+    throw new ValidationError(`${label} must be a valid date (YYYY-MM-DD)`);
+  }
+  return trimmed;
+}
+
 // ─── Text sanitisation ────────────────────────────────────────────────────────
 
 /** Trims whitespace and hard-caps a string to maxLen characters. */

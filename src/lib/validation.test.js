@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   validateBookingPayload,
   validateStatusTransition,
+  validateOptionalDate,
   sanitizeText,
   generateBookingRef,
   ValidationError,
@@ -239,6 +240,45 @@ describe("validateStatusTransition", () => {
     }
     expect(message).toMatch(/En Route/);
     expect(message).toMatch(/Cancelled/);
+  });
+});
+
+// ─── validateOptionalDate ─────────────────────────────────────────────────────
+
+describe("validateOptionalDate", () => {
+  it("returns a valid YYYY-MM-DD date unchanged", () => {
+    expect(validateOptionalDate("2027-01-01", "Licence expiry")).toBe("2027-01-01");
+  });
+
+  it("trims whitespace before validating", () => {
+    expect(validateOptionalDate("  2027-01-01  ", "Licence expiry")).toBe("2027-01-01");
+  });
+
+  it("returns null for an empty string", () => {
+    expect(validateOptionalDate("", "Licence expiry")).toBeNull();
+  });
+
+  it("returns null for null", () => {
+    expect(validateOptionalDate(null, "Licence expiry")).toBeNull();
+  });
+
+  it("returns null for undefined", () => {
+    expect(validateOptionalDate(undefined, "Licence expiry")).toBeNull();
+  });
+
+  it("throws ValidationError with the field label for an invalid date string", () => {
+    expect(() => validateOptionalDate("not-a-date", "Licence expiry")).toThrowError(
+      ValidationError
+    );
+    expect(() => validateOptionalDate("not-a-date", "Licence expiry")).toThrow(
+      /Licence expiry/
+    );
+  });
+
+  it("throws for a date string not matching YYYY-MM-DD", () => {
+    expect(() => validateOptionalDate("01/01/2027", "Insurance expiry")).toThrow(
+      /Insurance expiry/
+    );
   });
 });
 

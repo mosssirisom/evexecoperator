@@ -71,6 +71,7 @@ describe("useDrivers — fetch", () => {
       data: [{
         id: "d1", name: "Nitisat Siri", status: "Available",
         vehicle: null, plate: null, phone: null, email: null, rating: null,
+        licence_expiry: "2026-01-01", insurance_expiry: null, mot_expiry: null,
       }],
       error: null,
     });
@@ -93,6 +94,9 @@ describe("useDrivers — fetch", () => {
       email: null,
       completedToday: 2,
       rating: 5.0,
+      licenceExpiry: "2026-01-01",
+      insuranceExpiry: null,
+      motExpiry: null,
     });
   });
 
@@ -152,6 +156,9 @@ describe("useDrivers — createDriver", () => {
 
     await expect(act(() => result.current.createDriver({ name: "Valid Name", plate: "X".repeat(21) })))
       .rejects.toThrow(/20 characters/);
+
+    await expect(act(() => result.current.createDriver({ name: "Valid Name", licenceExpiry: "not-a-date" })))
+      .rejects.toThrow(/licence expiry/i);
   });
 
   it("inserts a driver with a generated password and returns it", async () => {
@@ -166,6 +173,9 @@ describe("useDrivers — createDriver", () => {
         email: "new@example.com",
         vehicle: "Tesla Model 3",
         plate: "AB12 CDE",
+        licenceExpiry: "2027-01-01",
+        insuranceExpiry: "2026-12-31",
+        motExpiry: "2026-06-30",
       });
     });
 
@@ -178,6 +188,9 @@ describe("useDrivers — createDriver", () => {
       status: "Available",
       rating: 5.0,
       password: expect.any(String),
+      licence_expiry: "2027-01-01",
+      insurance_expiry: "2026-12-31",
+      mot_expiry: "2026-06-30",
     }));
     expect(response.password).toHaveLength(10);
   });
@@ -220,6 +233,7 @@ describe("useDrivers — updateDriver", () => {
 
     expect(mockChain.update).toHaveBeenCalledWith({
       name: "Updated Name", phone: null, email: null, vehicle: null, plate: null,
+      licence_expiry: null, insurance_expiry: null, mot_expiry: null,
     });
     expect(mockChain.eq).toHaveBeenCalledWith("id", "d1");
   });

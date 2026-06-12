@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase, isConfigured } from "../lib/supabase";
 import { useRealtimeDrivers } from "./useRealtimeBookings";
 import { logActivity } from "../lib/auditLog";
+import { validateOptionalDate } from "../lib/validation";
 
 const PHONE_RE = /^[+\d][\d\s\-().]{4,}$/;
 
@@ -30,6 +31,9 @@ function shapedDriver(row) {
     email: row.email ?? null,
     completedToday: 0,
     rating: row.rating ?? 5.0,
+    licenceExpiry: row.licence_expiry ?? null,
+    insuranceExpiry: row.insurance_expiry ?? null,
+    motExpiry: row.mot_expiry ?? null,
   };
 }
 
@@ -112,6 +116,10 @@ export function useDrivers() {
     if (phone && !PHONE_RE.test(phone)) throw new Error("Please enter a valid phone number.");
     if (plate && plate.length > 20) throw new Error("Plate number must be 20 characters or fewer.");
 
+    const licenceExpiry = validateOptionalDate(form.licenceExpiry, "Licence expiry");
+    const insuranceExpiry = validateOptionalDate(form.insuranceExpiry, "Insurance expiry");
+    const motExpiry = validateOptionalDate(form.motExpiry, "MOT expiry");
+
     if (!isConfigured) throw new Error("Database not configured.");
 
     const password = generateDriverPassword();
@@ -124,6 +132,9 @@ export function useDrivers() {
       status: "Available",
       rating: 5.0,
       password,
+      licence_expiry: licenceExpiry,
+      insurance_expiry: insuranceExpiry,
+      mot_expiry: motExpiry,
     });
     if (err) throw new Error(err.message);
 
@@ -150,11 +161,20 @@ export function useDrivers() {
     if (phone && !PHONE_RE.test(phone)) throw new Error("Please enter a valid phone number.");
     if (plate && plate.length > 20) throw new Error("Plate number must be 20 characters or fewer.");
 
+    const licenceExpiry = validateOptionalDate(form.licenceExpiry, "Licence expiry");
+    const insuranceExpiry = validateOptionalDate(form.insuranceExpiry, "Insurance expiry");
+    const motExpiry = validateOptionalDate(form.motExpiry, "MOT expiry");
+
     if (!isConfigured) throw new Error("Database not configured.");
 
     const { error: err } = await supabase
       .from("drivers")
-      .update({ name, phone, email, vehicle, plate })
+      .update({
+        name, phone, email, vehicle, plate,
+        licence_expiry: licenceExpiry,
+        insurance_expiry: insuranceExpiry,
+        mot_expiry: motExpiry,
+      })
       .eq("id", id);
     if (err) throw new Error(err.message);
 
