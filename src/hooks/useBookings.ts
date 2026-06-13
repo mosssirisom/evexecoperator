@@ -3,13 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import type { DbBooking, BookingStatus } from "@/lib/database.types";
-
-// Matches the `EVX-[A-Z0-9]+` ref format used across the EV Exec ecosystem
-// (timestamp + random suffix in base36, uppercased).
-function generateBookingRef(): string {
-  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `EVX-${Date.now().toString(36).toUpperCase()}${random}`;
-}
+import { generateBookingRef } from "@/lib/operator/validation";
 
 export function useBookings() {
   const [bookings, setBookings] = useState<DbBooking[]>([]);

@@ -1,4 +1,8 @@
-// ─── Canonical status enums ──────────────────────────────────────────────────────────
+// ─── Canonical status enums ────────────────────────────────────────────────────
+
+import { STATUS_TRANSITIONS } from "@/lib/database.types";
+
+export { STATUS_TRANSITIONS };
 
 export const BOOKING_STATUSES = [
   "Unassigned",
@@ -18,20 +22,7 @@ export const DRIVER_STATUSES = [
   "Off duty",
 ];
 
-// State machine: maps each status to the set of valid next statuses.
-// Cancellation is allowed from any non-terminal state.
-// Completed and Cancelled are terminal — no further transitions permitted.
-export const STATUS_TRANSITIONS = {
-  "Unassigned":                        ["Dispatched", "Cancelled", "Unassigned / Missed Call Recovery"],
-  "Unassigned / Missed Call Recovery": ["Dispatched", "Cancelled"],
-  "Dispatched":                        ["En Route", "Cancelled"],
-  "En Route":                          ["Passenger On Board", "Cancelled"],
-  "Passenger On Board":                ["Completed", "Cancelled"],
-  "Completed":                         [],
-  "Cancelled":                         [],
-};
-
-// ─── ValidationError ───────────────────────────────────────────────────────────────────
+// ─── ValidationError ──────────────────────────────────────────────────────────
 
 export class ValidationError extends Error {
   constructor(message, field = null) {
@@ -41,7 +32,7 @@ export class ValidationError extends Error {
   }
 }
 
-// ─── Status transition guard ─────────────────────────────────────────────────────────────
+// ─── Status transition guard ──────────────────────────────────────────────────
 
 /**
  * Throws ValidationError if the transition from → to is not permitted by the
@@ -64,7 +55,7 @@ export function validateStatusTransition(from, to) {
   }
 }
 
-// ─── Booking payload validation ───────────────────────────────────────────────────────────────
+// ─── Booking payload validation ───────────────────────────────────────────────
 
 const MAX_LENGTHS = {
   customer: 120,
@@ -159,7 +150,7 @@ export function validateBookingPayload(form) {
     );
 }
 
-// ─── Text sanitisation ─────────────────────────────────────────────────────────────────
+// ─── Text sanitisation ────────────────────────────────────────────────────────
 
 /** Trims whitespace and hard-caps a string to maxLen characters. */
 export function sanitizeText(str, maxLen) {
@@ -167,7 +158,7 @@ export function sanitizeText(str, maxLen) {
   return str.trim().slice(0, maxLen);
 }
 
-// ─── Booking reference generation ───────────────────────────────────────────────────────
+// ─── Booking reference generation ────────────────────────────────────────────
 
 /**
  * Generates a short unique booking reference of the form EVX-XXXXXNN.

@@ -10,6 +10,7 @@ const { mockChain, mockSupabase } = vi.hoisted(() => {
   const chain = {
     select: vi.fn(),
     order:  vi.fn(),
+    range:  vi.fn(),
     eq:     vi.fn(),
     single: vi.fn(),
     insert: vi.fn(),
@@ -50,7 +51,7 @@ import { useBookings, shapedBooking } from "./useBookings";
 beforeEach(() => {
   vi.clearAllMocks();
   Object.values(mockChain).forEach((fn) => fn.mockReturnValue(mockChain));
-  mockChain.order.mockResolvedValue({ data: [], error: null });
+  mockChain.range.mockResolvedValue({ data: [], error: null });
   mockChain.single.mockResolvedValue({ data: null, error: null });
   mockChain.eq.mockResolvedValue({ data: [], error: null });
   mockChain.insert.mockResolvedValue({ error: null });
@@ -72,11 +73,12 @@ function validForm(overrides = {}) {
   };
 }
 
-// Prime the order mock to return `rows` for the next N calls.
+// Prime the range mock (the terminal call in the select chain) to return
+// `rows` for the next N calls.
 // Pass N=2 to survive React 18 strict-mode double-invoke of effects.
 function primeRows(rows, times = 2) {
   for (let i = 0; i < times; i++) {
-    mockChain.order.mockResolvedValueOnce({ data: rows, error: null });
+    mockChain.range.mockResolvedValueOnce({ data: rows, error: null });
   }
 }
 
@@ -85,10 +87,10 @@ function primeRows(rows, times = 2) {
 describe("shapedBooking", () => {
   it("maps a full DB row to the display shape", () => {
     const row = {
-      ref: "EVX-1234", customer_name: "James Whitmore", flight: "EK017",
-      airport: "Manchester Airport", destination: "Blackpool",
-      pickup_time: "2025-07-01T10:45:00Z", drivers: { name: "Nitisat Siri" },
-      price: 160, status: "Dispatched", priority: false,
+      ref: "EVX-1234", customer_name: "James Whitmore", flight_number: "EK017",
+      airport: "Manchester Airport", dropoff_address: "Blackpool",
+      travel_time: "10:45:00", drivers: { name: "Nitisat Siri" },
+      quoted_price: 160, status: "Dispatched", priority: false,
       updated_at: "2025-07-01T10:00:00Z",
     };
     const s = shapedBooking(row);
@@ -106,9 +108,9 @@ describe("shapedBooking", () => {
 
   it("uses fallback values for null optional fields", () => {
     const row = {
-      ref: "EVX-0", customer_name: "X", flight: null, airport: null,
-      destination: "Somewhere", pickup_time: null, drivers: null,
-      price: null, status: "Unassigned", priority: null, updated_at: null,
+      ref: "EVX-0", customer_name: "X", flight_number: null, airport: null,
+      dropoff_address: "Somewhere", travel_time: null, drivers: null,
+      quoted_price: null, status: "Unassigned", priority: null, updated_at: null,
     };
     const s = shapedBooking(row);
     expect(s.flight).toBe("—");
@@ -121,8 +123,8 @@ describe("shapedBooking", () => {
 
   it("formats route as airport → destination", () => {
     const row = {
-      ref: "X", customer_name: "A", airport: "LPL", destination: "Lytham",
-      flight: null, pickup_time: null, drivers: null, price: null,
+      ref: "X", customer_name: "A", airport: "LPL", dropoff_address: "Lytham",
+      flight_number: null, travel_time: null, drivers: null, quoted_price: null,
       status: "Dispatched", priority: false, updated_at: null,
     };
     expect(shapedBooking(row).route).toBe("LPL → Lytham");
@@ -143,8 +145,8 @@ describe("useBookings — createBooking", () => {
       expect.objectContaining({
         customer_name: "Test Customer",
         airport: "Manchester Airport (MAN)",
-        destination: "Blackpool",
-        status: "Dispatched",
+        dropoff_address: "Blackpool",
+        status: "Unassigned",
       })
     );
   });
