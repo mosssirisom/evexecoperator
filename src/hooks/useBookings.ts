@@ -111,6 +111,7 @@ export function useBookings() {
         .from("bookings")
         .update({
           driver_id,
+          assigned_driver_id: driver_id,
           ...(driver_id ? { status: "Dispatched" as BookingStatus } : {}),
         })
         .eq("ref", ref);
@@ -136,5 +137,41 @@ export function useBookings() {
     []
   );
 
-  return { bookings, loading, error, updateStatus, assignDriver, createBooking, refetch: fetch };
+  const deleteBooking = useCallback(
+    async (ref: string, password: string) => {
+      if (!password.trim()) throw new Error("Enter your password to confirm deletion.");
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user?.email) {
+        throw new Error("You must be signed in to delete a booking.");
+      }
+
+      // Second-factor style confirmation: require the operator to re-enter
+      // their Supabase password immediately before the destructive action.
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: userData.user.email,
+        password,
+      });
+      if (authError) throw new Error("Password verification failed.");
+
+      const snapshot = prevRef.current;
+      setBookings((prev) => prev.filter((b) => b.ref !== ref));
+
+      const { error: deleteError } = await supabase
+        .from("bookings")
+        .delete()
+        .eq("ref", ref);
+
+      if (deleteError) {
+        setBookings(snapshot);
+        throw new Error(deleteError.message);
+      }
+
+      await fetch();
+      return true;
+    },
+    [fetch]
+  );
+
+  return { bookings, loading, error, updateStatus, assignDriver, createBooking, deleteBooking, refetch: fetch };
 }
