@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { Clock, MapPin, Users, Phone, ChevronDown, ChevronUp, MessageSquare, Plane, Star, AlertCircle, Bell, AlertTriangle } from "lucide-react";
+import { Clock, MapPin, Phone, ChevronDown, ChevronUp, MessageSquare, Plane, Star, AlertCircle, Bell, AlertTriangle, Trash2 } from "lucide-react";
 import type { DbBooking, DbDriver, BookingStatus } from "@/lib/database.types";
 import { STATUS_NEXT_PRIMARY, STATUS_NEXT_LABEL } from "@/lib/database.types";
 import type { BookingNotificationStatus } from "@/hooks/useNotifications";
@@ -22,23 +22,22 @@ interface Props {
   unavailableDriverIds?: Set<string>;
   onStatusChange: (ref: string, status: BookingStatus) => void;
   onDriverAssign:  (ref: string, driverId: string | null) => void;
+  onDangerAction?: (booking: DbBooking) => void;
 }
 
-export default function BookingCard({ booking, drivers, notification, unavailableDriverIds, onStatusChange, onDriverAssign }: Props) {
+export default function BookingCard({ booking, drivers, notification, unavailableDriverIds, onStatusChange, onDriverAssign, onDangerAction }: Props) {
   const [expanded, setExpanded] = useState(false);
 
   const time      = booking.travel_time?.slice(0, 5) ?? "—";
   const nextStatus = STATUS_NEXT_PRIMARY[booking.status];
   const nextLabel  = STATUS_NEXT_LABEL[booking.status];
 
-  // Build route label
   const from = booking.airport ?? booking.direction ?? "—";
   const to   = booking.dropoff_address ?? "—";
   const route = `${from.split(",")[0]} → ${to.split(",")[0]}`;
 
   return (
     <div className="rounded-2xl border border-white/8 bg-navy-800 shadow-card overflow-hidden transition-all hover:border-gold/20">
-      {/* Time + status bar */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
         <div className="flex items-center gap-2">
           <Clock size={14} className="text-gold/70" />
@@ -55,9 +54,7 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
         <StatusBadge status={booking.status} />
       </div>
 
-      {/* Body */}
       <div className="px-4 pt-3 pb-4 space-y-3">
-        {/* Customer + route */}
         <div>
           <p className="font-semibold text-slate-100 text-sm leading-tight">{booking.customer_name}</p>
           <div className="flex items-start gap-1.5 mt-1">
@@ -66,7 +63,6 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
           </div>
         </div>
 
-        {/* Flight info */}
         {booking.flight_number && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-900/20 border border-white/5">
             <Plane size={12} className="text-blue-400 shrink-0 -rotate-45" />
@@ -77,7 +73,6 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
           </div>
         )}
 
-        {/* Price */}
         <div className="flex items-center justify-between">
           <span className="text-xs text-slate-500">
             {booking.payment_status ?? "Unpaid"}
@@ -87,7 +82,6 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
           </span>
         </div>
 
-        {/* Driver assignment */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-500 w-16 shrink-0">Driver</span>
           <DriverDropdown
@@ -104,7 +98,6 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
           )}
         </div>
 
-        {/* Expand toggle */}
         <button
           onClick={() => setExpanded((e) => !e)}
           className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors"
@@ -113,15 +106,10 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
           {expanded ? "Less details" : "More details"}
         </button>
 
-        {/* Expanded detail */}
         {expanded && (
           <div className="space-y-2 pt-1 border-t border-white/5 slide-up">
-            {booking.airport && (
-              <DetailRow label="From" value={booking.airport} />
-            )}
-            {booking.dropoff_address && (
-              <DetailRow label="To" value={booking.dropoff_address} />
-            )}
+            {booking.airport && <DetailRow label="From" value={booking.airport} />}
+            {booking.dropoff_address && <DetailRow label="To" value={booking.dropoff_address} />}
             {booking.travel_date && (
               <DetailRow label="Date" value={new Date(booking.travel_date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })} />
             )}
@@ -137,9 +125,7 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
                 <span className="text-xs text-slate-400 italic">{booking.notes}</span>
               </div>
             )}
-            {booking.customer_email && (
-              <DetailRow label="Email" value={booking.customer_email} />
-            )}
+            {booking.customer_email && <DetailRow label="Email" value={booking.customer_email} />}
             {notification?.lastSent && (
               <div className="flex items-center gap-1.5">
                 <Bell size={11} className="text-gold/60 shrink-0" />
@@ -161,10 +147,18 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
                 {notification.failedCount} notification{notification.failedCount === 1 ? "" : "s"} failed to send
               </div>
             )}
+            {onDangerAction && (
+              <button
+                type="button"
+                onClick={() => onDangerAction(booking)}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/20"
+              >
+                <Trash2 size={13} /> Remove job
+              </button>
+            )}
           </div>
         )}
 
-        {/* Status advance */}
         {nextStatus && nextLabel && (
           <button
             onClick={() => onStatusChange(booking.ref, nextStatus)}
@@ -174,7 +168,6 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
           </button>
         )}
 
-        {/* Missed call recovery tag */}
         {booking.status === "Unassigned / Missed Call Recovery" && (
           <div className="flex items-center gap-1.5 text-xs text-orange-300 bg-orange-900/20 px-3 py-1.5 rounded-lg">
             <AlertCircle size={11} />
