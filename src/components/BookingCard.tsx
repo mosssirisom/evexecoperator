@@ -2,10 +2,11 @@
 
 import { useState, type ReactNode } from "react";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { Clock, MapPin, Phone, ChevronDown, ChevronUp, MessageSquare, Star, AlertCircle, Bell, AlertTriangle, Trash2, Users, Briefcase, RotateCcw } from "lucide-react";
+import { Clock, MapPin, Phone, ChevronDown, ChevronUp, MessageSquare, Star, AlertCircle, Bell, AlertTriangle, Trash2, Users, Briefcase, RotateCcw, Pencil, X } from "lucide-react";
 import type { DbBooking, DbDriver, BookingStatus } from "@/lib/database.types";
 import { STATUS_NEXT_PRIMARY, STATUS_NEXT_LABEL } from "@/lib/database.types";
 import type { BookingNotificationStatus } from "@/hooks/useNotifications";
+import { supabase } from "@/lib/supabase";
 import StatusBadge from "./StatusBadge";
 import DriverDropdown from "./DriverDropdown";
 
@@ -36,6 +37,7 @@ function displayDate(value: string | null | undefined) {
 
 export default function BookingCard({ booking, drivers, notification, unavailableDriverIds, onStatusChange, onDriverAssign, onDangerAction }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const time = booking.travel_time?.slice(0, 5) ?? "—";
   const nextStatus = STATUS_NEXT_PRIMARY[booking.status];
@@ -121,7 +123,8 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
             {notification?.lastSent && <div className="flex items-center gap-1.5"><Bell size={11} className="text-gold/60 shrink-0" /><span className="text-xs text-slate-400">{NOTIFICATION_TYPE_LABELS[notification.lastSent.type] ?? notification.lastSent.type} sent {formatDistanceToNow(parseISO(notification.lastSent.sent_at), { addSuffix: true })}</span></div>}
             {notification && notification.pendingCount > 0 && <div className="flex items-center gap-1.5 text-xs text-amber-300 bg-amber-900/20 px-3 py-1.5 rounded-lg"><Bell size={11} />{notification.pendingCount} notification{notification.pendingCount === 1 ? "" : "s"} pending</div>}
             {notification && notification.failedCount > 0 && <div className="flex items-center gap-1.5 text-xs text-red-300 bg-red-900/20 px-3 py-1.5 rounded-lg"><AlertTriangle size={11} />{notification.failedCount} notification{notification.failedCount === 1 ? "" : "s"} failed to send</div>}
-            {onDangerAction && <button type="button" onClick={() => onDangerAction(booking)} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/20"><Trash2 size={13} /> Remove job</button>}
+            <button type="button" onClick={() => setEditing(true)} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-gold/25 bg-gold/10 px-3 py-2 text-xs font-semibold text-gold transition hover:bg-gold/20"><Pencil size={13} /> Edit job</button>
+            {onDangerAction && <button type="button" onClick={() => onDangerAction(booking)} className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/20"><Trash2 size={13} /> Remove job</button>}
           </div>
         )}
 
@@ -129,8 +132,120 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
 
         {booking.status === "Unassigned / Missed Call Recovery" && <div className="flex items-center gap-1.5 text-xs text-orange-300 bg-orange-900/20 px-3 py-1.5 rounded-lg"><AlertCircle size={11} /> Missed call recovery — assign driver urgently</div>}
       </div>
+
+      {editing && <EditBookingModal booking={booking} onClose={() => setEditing(false)} />}
     </div>
   );
+}
+
+function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: () => void }) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    travel_date: booking.travel_date ?? "",
+    travel_time: booking.travel_time?.slice(0, 5) ?? "",
+    customer_name: booking.customer_name ?? "",
+    customer_phone: booking.customer_phone ?? "",
+    customer_email: booking.customer_email ?? "",
+    pickup_location: booking.pickup_location ?? "",
+    airport: booking.airport ?? "",
+    dropoff_address: booking.dropoff_address ?? "",
+    flight_number: booking.flight_number ?? "",
+    passengers: booking.passengers != null ? String(booking.passengers) : "1",
+    luggage: booking.luggage ?? "",
+    quoted_price: booking.quoted_price != null ? String(booking.quoted_price) : "",
+    notes: booking.notes ?? booking.operator_note ?? "",
+    priority: Boolean(booking.priority),
+  });
+
+  const set = (key: string, value: string | boolean) => setForm((f) => ({ ...f, [key]: value }));
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    const passengers = Math.max(1, Number.parseInt(form.passengers, 10) || 1);
+    const payload = {
+      travel_date: form.travel_date || null,
+      travel_time: form.travel_time ? `${form.travel_time}:00` : null,
+      pickup_time: form.travel_date && form.travel_time ? new Date(`${form.travel_date}T${form.travel_time}:00`).toISOString() : null,
+      customer_name: form.customer_name.trim(),
+      customer_phone: form.customer_phone.trim() || null,
+      customer_email: form.customer_email.trim() || null,
+      pickup_location: form.pickup_location.trim() || null,
+      airport: form.airport.trim() || null,
+      dropoff_address: form.dropoff_address.trim() || null,
+      flight_number: form.flight_number.trim() || null,
+      passengers,
+      luggage: form.luggage.trim() || null,
+      quoted_price: form.quoted_price ? Number(form.quoted_price) : null,
+      notes: form.notes.trim() || null,
+      priority: form.priority,
+    };
+
+    const { error: updateError } = await supabase.from("bookings").update(payload).eq("ref", booking.ref);
+    setSaving(false);
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <form onSubmit={save} className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-navy-900 shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-navy-900 px-5 py-4">
+          <div>
+            <h2 className="text-lg font-bold text-white">Edit job</h2>
+            <p className="text-xs text-slate-500">{booking.ref}</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-white"><X size={16} /></button>
+        </div>
+
+        <div className="space-y-4 p-5">
+          {error && <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3 text-xs text-red-200">{error}</div>}
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Date" type="date" value={form.travel_date} onChange={(v) => set("travel_date", v)} />
+            <Field label="Time" type="time" value={form.travel_time} onChange={(v) => set("travel_time", v)} />
+          </div>
+          <Field label="Customer name" value={form.customer_name} onChange={(v) => set("customer_name", v)} required />
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Phone" value={form.customer_phone} onChange={(v) => set("customer_phone", v)} />
+            <Field label="Email" value={form.customer_email} onChange={(v) => set("customer_email", v)} />
+          </div>
+          <Field label="Pickup address" value={form.pickup_location} onChange={(v) => set("pickup_location", v)} />
+          <Field label="Airport" value={form.airport} onChange={(v) => set("airport", v)} />
+          <Field label="Drop-off address" value={form.dropoff_address} onChange={(v) => set("dropoff_address", v)} />
+          <Field label="Flight number" value={form.flight_number} onChange={(v) => set("flight_number", v)} />
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Passengers" type="number" value={form.passengers} onChange={(v) => set("passengers", v)} min={1} />
+            <Field label="Bags" value={form.luggage} onChange={(v) => set("luggage", v)} />
+          </div>
+          <Field label="Price (£)" type="number" value={form.quoted_price} onChange={(v) => set("quoted_price", v)} />
+          <div>
+            <label className="mb-1 block text-xs text-slate-500">Notes</label>
+            <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={3} className={editInputCls} />
+          </div>
+          <label className="flex items-center gap-2 text-xs text-slate-400">
+            <input type="checkbox" checked={form.priority} onChange={(e) => set("priority", e.target.checked)} className="h-4 w-4 accent-gold" />
+            Mark as priority
+          </label>
+        </div>
+
+        <div className="sticky bottom-0 flex gap-3 border-t border-white/10 bg-navy-900 px-5 py-4">
+          <button type="button" onClick={onClose} disabled={saving} className="flex-1 rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 hover:border-white/20 disabled:opacity-50">Cancel</button>
+          <button type="submit" disabled={saving || !form.customer_name.trim()} className="flex-1 rounded-2xl bg-gold-gradient px-4 py-3 text-sm font-bold text-navy-900 disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+const editInputCls = "w-full rounded-xl border border-white/10 bg-navy-800 px-3 py-2 text-sm text-slate-100 outline-none focus:border-gold/50";
+
+function Field({ label, value, onChange, type = "text", required, min }: { label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean; min?: number }) {
+  return <div><label className="mb-1 block text-xs text-slate-500">{label}</label><input type={type} min={min} value={value} onChange={(e) => onChange(e.target.value)} required={required} className={editInputCls} /></div>;
 }
 
 function InfoPill({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
