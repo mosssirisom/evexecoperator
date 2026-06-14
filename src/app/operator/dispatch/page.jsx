@@ -139,7 +139,7 @@ const STATUS_FILTERS = [
   "Unassigned / Missed Call Recovery",
 ];
 
-// ── Schedule view row ─────────────────────────────────────────────────────────
+// ── Schedule view row ────────────────────────────────────────────────────────────────
 function ScheduleRow({ booking, onSelect }) {
   const now = Date.now();
   const ts = booking.pickupTime ? new Date(booking.pickupTime).getTime() : null;
@@ -177,7 +177,7 @@ function ScheduleRow({ booking, onSelect }) {
   );
 }
 
-// ── Mobile status bottom-sheet picker ────────────────────────────────────────
+// ── Mobile status bottom-sheet picker ───────────────────────────────────────────
 const SHEET_STATUSES = [
   { value: "Dispatched",           color: "text-amber-300"   },
   { value: "En Route",             color: "text-blue-300"    },
@@ -262,7 +262,7 @@ function MobileStatusSheet({ booking, onUpdate, onClose }) {
   );
 }
 
-// ── Mobile driver bottom-sheet picker ────────────────────────────────────────
+// ── Mobile driver bottom-sheet picker ───────────────────────────────────────────
 function MobileDriverSheet({ booking, drivers, onAssign, onClose }) {
   const [pending, setPending] = useState(false);
 
@@ -343,7 +343,7 @@ function MobileDriverSheet({ booking, drivers, onAssign, onClose }) {
   );
 }
 
-// ── Mobile booking card ───────────────────────────────────────────────────────
+// ── Mobile booking card ─────────────────────────────────────────────────────────────────
 function cardAccent(booking) {
   if (booking.priority) return "bg-red-500";
   if (["Dispatched", "En Route", "Passenger On Board"].includes(booking.status)) return "bg-amber-400";
@@ -453,7 +453,7 @@ function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────────────
 export default function DispatchPage() {
   return (
     <Suspense fallback={null}>
@@ -726,7 +726,7 @@ function DispatchPageContent() {
               }`}
             >
               <CalendarClock className="h-4 w-4" />
-              <span className="hidden sm:inline">Today's </span>Schedule
+              <span className="hidden sm:inline">Today&apos;s </span>Schedule
               {schedule.length > 0 && (
                 <span className="rounded-full bg-amber-400/20 px-1.5 text-xs text-amber-300">
                   {schedule.length}
@@ -745,7 +745,7 @@ function DispatchPageContent() {
         </div>
 
         {view === "schedule" ? (
-          /* ── Schedule view ──────────────────────────────────────────────── */
+          /* ── Schedule view ─────────────────────────────────────────────────── */
           <div className="card p-4 sm:p-6">
             <div className="mb-5">
               <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Today</p>
@@ -768,7 +768,7 @@ function DispatchPageContent() {
             </div>
           </div>
         ) : (
-          /* ── Board view ─────────────────────────────────────────────────── */
+          /* ── Board view ───────────────────────────────────────────────────────── */
           <div className="card p-3 sm:p-6">
             <div className="mb-3 flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between sm:mb-4 sm:gap-3">
               {/* Heading — hidden on mobile to save vertical space */}
