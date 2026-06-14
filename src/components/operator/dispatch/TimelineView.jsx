@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, MapPin, Plane, Car, Star } from "lucide-react";
+import { Clock, MapPin, Plane, Car, Star, Users, Briefcase, RefreshCw } from "lucide-react";
 import { CalendarClock } from "lucide-react";
 import StatusBadge from "../shared/StatusBadge";
 import EmptyState from "../shared/EmptyState";
@@ -145,6 +145,24 @@ function TimelineRow({ booking, drivers, last, onViewDetails, onEdit, onAssignDr
             <span className="flex items-center gap-1 rounded-full border border-white/5 bg-white/[0.02] px-2 py-0.5">
               <Plane className="h-3 w-3" />
               {booking.flight}
+            </span>
+          )}
+          {booking.passengers != null && (
+            <span className="flex items-center gap-1 rounded-full border border-white/5 bg-white/[0.02] px-2 py-0.5">
+              <Users className="h-3 w-3" />
+              {booking.passengers}
+            </span>
+          )}
+          {booking.bags && (
+            <span className="flex items-center gap-1 rounded-full border border-white/5 bg-white/[0.02] px-2 py-0.5">
+              <Briefcase className="h-3 w-3" />
+              {booking.bags}
+            </span>
+          )}
+          {booking.returnJourney && (
+            <span className="flex items-center gap-1 rounded-full border border-blue-400/20 bg-blue-400/10 px-2 py-0.5 font-medium text-blue-300">
+              <RefreshCw className="h-3 w-3" />
+              Return
             </span>
           )}
           <span className={`flex items-center gap-1 rounded-full border border-white/5 bg-white/[0.02] px-2 py-0.5 ${booking.driverId ? "" : "font-medium text-amber-400/80"}`}>

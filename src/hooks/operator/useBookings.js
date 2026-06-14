@@ -15,20 +15,72 @@ import {
 
 // ─── Row mapper ───────────────────────────────────────────────────────────────
 
+// Resolves the real pickup and drop-off addresses for a booking. `direction`
+// is not reliable for this — it reads "Airport to Destination" for bookings
+// going either way — so `journey_type` (set by the website's booking flow)
+// is used to decide which of `pickup_location` / `airport` / `dropoff_address`
+// holds each end of the trip.
+function tripEndpoints(row) {
+  if (row.journey_type === "To Airport") {
+    return {
+      pickup: row.pickup_location || null,
+      dropoff: row.airport || row.dropoff_address || row.destination || null,
+    };
+  }
+  if (row.journey_type === "From Airport") {
+    return {
+      pickup: row.airport || null,
+      dropoff: row.dropoff_address || row.destination || row.pickup_location || null,
+    };
+  }
+  // No journey_type — booked manually via the operator's New Transfer form,
+  // which always treats `airport` as the pickup and `dropoff_address` as
+  // the destination.
+  return {
+    pickup: row.airport || row.pickup_location || null,
+    dropoff: row.dropoff_address || row.destination || null,
+  };
+}
+
+// Builds the return-leg details for bookings where the customer requested a
+// return journey at the time of booking. Returns null when no return leg
+// was requested.
+function returnJourneyDetails(row) {
+  if (!row.return_journey) return null;
+  const pickup = row.return_pickup || row.return_airport || null;
+  const dropoff = row.return_destination || row.return_pickup || null;
+  return {
+    pickup,
+    dropoff,
+    route: [pickup, dropoff].filter(Boolean).join(" → ") || null,
+    airport: row.return_airport ?? null,
+    flight: row.return_flight ?? null,
+    date: row.return_date ?? null,
+    time: row.return_time ? row.return_time.slice(0, 5) : null,
+  };
+}
+
 export function shapedBooking(row) {
+  const { pickup, dropoff } = tripEndpoints(row);
   return {
     id: row.ref,
     customer: row.customer_name,
     phone: row.customer_phone ?? null,
     email: row.customer_email ?? null,
     flight: row.flight_number ?? "—",
-    route:
-      [row.airport, row.dropoff_address].filter(Boolean).join(" → ") ||
-      row.dropoff_address ||
-      "—",
+    pickup,
+    dropoff,
+    route: [pickup, dropoff].filter(Boolean).join(" → ") || pickup || dropoff || "—",
     airport: row.airport ?? null,
     destination: row.dropoff_address ?? null,
     direction: row.direction ?? null,
+    journeyType: row.journey_type ?? null,
+    vehicleType: row.vehicle_type ?? null,
+    contactMethod: row.contact_method ?? null,
+    passengers: row.passengers ?? null,
+    bags: row.luggage ?? null,
+    returnJourney: row.return_journey ?? false,
+    returnDetails: returnJourneyDetails(row),
     time: row.travel_time ? row.travel_time.slice(0, 5) : "—",
     pickupTime: row.travel_time ?? null,
     driver: row.drivers?.name ?? "Unassigned",

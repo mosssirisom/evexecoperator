@@ -2,9 +2,9 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
-  X, Phone, Mail, Plane, MapPin, Clock, Car, PoundSterling,
+  X, Phone, Mail, Plane, MapPin, Flag, Clock, Car, PoundSterling,
   User, AlertTriangle, FileText, ChevronDown, Check, Edit3, Loader2, RefreshCw,
-  CreditCard,
+  CreditCard, Users, Briefcase, MessageSquare,
 } from "lucide-react";
 import { bookingStatusColor } from "@/lib/operator/statusColor";
 import ETACountdown from "./ETACountdown";
@@ -421,7 +421,8 @@ export default function BookingDetailDrawer({
             <div>
               <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-400">Journey</p>
               <div className="space-y-3">
-                <Row icon={MapPin} label="Route" value={booking.route} />
+                <Row icon={MapPin} label="Pickup" value={booking.pickup} />
+                <Row icon={Flag} label="Drop-off" value={booking.dropoff} />
                 <Row icon={Plane} label="Flight" value={booking.flight !== "—" ? booking.flight : null} />
                 <Row icon={Clock} label="Pickup time" value={
                   booking.pickupTime
@@ -431,6 +432,10 @@ export default function BookingDetailDrawer({
                       })
                     : booking.time !== "—" ? booking.time : null
                 } />
+                <Row icon={Users} label="Passengers" value={booking.passengers} />
+                <Row icon={Briefcase} label="Luggage" value={booking.bags} />
+                <Row icon={Car} label="Vehicle" value={booking.vehicleType} />
+                <Row icon={MessageSquare} label="Contact method" value={booking.contactMethod} />
                 <Row icon={PoundSterling} label="Price" value={booking.price} />
                 <div className="flex items-start gap-3">
                   <CreditCard className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-600" />
@@ -446,6 +451,23 @@ export default function BookingDetailDrawer({
                 </div>
               </div>
             </div>
+
+            {/* Return journey */}
+            {booking.returnJourney && booking.returnDetails && (
+              <div>
+                <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-400">Return Journey</p>
+                <div className="space-y-3">
+                  <Row icon={MapPin} label="Pickup" value={booking.returnDetails.pickup} />
+                  <Row icon={Flag} label="Drop-off" value={booking.returnDetails.dropoff} />
+                  <Row icon={Plane} label="Flight" value={booking.returnDetails.flight} />
+                  <Row icon={Clock} label="Date & time" value={
+                    booking.returnDetails.date
+                      ? `${new Date(booking.returnDetails.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}${booking.returnDetails.time ? `, ${booking.returnDetails.time}` : ""}`
+                      : booking.returnDetails.time
+                  } />
+                </div>
+              </div>
+            )}
 
             {/* Driver */}
             <div>

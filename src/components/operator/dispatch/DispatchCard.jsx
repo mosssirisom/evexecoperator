@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, MapPin, Plane, Car, Star, GripVertical } from "lucide-react";
+import { Clock, MapPin, Plane, Car, Star, GripVertical, Users, Briefcase, RefreshCw } from "lucide-react";
 import StatusBadge from "../shared/StatusBadge";
 import ETACountdown from "../ETACountdown";
 import QuickActionsMenu from "./QuickActionsMenu";
@@ -61,8 +61,8 @@ export default function DispatchCard({ booking, drivers, onViewDetails, onEdit, 
         </div>
       </button>
 
-      {/* Airport + flight */}
-      {(booking.airport || booking.flight !== "—") && (
+      {/* Airport + flight + pax/bags + return journey */}
+      {(booking.airport || booking.flight !== "—" || booking.passengers || booking.bags || booking.returnJourney) && (
         <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
           {booking.airport && (
             <span className="rounded-full border border-white/5 bg-white/[0.02] px-2 py-0.5 font-medium">
@@ -73,6 +73,24 @@ export default function DispatchCard({ booking, drivers, onViewDetails, onEdit, 
             <span className="flex items-center gap-1 rounded-full border border-white/5 bg-white/[0.02] px-2 py-0.5">
               <Plane className="h-3 w-3" />
               {booking.flight}
+            </span>
+          )}
+          {booking.passengers != null && (
+            <span className="flex items-center gap-1 rounded-full border border-white/5 bg-white/[0.02] px-2 py-0.5">
+              <Users className="h-3 w-3" />
+              {booking.passengers}
+            </span>
+          )}
+          {booking.bags && (
+            <span className="flex items-center gap-1 rounded-full border border-white/5 bg-white/[0.02] px-2 py-0.5">
+              <Briefcase className="h-3 w-3" />
+              {booking.bags}
+            </span>
+          )}
+          {booking.returnJourney && (
+            <span className="flex items-center gap-1 rounded-full border border-blue-400/20 bg-blue-400/10 px-2 py-0.5 font-medium text-blue-300">
+              <RefreshCw className="h-3 w-3" />
+              Return
             </span>
           )}
         </div>
