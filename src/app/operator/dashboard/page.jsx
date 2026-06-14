@@ -3,336 +3,271 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Route,
-  PhoneMissed,
-  Leaf,
-  ShieldCheck,
-  Plane,
-  CarFront,
-  MoreVertical,
+  Calendar,
+  UserPlus,
   Clock,
-  Car,
-  BookOpen,
-  UserCircle,
-  Globe,
-  ExternalLink,
+  PoundSterling,
+  PhoneMissed,
+  CreditCard,
+  Plus,
+  Inbox,
 } from "lucide-react";
 import BookingModal from "@/components/operator/BookingModal";
-import ETACountdown from "@/components/operator/ETACountdown";
+import BookingDetailDrawer from "@/components/operator/BookingDetailDrawer";
+import LiveClock from "@/components/operator/LiveClock";
+import RealtimeDot from "@/components/operator/RealtimeDot";
 import { useOperatorToast } from "@/components/operator/Toast";
-import { bookingStatusColor } from "@/lib/operator/statusColor";
 import { useBookings } from "@/hooks/operator/useBookings";
 import { useDrivers } from "@/hooks/operator/useDrivers";
 import { useMissedCalls } from "@/hooks/operator/useMissedCalls";
-import { PORTALS } from "@/lib/operator/portals";
+import StatCard from "@/components/operator/shared/StatCard";
+import ActionRequiredPanel from "@/components/operator/shared/ActionRequiredPanel";
+import TransferCard from "@/components/operator/shared/TransferCard";
+import EmptyState from "@/components/operator/shared/EmptyState";
 
-const PORTAL_QUICK_LINKS = [
-  { key: "driverApp",      icon: Car,        label: "Driver Portal",    color: "text-blue-300",    bg: "bg-blue-400/10",    border: "border-blue-400/20" },
-  { key: "bookingForm",    icon: BookOpen,   label: "Booking Form",     color: "text-amber-300",   bg: "bg-amber-400/10",   border: "border-amber-400/20" },
-  { key: "customerAccount",icon: UserCircle, label: "My Account",       color: "text-emerald-300", bg: "bg-emerald-400/10", border: "border-emerald-400/20" },
-  { key: "website",        icon: Globe,      label: "Website",          color: "text-slate-300",   bg: "bg-white/[0.04]",   border: "border-white/10" },
-];
+const ACTIVE_STATUSES = ["Dispatched", "En Route", "Passenger On Board"];
 
-function PortalQuickLinks() {
+function priceToNumber(price) {
+  return parseFloat(String(price ?? "").replace(/[^0-9.]/g, "")) || 0;
+}
+
+function TransferCardSkeleton() {
   return (
-    <div className="card p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Quick Launch</p>
-          <h3 className="mt-1 text-lg font-semibold text-white">Portals & Website</h3>
-        </div>
-        <ExternalLink className="h-4 w-4 text-slate-600" />
+    <div className="card flex flex-col gap-3 rounded-2xl p-4 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div className="h-4 w-16 rounded-full bg-white/[0.04]" />
+        <div className="h-4 w-20 rounded-full bg-white/[0.04]" />
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {PORTAL_QUICK_LINKS.map(({ key, icon: Icon, label, color, bg, border }) => (
-          <a
-            key={key}
-            href={PORTALS[key].url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`flex flex-col items-center gap-2 rounded-2xl border ${border} ${bg} p-4 transition hover:opacity-80`}
-          >
-            <Icon className={`h-5 w-5 ${color}`} />
-            <span className={`text-center text-xs font-medium ${color}`}>{label}</span>
-          </a>
-        ))}
-      </div>
+      <div className="h-4 w-3/4 rounded-full bg-white/[0.04]" />
+      <div className="h-3 w-1/2 rounded-full bg-white/[0.03]" />
+      <div className="h-9 rounded-xl bg-white/[0.03]" />
     </div>
   );
 }
 
-function MetricCard({ title, value, sub, icon: Icon }) {
-  return (
-    <div className="card p-4 sm:p-6">
-      <div className="mb-3 flex items-center justify-between sm:mb-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/5 bg-white/[0.03] sm:h-12 sm:w-12">
-          <Icon className="h-4 w-4 text-amber-400 sm:h-5 sm:w-5" />
-        </div>
-        <span className="text-[9px] uppercase tracking-[0.2em] text-slate-500 sm:text-[10px] sm:tracking-[0.25em]">Live</span>
-      </div>
-      <p className="text-xs text-slate-400 sm:text-sm">{title}</p>
-      <h3 className="mt-1.5 text-2xl font-semibold tracking-tight text-white sm:mt-2 sm:text-4xl">{value}</h3>
-      <p className="mt-2 text-xs text-slate-500 sm:mt-3 sm:text-sm">{sub}</p>
-    </div>
-  );
-}
+export default function DashboardPage() {
+  const router = useRouter();
+  const toast = useOperatorToast();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
 
-function UpcomingPickups({ bookings, onNavigate }) {
+  const {
+    bookings,
+    loading: bookingsLoading,
+    error: bookingsError,
+    createBooking,
+    updateStatus,
+    assignDriver,
+    updateNotes,
+    togglePriority,
+    updatePaymentStatus,
+  } = useBookings();
+  const { drivers } = useDrivers();
+  const { calls } = useMissedCalls();
+
+  // ─── Header ─────────────────────────────────────────────────────────────────────────
+
+  const today = new Date().toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  const availableDrivers = drivers.filter((d) => d.status === "Available").length;
+  const operational =
+    drivers.length === 0
+      ? { label: "No drivers configured", dot: "bg-slate-400", text: "border-white/10 bg-white/5 text-slate-300" }
+      : availableDrivers > 0
+        ? { label: "Operational", dot: "bg-emerald-400", text: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300" }
+        : { label: "All drivers busy", dot: "bg-amber-400", text: "border-amber-400/30 bg-amber-400/10 text-amber-300" };
+
+  // ─── Derived stats ────────────────────────────────────────────────────────────────────────
+
+  const unassignedCount = useMemo(
+    () => bookings.filter((b) => b.status?.startsWith("Unassigned")).length,
+    [bookings]
+  );
+
   const upcoming = useMemo(() => {
     const now = Date.now();
     return bookings
       .filter(
         (b) =>
           b.pickupTime &&
-          new Date(b.pickupTime).getTime() > now - 30 * 60 * 1000 &&
+          new Date(b.pickupTime).getTime() > now - 15 * 60 * 1000 &&
           !["Completed", "Cancelled"].includes(b.status)
       )
-      .sort((a, b) => new Date(a.pickupTime) - new Date(b.pickupTime))
-      .slice(0, 4);
+      .sort((a, b) => new Date(a.pickupTime) - new Date(b.pickupTime));
   }, [bookings]);
 
-  if (upcoming.length === 0) return null;
+  const nextPickup = upcoming[0] ?? null;
 
-  return (
-    <div className="card p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Upcoming</p>
-          <h3 className="mt-1 text-lg font-semibold text-white">Next Pickups</h3>
-        </div>
-        <button
-          onClick={onNavigate}
-          className="min-h-[36px] px-2 text-xs text-slate-500 transition hover:text-amber-300"
-        >
-          View all →
-        </button>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {upcoming.map((b) => (
-          <button
-            key={b.id}
-            onClick={onNavigate}
-            className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left transition hover:border-amber-400/20 hover:bg-amber-400/[0.03]"
-          >
-            <div className="w-12 flex-shrink-0 text-center">
-              <p className="text-sm font-semibold text-white">{b.time}</p>
-              {b.pickupTime && <ETACountdown pickupTime={b.pickupTime} />}
-            </div>
-            <div className="h-7 w-px flex-shrink-0 bg-white/10" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-white">{b.customer}</p>
-              <p className="truncate text-xs text-slate-500">{b.driver}</p>
-            </div>
-            <div className="flex-shrink-0 text-right">
-              <p className="text-xs font-semibold text-amber-300">{b.price}</p>
-              {b.priority && <span className="text-[10px] text-red-400">⚡ Priority</span>}
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
+  const completedBookings = useMemo(
+    () => bookings.filter((b) => b.status === "Completed"),
+    [bookings]
   );
-}
 
-function TransferRow({ transfer, onManage }) {
-  return (
-    <div
-      className={`rounded-3xl border p-4 transition-all duration-300 sm:p-5 ${
-        transfer.priority
-          ? "border-red-500/30 bg-red-500/[0.04]"
-          : "border-white/5 bg-white/[0.02] hover:border-amber-400/20 hover:bg-white/[0.04]"
-      }`}
-    >
-      <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex-1">
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            <span className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{transfer.id}</span>
-            <span
-              className={`rounded-full border px-3 py-1 text-xs font-medium ${bookingStatusColor(transfer.status)}`}
-            >
-              {transfer.status}
-            </span>
-          </div>
-          <div className="flex gap-4">
-            <div className="mt-1 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-white/5 bg-[#050B17]">
-              {transfer.priority ? (
-                <PhoneMissed className="h-5 w-5 text-red-300" />
-              ) : (
-                <Plane className="h-5 w-5 text-amber-400" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="text-base font-semibold text-white sm:text-lg">{transfer.customer}</h3>
-              <p className="mt-1 text-sm text-slate-400">{transfer.route}</p>
-              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Flight</p>
-                  <p className="mt-1 text-sm text-white">{transfer.flight}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Pickup</p>
-                  <p className="mt-1 text-sm text-white">{transfer.time}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Driver</p>
-                  <p className="mt-1 text-sm text-white">{transfer.driver}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Price</p>
-                  <p className="mt-1 text-sm font-semibold text-amber-300">{transfer.price}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <button
-          onClick={onManage}
-          className="self-end rounded-2xl border border-white/10 px-4 py-3 text-sm text-slate-300 transition hover:border-amber-400/20 hover:bg-amber-400/10 hover:text-amber-200 xl:self-auto"
-        >
-          Manage
-        </button>
-      </div>
-    </div>
+  const revenueToday = useMemo(
+    () => completedBookings.reduce((acc, b) => acc + priceToNumber(b.price), 0),
+    [completedBookings]
   );
-}
 
-function driverDotColor(status) {
-  if (status === "Available") return "bg-emerald-400";
-  if (status === "En route" || status === "Passenger onboard") return "bg-blue-400";
-  if (status === "Available soon") return "bg-amber-400";
-  return "bg-slate-500";
-}
-
-function driverTextColor(status) {
-  if (status === "Available") return "text-emerald-300";
-  if (status === "En route" || status === "Passenger onboard") return "text-blue-300";
-  if (status === "Available soon") return "text-amber-300";
-  return "text-slate-400";
-}
-
-function DriverFleet({ drivers }) {
-  const router = useRouter();
-  return (
-    <div className="card p-5">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-amber-400">Driver Fleet</p>
-          <h3 className="mt-2 text-xl font-semibold text-white">Active availability</h3>
-        </div>
-        <CarFront className="h-5 w-5 text-amber-400" />
-      </div>
-      <div className="space-y-3">
-        {drivers.map((driver) => (
-          <div
-            key={driver.id}
-            className="rounded-2xl border border-white/5 bg-white/[0.02] p-4"
-          >
-            <div className="flex items-start justify-between">
-              <div className="min-w-0 flex-1">
-                <h4 className="font-medium text-white">{driver.name}</h4>
-                <p className="mt-0.5 text-xs text-slate-500 truncate">{driver.vehicle}</p>
-              </div>
-              <button
-                onClick={() => router.push("/operator/drivers")}
-                className="ml-2 text-slate-600 transition hover:text-slate-400"
-                title="Manage driver"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mt-3 flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${driverDotColor(driver.status)}`} />
-              <span className={`text-sm ${driverTextColor(driver.status)}`}>{driver.status}</span>
-            </div>
-            <p className="mt-2 truncate text-sm text-slate-400">{driver.job}</p>
-          </div>
-        ))}
-      </div>
-      <button
-        onClick={() => router.push("/operator/drivers")}
-        className="mt-4 w-full rounded-2xl border border-white/5 py-2.5 text-xs text-slate-500 transition hover:border-amber-400/20 hover:text-amber-300"
-      >
-        Manage Fleet →
-      </button>
-    </div>
+  const outstandingPayments = useMemo(
+    () => completedBookings.filter((b) => b.paymentStatus !== "Paid"),
+    [completedBookings]
   );
-}
-
-function SkeletonRow() {
-  return (
-    <div className="animate-pulse rounded-3xl border border-white/5 bg-white/[0.02] p-5">
-      <div className="flex gap-4">
-        <div className="h-12 w-12 rounded-2xl bg-white/[0.04]" />
-        <div className="flex-1 space-y-3">
-          <div className="h-4 w-1/3 rounded-full bg-white/[0.04]" />
-          <div className="h-3 w-1/2 rounded-full bg-white/[0.03]" />
-          <div className="h-3 w-2/3 rounded-full bg-white/[0.03]" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function DashboardPage() {
-  const [modalOpen, setModalOpen] = useState(false);
-  const router = useRouter();
-  const toast = useOperatorToast();
-  const { bookings, loading: bookingsLoading, error: bookingsError, createBooking } = useBookings();
-  const { drivers } = useDrivers();
-  const { calls } = useMissedCalls();
-
-  const handleCreateBooking = useCallback(async (form) => {
-    const result = await createBooking(form);
-    toast({ message: `Booking ${result.ref} created successfully`, type: "success" });
-    return result;
-  }, [createBooking, toast]);
 
   const activeCount = useMemo(
-    () => bookings.filter((b) => ["Dispatched", "En Route", "Passenger On Board"].includes(b.status)).length,
+    () => bookings.filter((b) => ACTIVE_STATUSES.includes(b.status)).length,
     [bookings]
   );
 
-  const totalRevenue = useMemo(
-    () =>
-      bookings
-        .filter((b) => b.status === "Completed")
-        .reduce((acc, b) => acc + (parseFloat(String(b.price).replace("£", "")) || 0), 0),
-    [bookings]
-  );
+  const next5 = upcoming.slice(0, 5);
 
-  const metrics = useMemo(
-    () => [
-      {
-        title: "Total Bookings Today",
-        value: bookings.length,
-        sub: totalRevenue > 0 ? `£${totalRevenue.toLocaleString()} confirmed revenue` : "Tracking live",
-        icon: ShieldCheck,
-      },
-      {
-        title: "Active En-Route Transfers",
-        value: activeCount,
-        sub: "Live airport operations",
-        icon: Route,
-      },
-      {
-        title: "Missed Call Recovery Queue",
-        value: calls.length,
-        sub: "Automation awaiting confirmation",
+  // ─── Action Required ──────────────────────────────────────────────────────────────────────────
+
+  const actionItems = useMemo(() => {
+    const items = [];
+    if (unassignedCount > 0) {
+      items.push({
+        key: "unassigned",
+        icon: UserPlus,
+        title: `${unassignedCount} unassigned booking${unassignedCount === 1 ? "" : "s"}`,
+        description: "Assign a driver to dispatch these jobs",
+        count: unassignedCount,
+        accent: "red",
+        onClick: () => router.push("/operator/dispatch"),
+      });
+    }
+    if (calls.length > 0) {
+      items.push({
+        key: "missed-calls",
         icon: PhoneMissed,
-      },
-      {
-        title: "CO₂ Savings",
-        value: `${Math.round(bookings.length * 7.3)}kg`,
-        sub: "Estimated vs equivalent petrol fleet",
-        icon: Leaf,
-      },
-    ],
-    [bookings, activeCount, totalRevenue, calls]
+        title: `${calls.length} missed call${calls.length === 1 ? "" : "s"} awaiting follow-up`,
+        description: "Review and recover potential bookings",
+        count: calls.length,
+        accent: "amber",
+        onClick: () => router.push("/operator/bookings"),
+      });
+    }
+    if (outstandingPayments.length > 0) {
+      items.push({
+        key: "payments",
+        icon: CreditCard,
+        title: `${outstandingPayments.length} completed job${outstandingPayments.length === 1 ? "" : "s"} with outstanding payment`,
+        description: "Chase payment or mark as paid",
+        count: outstandingPayments.length,
+        accent: "blue",
+        onClick: () => router.push("/operator/dispatch"),
+      });
+    }
+    return items;
+  }, [unassignedCount, calls, outstandingPayments, router]);
+
+  // ─── Handlers ──────────────────────────────────────────────────────────────────────────────────
+
+  const handleCreateBooking = useCallback(
+    async (form) => {
+      const result = await createBooking(form);
+      toast({ message: `Booking ${result.ref} created successfully`, type: "success" });
+      return result;
+    },
+    [createBooking, toast]
   );
+
+  const handleStartDispatch = useCallback(
+    async (booking) => {
+      try {
+        await updateStatus(booking.id, "En Route");
+        toast({ message: `${booking.id} is now En Route`, type: "success" });
+      } catch (err) {
+        toast({ message: err?.message ?? "Failed to update status", type: "error" });
+      }
+    },
+    [updateStatus, toast]
+  );
+
+  const handleStatusUpdate = useCallback(
+    async (id, status) => {
+      try {
+        await updateStatus(id, status);
+        toast({ message: `Status → ${status}`, type: "success" });
+      } catch (err) {
+        toast({ message: err?.message ?? "Failed to update status", type: "error" });
+      }
+    },
+    [updateStatus, toast]
+  );
+
+  const handleAssignDriver = useCallback(
+    async (id, driverId) => {
+      const driver = drivers.find((d) => d.id === driverId);
+      try {
+        await assignDriver(id, driverId, driver?.name ?? null);
+        toast({ message: driver ? `Assigned to ${driver.name}` : "Driver unassigned", type: "success" });
+      } catch (err) {
+        toast({ message: err?.message ?? "Failed to assign driver", type: "error" });
+      }
+    },
+    [assignDriver, drivers, toast]
+  );
+
+  const handleUpdateNotes = useCallback(
+    async (id, notes) => {
+      try {
+        await updateNotes(id, notes);
+      } catch (err) {
+        toast({ message: err?.message ?? "Failed to update notes", type: "error" });
+      }
+    },
+    [updateNotes, toast]
+  );
+
+  const handleTogglePriority = useCallback(
+    async (id) => {
+      try {
+        await togglePriority(id);
+      } catch (err) {
+        toast({ message: err?.message ?? "Failed to update priority", type: "error" });
+      }
+    },
+    [togglePriority, toast]
+  );
+
+  const handleUpdatePaymentStatus = useCallback(
+    async (id, ps) => {
+      try {
+        await updatePaymentStatus(id, ps);
+      } catch (err) {
+        toast({ message: err?.message ?? "Failed to update payment status", type: "error" });
+      }
+    },
+    [updatePaymentStatus, toast]
+  );
+
+  const liveSelectedBooking = useMemo(() => {
+    if (!selectedBooking) return null;
+    return bookings.find((b) => b.id === selectedBooking.id) ?? selectedBooking;
+  }, [selectedBooking, bookings]);
 
   return (
     <>
       <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreateBooking} />
+
+      {liveSelectedBooking && (
+        <BookingDetailDrawer
+          booking={liveSelectedBooking}
+          drivers={drivers}
+          onClose={() => setSelectedBooking(null)}
+          onUpdateStatus={handleStatusUpdate}
+          onAssignDriver={handleAssignDriver}
+          onUpdateNotes={handleUpdateNotes}
+          onTogglePriority={handleTogglePriority}
+          onUpdatePaymentStatus={handleUpdatePaymentStatus}
+        />
+      )}
+
       <div className="grid gap-4 p-4 sm:gap-6 sm:p-6 lg:p-10">
         {bookingsError && (
           <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
@@ -340,77 +275,109 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* KPI metric cards */}
+        {/* Header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Command Centre</p>
+            <h1 className="mt-1 text-2xl font-semibold text-white sm:text-3xl">Today&apos;s operations</h1>
+            <p className="mt-1 text-sm text-slate-500">{today}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${operational.text}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${operational.dot}`} />
+              {operational.label}
+            </span>
+            <RealtimeDot />
+            <LiveClock />
+            <button
+              onClick={() => setModalOpen(true)}
+              className="flex h-11 items-center gap-2 rounded-2xl bg-amber-500 px-4 text-sm font-semibold text-black transition hover:bg-amber-400"
+            >
+              <Plus className="h-4 w-4" />
+              New Booking
+            </button>
+          </div>
+        </div>
+
+        {/* Stat tiles */}
         <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          {metrics.map((metric) => (
-            <MetricCard key={metric.title} {...metric} />
-          ))}
+          <StatCard
+            icon={Calendar}
+            label="Today's Transfers"
+            value={bookings.length}
+            sub={`${activeCount} active now`}
+            accent="gold"
+            onClick={() => router.push("/operator/dispatch")}
+          />
+          <StatCard
+            icon={UserPlus}
+            label="Unassigned Jobs"
+            value={unassignedCount}
+            sub={unassignedCount > 0 ? "Needs driver assignment" : "All jobs assigned"}
+            accent={unassignedCount > 0 ? "red" : "emerald"}
+            onClick={() => router.push("/operator/dispatch")}
+          />
+          <StatCard
+            icon={Clock}
+            label="Next Pickup"
+            value={nextPickup ? nextPickup.time : "—"}
+            sub={nextPickup ? `${nextPickup.customer} · ${nextPickup.route}` : "No upcoming pickups"}
+            accent="blue"
+          />
+          <StatCard
+            icon={PoundSterling}
+            label="Revenue Today"
+            value={`£${revenueToday.toLocaleString()}`}
+            sub={`${completedBookings.length} completed job${completedBookings.length === 1 ? "" : "s"}`}
+            accent="emerald"
+          />
         </section>
 
-        {/* Portal quick-launch */}
-        <PortalQuickLinks />
+        {/* Action required */}
+        <ActionRequiredPanel items={actionItems} />
 
-        {/* Upcoming pickups strip */}
-        <UpcomingPickups bookings={bookings} onNavigate={() => router.push("/operator/dispatch")} />
-
-        {/* Main content: transfers list + sidebar */}
-        <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
-          <div className="card p-5 sm:p-6">
-            <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-              <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Live Dispatch</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                  Today's Transfers
-                </h2>
-                <p className="mt-2 text-sm text-slate-500">Real-time operational overview</p>
-              </div>
-              <button
-                onClick={() => setModalOpen(true)}
-                className="self-start rounded-2xl bg-amber-500 px-5 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 sm:self-auto"
-              >
-                + New Booking
-              </button>
+        {/* Next 5 transfers */}
+        <section className="card rounded-2xl p-4 sm:p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Live Dispatch</p>
+              <h2 className="mt-1 text-xl font-semibold text-white sm:text-2xl">Next 5 Transfers</h2>
             </div>
-            <div className="space-y-4">
-              {bookingsLoading
-                ? [1, 2, 3].map((i) => <SkeletonRow key={i} />)
-                : bookings.map((transfer) => (
-                    <TransferRow
-                      key={transfer.id}
-                      transfer={transfer}
-                      onManage={() => router.push("/operator/dispatch")}
-                    />
-                  ))}
-              {!bookingsLoading && bookings.length === 0 && (
-                <p className="py-8 text-center text-sm text-slate-600">No bookings yet today.</p>
-              )}
-            </div>
+            <button
+              onClick={() => router.push("/operator/dispatch")}
+              className="min-h-[36px] px-2 text-xs text-slate-500 transition hover:text-amber-300"
+            >
+              View all →
+            </button>
           </div>
 
-          <div className="space-y-6">
-            <DriverFleet drivers={drivers} />
-            <div className="rounded-3xl border border-amber-400/20 bg-amber-400/[0.05] p-6">
-              <p className="text-xs uppercase tracking-[0.25em] text-amber-300">Automation Watch</p>
-              <h3 className="mt-3 text-xl font-semibold text-white sm:text-2xl">
-                Missed Call Recovery Active
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-slate-400">
-                Automated follow-up monitoring missed calls, incomplete enquiries and unassigned airport
-                transfer requests.
-              </p>
-              {calls.length > 0 && (
-                <p className="mt-2 text-sm font-medium text-red-300">
-                  {calls.length} call{calls.length > 1 ? "s" : ""} awaiting follow-up
-                </p>
-              )}
-              <button
-                onClick={() => router.push("/operator/bookings")}
-                className="mt-5 w-full rounded-2xl border border-amber-400/20 px-4 py-3 text-sm font-semibold text-amber-200 transition hover:bg-amber-400/10"
-              >
-                Review Queue
-              </button>
+          {bookingsLoading && bookings.length === 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <TransferCardSkeleton key={i} />
+              ))}
             </div>
-          </div>
+          ) : next5.length === 0 ? (
+            <EmptyState
+              icon={Inbox}
+              title="No upcoming transfers"
+              message="New bookings will appear here as they come in."
+              actionLabel="New Booking"
+              onAction={() => setModalOpen(true)}
+            />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {next5.map((booking) => (
+                <TransferCard
+                  key={booking.id}
+                  booking={booking}
+                  compact
+                  onOpenDetail={setSelectedBooking}
+                  onStartDispatch={handleStartDispatch}
+                />
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </>
