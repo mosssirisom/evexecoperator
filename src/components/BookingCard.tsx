@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { Clock, MapPin, Phone, ChevronDown, ChevronUp, MessageSquare, Plane, Star, AlertCircle, Bell, AlertTriangle, Trash2, Users, Briefcase, RotateCcw } from "lucide-react";
+import { Clock, MapPin, Phone, ChevronDown, ChevronUp, MessageSquare, Star, AlertCircle, Bell, AlertTriangle, Trash2, Users, Briefcase, RotateCcw } from "lucide-react";
 import type { DbBooking, DbDriver, BookingStatus } from "@/lib/database.types";
 import { STATUS_NEXT_PRIMARY, STATUS_NEXT_LABEL } from "@/lib/database.types";
 import type { BookingNotificationStatus } from "@/hooks/useNotifications";
@@ -133,7 +133,7 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
   );
 }
 
-function InfoPill({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function InfoPill({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return <div className="rounded-xl border border-white/6 bg-white/[0.02] px-3 py-2"><div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-600">{icon}{label}</div><div className="mt-1 text-xs font-semibold text-slate-200">{value}</div></div>;
 }
 
