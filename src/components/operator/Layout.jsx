@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, Bell, X, Car, BookOpen } from "lucide-react";
+import { Search, Bell, X, Car, BookOpen, LogOut } from "lucide-react";
 import Sidebar from "./Sidebar";
 import LiveClock from "./LiveClock";
 import RealtimeDot from "./RealtimeDot";
@@ -85,7 +85,7 @@ function NotificationPopover({ calls, onClose, onNavigate, onResolve, onResolveA
   );
 }
 
-export default function Layout({ children }) {
+export default function Layout({ children, onSignOut }) {
   const pathname = usePathname();
   const router = useRouter();
   const meta = pageMeta[pathname] ?? pageMeta["/operator/dashboard"];
@@ -227,6 +227,16 @@ export default function Layout({ children }) {
                   <p className="text-sm font-medium text-white">Operator</p>
                   <p className="text-xs text-slate-500">Control Room</p>
                 </div>
+              </button>
+
+              {/* Sign out */}
+              <button
+                onClick={onSignOut}
+                className="glass flex h-10 w-10 items-center justify-center rounded-2xl transition hover:bg-white/10"
+                title="Sign out"
+                aria-label="Sign out"
+              >
+                <LogOut className="h-4 w-4 text-slate-300" />
               </button>
             </div>
           </div>
