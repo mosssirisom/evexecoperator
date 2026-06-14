@@ -14,6 +14,7 @@ interface Props {
   unavailableDriverIds: Set<string>;
   onStatusChange: (ref: string, status: BookingStatus) => void;
   onDriverAssign: (ref: string, driverId: string | null) => void;
+  onDangerAction?: (booking: DbBooking) => void;
 }
 
 export default function DailyView({
@@ -24,6 +25,7 @@ export default function DailyView({
   unavailableDriverIds,
   onStatusChange,
   onDriverAssign,
+  onDangerAction,
 }: Props) {
   const sorted = [...bookings].sort((a, b) =>
     (a.travel_time ?? "").localeCompare(b.travel_time ?? "")
@@ -31,7 +33,6 @@ export default function DailyView({
 
   return (
     <div className="space-y-3">
-      {/* Date heading */}
       <div className="flex items-center gap-2 py-1">
         <Calendar size={14} className="text-gold/70" />
         <h3 className="text-sm font-semibold text-slate-300">
@@ -42,7 +43,6 @@ export default function DailyView({
         </span>
       </div>
 
-      {/* Booking cards */}
       {sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 rounded-2xl border border-dashed border-white/10 text-slate-600">
           <Calendar size={28} className="mb-2 text-slate-700" />
@@ -59,6 +59,7 @@ export default function DailyView({
             unavailableDriverIds={unavailableDriverIds}
             onStatusChange={onStatusChange}
             onDriverAssign={onDriverAssign}
+            onDangerAction={onDangerAction}
           />
         ))
       )}
