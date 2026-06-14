@@ -21,7 +21,7 @@ function statusBadge(status) {
   return "text-slate-400 bg-slate-500/10 border-slate-500/20";
 }
 
-// ── Shared driver form fields ─────────────────────────────────────────────────
+// ── Shared driver form fields ───────────────────────────────────────────────────────
 const DRIVER_FIELDS = [
   { key: "name",    label: "Full Name",    placeholder: "James Whitmore",        icon: User,  type: "text"  },
   { key: "phone",   label: "Phone",        placeholder: "+44 7700 900000",       icon: Phone, type: "tel"   },
@@ -30,7 +30,7 @@ const DRIVER_FIELDS = [
   { key: "plate",   label: "Plate Number", placeholder: "EV21 XYZ",              icon: Hash,  type: "text"  },
 ];
 
-// ── Driver form modal (used for both Add and Edit) ────────────────────────────
+// ── Driver form modal (used for both Add and Edit) ──────────────────────────────────────
 function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
   const [form, setForm] = useState(
     initial ?? { name: "", phone: "", email: "", vehicle: "", plate: "" }
@@ -125,7 +125,7 @@ function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
   );
 }
 
-// ── Delete confirmation modal ─────────────────────────────────────────────────
+// ── Delete confirmation modal ───────────────────────────────────────────────────────────────
 function DeleteDriverModal({ driver, onClose, onConfirm }) {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
@@ -178,7 +178,7 @@ function DeleteDriverModal({ driver, onClose, onConfirm }) {
   );
 }
 
-// ── Assign Job Modal ──────────────────────────────────────────────────────────
+// ── Assign Job Modal ─────────────────────────────────────────────────────────────────────────
 function AssignJobModal({ driver, bookings, onAssign, onClose }) {
   const assignable = useMemo(
     () =>
@@ -259,7 +259,7 @@ function AssignJobModal({ driver, bookings, onAssign, onClose }) {
   );
 }
 
-// ── Driver context menu (MoreVertical) ────────────────────────────────────────
+// ── Driver context menu (MoreVertical) ─────────────────────────────────────────────────────────
 function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob, onEdit, onDelete }) {
   const ref = useRef(null);
 
@@ -355,7 +355,7 @@ function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob, onEdit, onDe
   );
 }
 
-// ── Driver Card ───────────────────────────────────────────────────────────────
+// ── Driver Card ────────────────────────────────────────────────────────────────────────
 function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -448,7 +448,7 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// ── Main Page ──────────────────────────────────────────────────────────────────────────
 export default function DriversPage() {
   const router = useRouter();
   const toast = useOperatorToast();
@@ -628,7 +628,7 @@ export default function DriversPage() {
           <div className="mb-5 flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Schedule</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">Today's Jobs</h2>
+              <h2 className="mt-2 text-2xl font-semibold text-white">Today&apos;s Jobs</h2>
               <p className="mt-1 text-sm text-slate-500">
                 {todayJobs.length === 0
                   ? "No scheduled jobs for today"
