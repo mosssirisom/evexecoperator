@@ -17,22 +17,42 @@ export interface DbBooking {
   customer_name: string;
   customer_phone: string | null;
   customer_email: string | null;
+  journey_type: string | null;
+  pickup_location: string | null;
+  airport: string | null;
   flight_number: string | null;
-  direction: string | null;          // e.g. "Airport → Destination"
-  airport: string | null;            // pickup airport / address
+  flight: string | null;
+  destination: string | null;
   dropoff_address: string | null;
-  travel_date: string | null;        // "YYYY-MM-DD"
-  travel_time: string | null;        // "HH:MM:SS"
-  pickup_time: string | null;        // full ISO datetime (analytics)
+  travel_date: string | null;
+  travel_time: string | null;
+  pickup_time: string | null;
+  passengers: number | null;
+  luggage: string | null;
+  return_journey: boolean | null;
+  return_pickup: string | null;
+  return_airport: string | null;
+  return_flight: string | null;
+  return_date: string | null;
+  return_time: string | null;
+  return_destination: string | null;
+  contact_method: string | null;
+  direction: string | null;
   driver_id: string | null;
+  assigned_driver_id: string | null;
   quoted_price: number | null;
+  price: number | null;
   status: BookingStatus;
+  payment_method: string | null;
   payment_status: PaymentStatus | null;
   priority: boolean | null;
   notes: string | null;
+  operator_note: string | null;
+  driver_notes: string | null;
+  vehicle_type: string | null;
   updated_at: string | null;
   created_at: string | null;
-  drivers?: { name: string } | null; // joined
+  drivers?: { name: string } | null;
 }
 
 export interface DbDriver {
@@ -220,12 +240,12 @@ export const STATUS_NEXT_PRIMARY: Record<BookingStatus, BookingStatus | null> = 
   "Cancelled":                     null,
 };
 
-export const STATUS_NEXT_LABEL: Record<BookingStatus, string> = {
-  "Unassigned":                    "Mark Dispatched",
-  "Unassigned / Missed Call Recovery": "Mark Dispatched",
-  "Dispatched":                    "Driver En Route",
+export const STATUS_NEXT_LABEL: Record<BookingStatus, string | null> = {
+  "Unassigned":                    "Dispatch",
+  "Unassigned / Missed Call Recovery": "Dispatch",
+  "Dispatched":                    "Mark En Route",
   "En Route":                      "Passenger On Board",
-  "Passenger On Board":            "Complete Job",
-  "Completed":                     "",
-  "Cancelled":                     "",
+  "Passenger On Board":            "Complete",
+  "Completed":                     null,
+  "Cancelled":                     null,
 };
