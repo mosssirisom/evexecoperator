@@ -13,37 +13,60 @@ import {
   sanitizeText,
 } from "@/lib/operator/validation";
 
-// ─── Row mapper ───────────────────────────────────────────────────────────────
+function compact(value) {
+  return value ? String(value).split(",")[0] : null;
+}
 
 export function shapedBooking(row) {
+  const pickupLocation = row.pickup_location ?? null;
+  const dropoffAddress = row.dropoff_address ?? row.destination ?? null;
+  const airport = row.airport ?? null;
+  const displayPickup = pickupLocation || airport || row.direction || null;
+  const displayDropoff = dropoffAddress || airport || null;
+  const route = [compact(displayPickup), compact(displayDropoff)].filter(Boolean).join(" → ") || dropoffAddress || airport || "—";
+  const returnRoute = row.return_journey
+    ? [row.return_pickup || row.return_airport, row.return_destination || row.return_airport].filter(Boolean).join(" → ")
+    : null;
+
   return {
     id: row.ref,
     customer: row.customer_name,
     phone: row.customer_phone ?? null,
     email: row.customer_email ?? null,
-    flight: row.flight_number ?? "—",
-    route:
-      [row.airport, row.dropoff_address].filter(Boolean).join(" → ") ||
-      row.dropoff_address ||
-      "—",
-    airport: row.airport ?? null,
-    destination: row.dropoff_address ?? null,
+    flight: row.flight_number ?? row.flight ?? "—",
+    route,
+    pickupLocation,
+    dropoffAddress,
+    airport,
+    destination: dropoffAddress,
     direction: row.direction ?? null,
+    journeyType: row.journey_type ?? null,
     time: row.travel_time ? row.travel_time.slice(0, 5) : "—",
-    pickupTime: row.travel_time ?? null,
+    pickupTime: row.pickup_time ?? (row.travel_date && row.travel_time ? `${row.travel_date}T${row.travel_time}` : null),
+    travelDate: row.travel_date ?? null,
+    passengers: row.passengers ?? null,
+    luggage: row.luggage ?? null,
+    returnJourney: row.return_journey ?? false,
+    returnPickup: row.return_pickup ?? null,
+    returnAirport: row.return_airport ?? null,
+    returnFlight: row.return_flight ?? null,
+    returnDate: row.return_date ?? null,
+    returnTime: row.return_time ?? null,
+    returnDestination: row.return_destination ?? null,
+    returnRoute,
+    vehicleType: row.vehicle_type ?? null,
+    contactMethod: row.contact_method ?? null,
     driver: row.drivers?.name ?? "Unassigned",
-    driverId: row.driver_id ?? null,
+    driverId: row.driver_id ?? row.assigned_driver_id ?? null,
     price: row.quoted_price ? `£${Number(row.quoted_price).toFixed(0)}` : "TBC",
     status: row.status,
     paymentStatus: row.payment_status ?? "Unpaid",
     priority: row.priority ?? false,
-    notes: row.notes ?? "",
+    notes: row.notes ?? row.operator_note ?? "",
     updatedAt: row.updated_at ?? null,
     createdAt: row.created_at ?? null,
   };
 }
-
-// ─── Hook ─────────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 100;
 
@@ -54,15 +77,11 @@ export function useBookings() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
 
-  // Stable ref to current bookings — avoids stale closures in callbacks
-  // without adding `bookings` to useCallback dependency arrays.
   const bookingsRef = useRef(bookings);
   useEffect(() => {
     bookingsRef.current = bookings;
   }, [bookings]);
 
-  // Counter guard: only the last in-flight fetch applies its result to state,
-  // preventing a slow earlier response from overwriting a faster later one.
   const fetchIdRef = useRef(0);
 
   const fetchBookings = useCallback(async () => {
@@ -76,7 +95,7 @@ export function useBookings() {
         .order("travel_date", { ascending: true })
         .order("travel_time", { ascending: true })
         .range(0, PAGE_SIZE - 1);
-      if (fetchIdRef.current !== myId) return; // stale — a newer fetch is in flight
+      if (fetchIdRef.current !== myId) return;
       if (err) { setError(err.message); return; }
       setBookings(data.map(shapedBooking));
       setTotalCount(count ?? 0);
@@ -86,8 +105,6 @@ export function useBookings() {
     }
   }, []);
 
-  // Append next page without resetting the list; deduplicates by id in case
-  // a realtime event inserted a record between the initial fetch and load-more.
   const loadMore = useCallback(async () => {
     if (!isConfigured || loadingMore) return;
     const from = bookingsRef.current.length;
@@ -109,15 +126,12 @@ export function useBookings() {
     }
   }, [loadingMore]);
 
-  // Initial load
   useEffect(() => {
     fetchBookings();
   }, [fetchBookings]);
 
-  // Realtime subscription (with reconnect logic in useRealtimeBookings)
   useRealtimeBookings(fetchBookings);
 
-  // Auto-refresh when tab regains focus — catches changes missed while away
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState === "visible") fetchBookings();
@@ -126,14 +140,11 @@ export function useBookings() {
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [fetchBookings]);
 
-  // 60-second polling fallback: keeps data fresh if realtime silently dies
   useEffect(() => {
     if (!isConfigured) return;
     const id = setInterval(fetchBookings, 60_000);
     return () => clearInterval(id);
   }, [fetchBookings]);
-
-  // ─── updateStatus ──────────────────────────────────────────────────────────
 
   const updateStatus = useCallback(async (id, status) => {
     if (!BOOKING_STATUSES.includes(status)) {
@@ -145,7 +156,6 @@ export function useBookings() {
       validateStatusTransition(current.status, status);
     }
 
-    // Optimistic update — snapshot for rollback
     const snapshot = bookingsRef.current;
     setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)));
 
@@ -167,12 +177,10 @@ export function useBookings() {
         console.warn("[DriverApp] Status sync failed:", err.message);
       });
     } catch (err) {
-      setBookings(snapshot); // roll back on failure
+      setBookings(snapshot);
       throw err;
     }
   }, []);
-
-  // ─── createBooking ─────────────────────────────────────────────────────────
 
   const createBooking = useCallback(
     async (form) => {
@@ -193,7 +201,6 @@ export function useBookings() {
             .single()
         : { data: null };
 
-      // Retry up to 3 times on unique-key collision
       let ref;
       let succeeded = false;
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -220,11 +227,7 @@ export function useBookings() {
         if (!insertErr) { succeeded = true; break; }
         if (insertErr.code !== "23505") throw new Error(insertErr.message);
       }
-      if (!succeeded) {
-        throw new Error(
-          "Failed to generate a unique booking reference after 3 attempts. Please try again."
-        );
-      }
+      if (!succeeded) throw new Error("Failed to generate a unique booking reference after 3 attempts. Please try again.");
 
       const createdStatus = driverRow ? "Dispatched" : "Unassigned";
       dispatchJobToDriverApp({
@@ -238,42 +241,27 @@ export function useBookings() {
         status: createdStatus,
       }).catch(() => {});
 
-      // Fetch after create so the new booking appears with its server-assigned fields
       await fetchBookings();
       return { ref };
     },
     [fetchBookings]
   );
 
-  // ─── assignDriver ──────────────────────────────────────────────────────────
-
   const assignDriver = useCallback(async (id, driverId, driverName) => {
     const current = bookingsRef.current.find((b) => b.id === id);
     const currentStatus = current?.status ?? "";
 
-    // Auto-transition status when driver assignment changes
     let newStatus = null;
     if (driverId) {
-      if (currentStatus === "Unassigned" || currentStatus === "Unassigned / Missed Call Recovery") {
-        newStatus = "Dispatched";
-      }
+      if (currentStatus === "Unassigned" || currentStatus === "Unassigned / Missed Call Recovery") newStatus = "Dispatched";
     } else {
-      if (currentStatus === "Dispatched" || currentStatus === "Unassigned / Missed Call Recovery") {
-        newStatus = "Unassigned";
-      }
+      if (currentStatus === "Dispatched" || currentStatus === "Unassigned / Missed Call Recovery") newStatus = "Unassigned";
     }
 
     const snapshot = bookingsRef.current;
     setBookings((prev) =>
       prev.map((b) =>
-        b.id === id
-          ? {
-              ...b,
-              driverId: driverId || null,
-              driver: driverName ?? (driverId ? b.driver : "Unassigned"),
-              ...(newStatus ? { status: newStatus } : {}),
-            }
-          : b
+        b.id === id ? { ...b, driverId: driverId || null, driver: driverName ?? (driverId ? b.driver : "Unassigned"), ...(newStatus ? { status: newStatus } : {}) } : b
       )
     );
 
@@ -294,13 +282,9 @@ export function useBookings() {
     }
   }, []);
 
-  // ─── updateNotes ───────────────────────────────────────────────────────────
-
   const updateNotes = useCallback(async (id, notes) => {
     const snapshot = bookingsRef.current;
-    setBookings((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, notes: notes ?? "" } : b))
-    );
+    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, notes: notes ?? "" } : b)));
 
     if (!isConfigured) return;
 
@@ -316,16 +300,12 @@ export function useBookings() {
     }
   }, []);
 
-  // ─── togglePriority ────────────────────────────────────────────────────────
-
   const togglePriority = useCallback(async (id) => {
     const current = bookingsRef.current.find((b) => b.id === id);
     const newPriority = !current?.priority;
 
     const snapshot = bookingsRef.current;
-    setBookings((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, priority: newPriority } : b))
-    );
+    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, priority: newPriority } : b)));
 
     if (!isConfigured) return;
 
@@ -341,13 +321,9 @@ export function useBookings() {
     }
   }, []);
 
-  // ─── updatePaymentStatus ───────────────────────────────────────────────────
-
   const updatePaymentStatus = useCallback(async (id, paymentStatus) => {
     const snapshot = bookingsRef.current;
-    setBookings((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, paymentStatus } : b))
-    );
+    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, paymentStatus } : b)));
 
     if (!isConfigured) return;
 
