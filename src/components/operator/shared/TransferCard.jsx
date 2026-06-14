@@ -20,13 +20,7 @@ import {
 import StatusBadge from "./StatusBadge";
 import ETACountdown from "../ETACountdown";
 import { getBookingExtras } from "@/lib/operator/bookingExtras";
-
-function whatsAppLink(phone) {
-  if (!phone) return null;
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length < 7) return null;
-  return `https://wa.me/${digits}`;
-}
+import { whatsAppLink } from "@/lib/operator/contact";
 
 /**
  * Compact-but-complete transfer card used on the Command Centre, Dispatch

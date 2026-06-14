@@ -31,6 +31,14 @@ function seededRatio(seed) {
   return Math.abs(hash % 1000) / 1000;
 }
 
+// Shortens "Manchester Airport (MAN)" to "MAN" for compact card badges,
+// falling back to the full name if there's no bracketed code.
+export function airportCode(airport) {
+  if (!airport) return null;
+  const match = airport.match(/\(([^)]+)\)/);
+  return match ? match[1] : airport;
+}
+
 export function getBookingExtras(booking) {
   const seed = booking?.id ?? "";
   const ratio = seededRatio(seed);

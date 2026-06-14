@@ -29,6 +29,18 @@ export function driverStatusMeta(status) {
   return STATUS_META[status] ?? { label: status || "Unknown", color: "slate" };
 }
 
+const DOT_CLASSES = {
+  emerald: "bg-emerald-400",
+  amber: "bg-amber-400",
+  blue: "bg-blue-400",
+  violet: "bg-violet-400",
+  slate: "bg-slate-600",
+};
+
+export function driverDotClass(status) {
+  return DOT_CLASSES[driverStatusMeta(status).color] ?? DOT_CLASSES.slate;
+}
+
 const ACTIVE_BOOKING_STATUSES = ["Dispatched", "En Route", "Passenger On Board"];
 
 /**
