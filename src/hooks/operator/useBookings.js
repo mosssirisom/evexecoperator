@@ -13,7 +13,7 @@ import {
   sanitizeText,
 } from "@/lib/operator/validation";
 
-// ─── Row mapper ──────────────────────────────────────────────────────
+// ─── Row mapper ───────────────────────────────────────────────────────────────
 
 export function shapedBooking(row) {
   return {
@@ -43,7 +43,7 @@ export function shapedBooking(row) {
   };
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────
+// ─── Hook ─────────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 100;
 
@@ -133,7 +133,7 @@ export function useBookings() {
     return () => clearInterval(id);
   }, [fetchBookings]);
 
-  // ─── updateStatus ──────────────────────────────────────────────────────
+  // ─── updateStatus ──────────────────────────────────────────────────────────
 
   const updateStatus = useCallback(async (id, status) => {
     if (!BOOKING_STATUSES.includes(status)) {
@@ -172,7 +172,7 @@ export function useBookings() {
     }
   }, []);
 
-  // ─── createBooking ────────────────────────────────────────────────────────
+  // ─── createBooking ─────────────────────────────────────────────────────────
 
   const createBooking = useCallback(
     async (form) => {
@@ -213,6 +213,7 @@ export function useBookings() {
           assigned_driver_id: driverRow?.id ?? null,
           quoted_price:       form.price ? Number(form.price) : null,
           status:             driverRow ? "Dispatched" : "Unassigned",
+          payment_status:     "Unpaid",
           notes:              form.notes?.trim() || null,
         });
 
@@ -244,7 +245,7 @@ export function useBookings() {
     [fetchBookings]
   );
 
-  // ─── assignDriver ────────────────────────────────────────────────────────
+  // ─── assignDriver ──────────────────────────────────────────────────────────
 
   const assignDriver = useCallback(async (id, driverId, driverName) => {
     const current = bookingsRef.current.find((b) => b.id === id);
@@ -293,7 +294,7 @@ export function useBookings() {
     }
   }, []);
 
-  // ─── updateNotes ─────────────────────────────────────────────────────────
+  // ─── updateNotes ───────────────────────────────────────────────────────────
 
   const updateNotes = useCallback(async (id, notes) => {
     const snapshot = bookingsRef.current;
@@ -315,7 +316,7 @@ export function useBookings() {
     }
   }, []);
 
-  // ─── togglePriority ───────────────────────────────────────────────────────
+  // ─── togglePriority ────────────────────────────────────────────────────────
 
   const togglePriority = useCallback(async (id) => {
     const current = bookingsRef.current.find((b) => b.id === id);
@@ -340,7 +341,7 @@ export function useBookings() {
     }
   }, []);
 
-  // ─── updatePaymentStatus ─────────────────────────────────────────────────
+  // ─── updatePaymentStatus ───────────────────────────────────────────────────
 
   const updatePaymentStatus = useCallback(async (id, paymentStatus) => {
     const snapshot = bookingsRef.current;
