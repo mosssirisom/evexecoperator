@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { X, Plane, MapPin, Users, Calendar, type LucideIcon } from "lucide-react";
+import { X, Plane, MapPin, Users, Calendar, Briefcase, type LucideIcon } from "lucide-react";
 import { format } from "date-fns";
 import type { DbBooking, DbDriver } from "@/lib/database.types";
 
 type NewBooking = Omit<DbBooking, "id" | "ref" | "created_at" | "updated_at" | "drivers">;
 
-// Optional pre-fill values, used when converting a Booking Brain quote
-// request into a confirmed booking. Only the fields present are overridden.
 export interface BookingPrefill {
   customer_name?: string;
   customer_phone?: string;
@@ -19,6 +17,8 @@ export interface BookingPrefill {
   dropoff_address?: string;
   direction?: string;
   flight_number?: string;
+  passengers?: number;
+  luggage?: string;
   notes?: string;
 }
 
@@ -36,51 +36,71 @@ const DIRECTIONS = [
   "Point to Point",
 ];
 
+const BAG_OPTIONS = ["None", "1 piece", "2 pieces", "3 pieces", "4 pieces", "5+ pieces", "Golf clubs", "Bike box", "Custom"];
+
 export default function AddBookingModal({ drivers, defaultDate, prefill, onSave, onClose }: Props) {
-  const today   = defaultDate ?? new Date();
+  const today = defaultDate ?? new Date();
   const dateStr = format(today, "yyyy-MM-dd");
 
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
-    travel_date:       prefill?.travel_date ?? dateStr,
-    travel_time:       prefill?.travel_time ?? "09:00",
-    customer_name:     prefill?.customer_name ?? "",
-    customer_phone:    prefill?.customer_phone ?? "",
-    customer_email:    prefill?.customer_email ?? "",
-    airport:           prefill?.airport ?? "",
-    dropoff_address:   prefill?.dropoff_address ?? "",
-    direction:         prefill?.direction ?? DIRECTIONS[0],
-    flight_number:     prefill?.flight_number ?? "",
-    driver_id:         "",
-    quoted_price:      "",
-    notes:             prefill?.notes ?? "",
-    priority:          false,
+    travel_date: prefill?.travel_date ?? dateStr,
+    travel_time: prefill?.travel_time ?? "09:00",
+    customer_name: prefill?.customer_name ?? "",
+    customer_phone: prefill?.customer_phone ?? "",
+    customer_email: prefill?.customer_email ?? "",
+    airport: prefill?.airport ?? "",
+    dropoff_address: prefill?.dropoff_address ?? "",
+    direction: prefill?.direction ?? DIRECTIONS[0],
+    flight_number: prefill?.flight_number ?? "",
+    passengers: prefill?.passengers ? String(prefill.passengers) : "1",
+    luggage: prefill?.luggage ?? "",
+    luggagePreset: prefill?.luggage && !BAG_OPTIONS.includes(prefill.luggage) ? "Custom" : prefill?.luggage ?? "",
+    driver_id: "",
+    quoted_price: "",
+    notes: prefill?.notes ?? "",
+    priority: false,
   });
 
   const set = (key: string, val: string | boolean) =>
     setForm((f) => ({ ...f, [key]: val }));
 
+  const setLuggagePreset = (value: string) => {
+    setForm((f) => ({
+      ...f,
+      luggagePreset: value,
+      luggage: value && value !== "Custom" ? value : f.luggage,
+    }));
+  };
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const passengerCount = Math.max(1, Number.parseInt(form.passengers, 10) || 1);
+      const luggageValue = form.luggagePreset === "Custom" ? form.luggage.trim() : form.luggagePreset || form.luggage.trim();
+
       const data: NewBooking = {
-        travel_date:      form.travel_date || null,
-        travel_time:      form.travel_time ? `${form.travel_time}:00` : null,
-        pickup_time:      form.travel_date ? new Date(`${form.travel_date}T${form.travel_time}:00`).toISOString() : null,
-        customer_name:    form.customer_name,
-        customer_phone:   form.customer_phone || null,
-        customer_email:   form.customer_email || null,
-        airport:          form.airport || null,
-        dropoff_address:  form.dropoff_address || null,
-        direction:        form.direction || null,
-        flight_number:    form.flight_number || null,
-        driver_id:        form.driver_id || null,
-        quoted_price:     form.quoted_price ? Number(form.quoted_price) : null,
-        notes:            form.notes || null,
-        priority:         form.priority,
-        status:           form.driver_id ? "Dispatched" : "Unassigned",
-        payment_status:   "Unpaid",
+        travel_date: form.travel_date || null,
+        travel_time: form.travel_time ? `${form.travel_time}:00` : null,
+        pickup_time: form.travel_date ? new Date(`${form.travel_date}T${form.travel_time}:00`).toISOString() : null,
+        customer_name: form.customer_name,
+        customer_phone: form.customer_phone || null,
+        customer_email: form.customer_email || null,
+        airport: form.airport || null,
+        dropoff_address: form.dropoff_address || null,
+        direction: form.direction || null,
+        flight_number: form.flight_number || null,
+        passengers: passengerCount,
+        luggage: luggageValue || null,
+        driver_id: form.driver_id || null,
+        assigned_driver_id: form.driver_id || null,
+        quoted_price: form.quoted_price ? Number(form.quoted_price) : null,
+        notes: form.notes || null,
+        priority: form.priority,
+        status: form.driver_id ? "Dispatched" : "Unassigned",
+        payment_status: "Unpaid",
+        return_journey: false,
       };
       await onSave(data);
     } finally {
@@ -96,7 +116,6 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
         onSubmit={handleSubmit}
         className="relative w-full max-w-md bg-navy-800 rounded-2xl border border-white/10 shadow-card overflow-y-auto max-h-[90vh] slide-up"
       >
-        {/* Header */}
         <div className="sticky top-0 bg-navy-800 border-b border-white/8 px-5 py-4 flex items-center justify-between z-10">
           <h2 className="text-base font-bold text-slate-100">New Transfer</h2>
           <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-navy-700">
@@ -111,7 +130,6 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
         )}
 
         <div className="px-5 py-4 space-y-4">
-          {/* Date & Time */}
           <section>
             <SectionLabel icon={Calendar} label="Pick-up Date & Time" />
             <div className="grid grid-cols-2 gap-2 mt-2">
@@ -120,7 +138,6 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
             </div>
           </section>
 
-          {/* Customer */}
           <section>
             <SectionLabel icon={Users} label="Customer" />
             <div className="space-y-2 mt-2">
@@ -130,7 +147,6 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
             </div>
           </section>
 
-          {/* Route */}
           <section>
             <SectionLabel icon={MapPin} label="Route" />
             <div className="space-y-2 mt-2">
@@ -145,7 +161,28 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
             </div>
           </section>
 
-          {/* Flight */}
+          <section>
+            <SectionLabel icon={Briefcase} label="Passengers & Bags" />
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Passengers</label>
+                <Input type="number" min={1} placeholder="1" value={form.passengers} onChange={(v) => set("passengers", v)} required />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Bags</label>
+                <select value={form.luggagePreset} onChange={(e) => setLuggagePreset(e.target.value)} className={inputCls}>
+                  <option value="">Select bags</option>
+                  {BAG_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                </select>
+              </div>
+            </div>
+            {form.luggagePreset === "Custom" && (
+              <div className="mt-2">
+                <Input placeholder="Describe luggage e.g. 2 cases + pram" value={form.luggage} onChange={(v) => set("luggage", v)} />
+              </div>
+            )}
+          </section>
+
           <section>
             <SectionLabel icon={Plane} label="Flight (optional)" />
             <div className="mt-2">
@@ -153,7 +190,6 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
             </div>
           </section>
 
-          {/* Driver & Price */}
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Driver</label>
@@ -168,7 +204,6 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
             </div>
           </div>
 
-          {/* Priority */}
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -179,7 +214,6 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
             <span className="text-xs text-slate-400">Mark as priority</span>
           </label>
 
-          {/* Notes */}
           <div>
             <label className="text-xs text-slate-500 mb-1 block">Notes</label>
             <textarea
@@ -192,7 +226,6 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
           </div>
         </div>
 
-        {/* Footer */}
         <div className="sticky bottom-0 bg-navy-800 border-t border-white/8 px-5 py-4 flex gap-3">
           <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/15 text-sm text-slate-300 hover:bg-navy-700 transition-colors">
             Cancel
@@ -213,12 +246,13 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
 const inputCls =
   "w-full bg-navy-700 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-gold/40 transition-colors";
 
-function Input({ placeholder, value, onChange, type = "text", required }: {
-  placeholder?: string; value: string | number; onChange: (v: string) => void; type?: string; required?: boolean;
+function Input({ placeholder, value, onChange, type = "text", required, min }: {
+  placeholder?: string; value: string | number; onChange: (v: string) => void; type?: string; required?: boolean; min?: number;
 }) {
   return (
     <input
       type={type}
+      min={min}
       placeholder={placeholder}
       value={value}
       onChange={(e) => onChange(e.target.value)}
