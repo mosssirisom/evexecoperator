@@ -11,6 +11,8 @@ import {
   CreditCard,
   Plus,
   Inbox,
+  LayoutGrid,
+  Users,
 } from "lucide-react";
 import BookingModal from "@/components/operator/BookingModal";
 import BookingDetailDrawer from "@/components/operator/BookingDetailDrawer";
@@ -24,6 +26,7 @@ import StatCard from "@/components/operator/shared/StatCard";
 import ActionRequiredPanel from "@/components/operator/shared/ActionRequiredPanel";
 import TransferCard from "@/components/operator/shared/TransferCard";
 import EmptyState from "@/components/operator/shared/EmptyState";
+import QuickActionMenu from "@/components/operator/shared/QuickActionMenu";
 
 const ACTIVE_STATUSES = ["Dispatched", "En Route", "Passenger On Board"];
 
@@ -65,7 +68,7 @@ export default function DashboardPage() {
   const { drivers } = useDrivers();
   const { calls } = useMissedCalls();
 
-  // ─── Header ─────────────────────────────────────────────────────────────────────────
+  // ─── Header ────────────────────────────────────────────────────────────────
 
   const today = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
@@ -82,7 +85,7 @@ export default function DashboardPage() {
         ? { label: "Operational", dot: "bg-emerald-400", text: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300" }
         : { label: "All drivers busy", dot: "bg-amber-400", text: "border-amber-400/30 bg-amber-400/10 text-amber-300" };
 
-  // ─── Derived stats ────────────────────────────────────────────────────────────────────────
+  // ─── Derived stats ─────────────────────────────────────────────────────────
 
   const unassignedCount = useMemo(
     () => bookings.filter((b) => b.status?.startsWith("Unassigned")).length,
@@ -125,7 +128,7 @@ export default function DashboardPage() {
 
   const next5 = upcoming.slice(0, 5);
 
-  // ─── Action Required ──────────────────────────────────────────────────────────────────────────
+  // ─── Action Required ───────────────────────────────────────────────────────
 
   const actionItems = useMemo(() => {
     const items = [];
@@ -165,7 +168,18 @@ export default function DashboardPage() {
     return items;
   }, [unassignedCount, calls, outstandingPayments, router]);
 
-  // ─── Handlers ──────────────────────────────────────────────────────────────────────────────────
+  // ─── Quick actions ──────────────────────────────────────────────────────────
+
+  const quickActions = useMemo(
+    () => [
+      { key: "new-booking", label: "New Booking", icon: Plus, onClick: () => setModalOpen(true) },
+      { key: "dispatch", label: "Dispatch Board", icon: LayoutGrid, onClick: () => router.push("/operator/dispatch") },
+      { key: "drivers", label: "Driver Fleet", icon: Users, onClick: () => router.push("/operator/drivers") },
+    ],
+    [router]
+  );
+
+  // ─── Handlers ───────────────────────────────────────────────────────────────
 
   const handleCreateBooking = useCallback(
     async (form) => {
@@ -380,6 +394,8 @@ export default function DashboardPage() {
           )}
         </section>
       </div>
+
+      <QuickActionMenu actions={quickActions} />
     </>
   );
 }
