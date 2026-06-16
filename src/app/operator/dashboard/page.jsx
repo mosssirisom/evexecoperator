@@ -60,6 +60,7 @@ export default function DashboardPage() {
     error: bookingsError,
     createBooking,
     updateStatus,
+    updateStatusOverride,
     assignDriver,
     updateNotes,
     togglePriority,
@@ -99,7 +100,7 @@ export default function DashboardPage() {
         (b) =>
           b.pickupTime &&
           new Date(b.pickupTime).getTime() > now - 15 * 60 * 1000 &&
-          !["Completed", "Cancelled"].includes(b.status)
+          ![ "Completed", "Cancelled"].includes(b.status)
       )
       .sort((a, b) => new Date(a.pickupTime) - new Date(b.pickupTime));
   }, [bookings]);
@@ -214,6 +215,18 @@ export default function DashboardPage() {
     [updateStatus, toast]
   );
 
+  const handleStatusOverride = useCallback(
+    async (id, status) => {
+      try {
+        await updateStatusOverride(id, status);
+        toast({ message: `Status → ${status}`, type: "success" });
+      } catch (err) {
+        toast({ message: err?.message ?? "Failed to update status", type: "error" });
+      }
+    },
+    [updateStatusOverride, toast]
+  );
+
   const handleAssignDriver = useCallback(
     async (id, driverId) => {
       const driver = drivers.find((d) => d.id === driverId);
@@ -274,7 +287,7 @@ export default function DashboardPage() {
           booking={liveSelectedBooking}
           drivers={drivers}
           onClose={() => setSelectedBooking(null)}
-          onUpdateStatus={handleStatusUpdate}
+          onUpdateStatus={handleStatusOverride}
           onAssignDriver={handleAssignDriver}
           onUpdateNotes={handleUpdateNotes}
           onTogglePriority={handleTogglePriority}

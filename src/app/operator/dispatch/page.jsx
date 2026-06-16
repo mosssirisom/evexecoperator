@@ -61,6 +61,7 @@ function DispatchPageContent() {
     error,
     createBooking,
     updateStatus,
+    updateStatusOverride,
     assignDriver,
     updateNotes,
     togglePriority,
@@ -107,6 +108,18 @@ function DispatchPageContent() {
       toast({ message: err?.message ?? "Failed to update status", type: "error" });
     }
   }, [updateStatus, toast]);
+
+  // Operator override: bypasses state-machine and 4-hour guards, used by the
+  // detail drawer so operators can correct any status (e.g. revert a completed job).
+  const handleStatusOverride = useCallback(async (id, status) => {
+    try {
+      await updateStatusOverride(id, status);
+      toast({ message: `Status → ${status}`, type: "success" });
+      setSelectedBooking((prev) => (prev?.id === id ? { ...prev, status } : prev));
+    } catch (err) {
+      toast({ message: err?.message ?? "Failed to update status", type: "error" });
+    }
+  }, [updateStatusOverride, toast]);
 
   const handleAssignDriver = useCallback(async (id, driverId) => {
     const driver = drivers.find((d) => d.id === driverId);
@@ -230,7 +243,7 @@ function DispatchPageContent() {
           booking={liveSelectedBooking}
           drivers={drivers}
           onClose={() => setSelectedBooking(null)}
-          onUpdateStatus={handleStatusUpdate}
+          onUpdateStatus={handleStatusOverride}
           onAssignDriver={handleAssignDriver}
           onUpdateNotes={handleUpdateNotes}
           onTogglePriority={handleTogglePriority}
@@ -359,7 +372,7 @@ function DispatchPageContent() {
         </div>
       </div>
 
-      {/* Mobile floating "+ New Booking" button */}
+      {/* Mobile floating "+  New Booking" button */}
       <button
         onClick={() => setModalOpen(true)}
         className="fixed bottom-[5.5rem] right-4 z-40 flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-3 text-sm font-bold text-black shadow-xl shadow-amber-500/25 transition active:scale-95 sm:hidden"

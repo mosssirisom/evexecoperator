@@ -81,6 +81,7 @@ export function shapedBooking(row) {
     bags: row.luggage ?? null,
     returnJourney: row.return_journey ?? false,
     returnDetails: returnJourneyDetails(row),
+    travelDate: row.travel_date ?? null,
     time: row.travel_time ? row.travel_time.slice(0, 5) : "—",
     pickupTime: row.travel_time ?? null,
     driver: row.drivers?.name ?? "Unassigned",
@@ -197,6 +198,16 @@ export function useBookings() {
       validateStatusTransition(current.status, status);
     }
 
+    // Drivers may only mark a job Completed within 4 hours of the scheduled pickup.
+    if (status === "Completed" && current?.travelDate && current?.pickupTime) {
+      const pickupMs = new Date(`${current.travelDate}T${current.pickupTime}`).getTime();
+      if (!isNaN(pickupMs) && Date.now() < pickupMs - 4 * 60 * 60 * 1000) {
+        throw new ValidationError(
+          "Cannot mark as Completed more than 4 hours before the scheduled pickup time. Use the operator override if needed."
+        );
+      }
+    }
+
     // Optimistic update — snapshot for rollback
     const snapshot = bookingsRef.current;
     setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)));
@@ -220,6 +231,41 @@ export function useBookings() {
       });
     } catch (err) {
       setBookings(snapshot); // roll back on failure
+      throw err;
+    }
+  }, []);
+
+  // ─── updateStatusOverride ──────────────────────────────────────────────────
+  // Operator-only path: bypasses the state-machine and 4-hour guards so an
+  // operator can correct any status (e.g. revert an accidentally completed job).
+
+  const updateStatusOverride = useCallback(async (id, status) => {
+    if (!BOOKING_STATUSES.includes(status)) {
+      throw new ValidationError(`"${status}" is not a valid booking status`);
+    }
+
+    const snapshot = bookingsRef.current;
+    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)));
+
+    if (!isConfigured) {
+      updateJobStatus(id, status).catch((err) => {
+        console.warn("[DriverApp] Status sync failed (mock):", err.message);
+      });
+      return;
+    }
+
+    try {
+      const { error: err } = await supabase
+        .from("bookings")
+        .update({ status })
+        .eq("ref", id);
+      if (err) throw new Error(err.message);
+
+      updateJobStatus(id, status).catch((err) => {
+        console.warn("[DriverApp] Status sync failed:", err.message);
+      });
+    } catch (err) {
+      setBookings(snapshot);
       throw err;
     }
   }, []);
@@ -415,5 +461,5 @@ export function useBookings() {
     }
   }, []);
 
-  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, updatePaymentStatus, refetch: fetchBookings };
+  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, updateStatusOverride, assignDriver, updateNotes, togglePriority, updatePaymentStatus, refetch: fetchBookings };
 }
