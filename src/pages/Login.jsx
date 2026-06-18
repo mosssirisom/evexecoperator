@@ -53,7 +53,7 @@ export default function Login() {
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
           <img
-            src="/ev-exec-login-logo.jpeg"
+            src="/ev-exec-login-logo.PNG"
             alt="EV Exec"
             className="mb-4 h-32 w-auto rounded-2xl object-contain shadow-2xl"
           />
@@ -77,7 +77,7 @@ export default function Login() {
             <label htmlFor="login-email" className="mb-2 block text-xs uppercase tracking-[0.2em] text-slate-500">
               Email
             </label>
-            <input id="login-email" type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 transition focus:border-amber-400/40 focus:bg-white/[0.05]" placeholder="you@evexec.co.uk" />
+            <input id="login-email" type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-2xl border border-white/10 bg-w[...]" />
           </div>
 
           <div>
@@ -85,14 +85,14 @@ export default function Login() {
               Password
             </label>
             <div className="relative">
-              <input id="login-password" type={showPassword ? "text" : "password"} required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 pr-11 text-sm text-white outline-none placeholder:text-slate-600 transition focus:border-amber-400/40 focus:bg-white/[0.05]" placeholder="••••••••" />
+              <input id="login-password" type={showPassword ? "text" : "password"} required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-[...]" />
               <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-white" aria-label={showPassword ? "Hide password" : "Show password"}>
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </div>
 
-          <button type="submit" disabled={submitting} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-500 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:opacity-60">
+          <button type="submit" disabled={submitting} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-500 px-6 py-3 text-sm font-semibold text-black transition hover:[...]">
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             Sign in
           </button>
