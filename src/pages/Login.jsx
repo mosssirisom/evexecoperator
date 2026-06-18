@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Login() {
@@ -50,57 +50,107 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0B132B] px-4 text-white">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center text-center">
+      <div className="w-full max-w-md">
+        {/* Logo placed above the main heading. Ensure the image has a transparent background. */}
+        <div className="flex justify-center mb-4">
           <img
-            src="/ev-exec-login-logo.PNG"
-            alt="EV Exec"
-            className="mb-4 h-32 w-auto rounded-2xl object-contain shadow-2xl"
+            src="/ev-exec-logo-circle.png"
+            alt="EV Exec logo"
+            className="h-20 w-20 object-contain bg-transparent"
           />
-          <h1 className="mt-1 text-2xl font-semibold text-white">Operator sign in</h1>
-          <p className="mt-2 text-sm text-slate-500">Control room access only</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="card space-y-4 p-6">
-          {error && (
-            <div className="rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-300">
-              {error}
-            </div>
-          )}
-          {info && (
-            <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-300">
-              {info}
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="login-email" className="mb-2 block text-xs uppercase tracking-[0.2em] text-slate-500">
-              Email
-            </label>
-            <input id="login-email" type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-2xl border border-white/10 bg-w[...]" />
+        {/* Thin bordered container box with slight translucent background */}
+        <div className="rounded-xl border border-white/20 bg-white/5 p-6">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-extrabold tracking-wide text-white">EV EXEC</h1>
+            <p className="mt-1 text-xs text-slate-300">OPERATOR CALENDAR</p>
           </div>
 
-          <div>
-            <label htmlFor="login-password" className="mb-2 block text-xs uppercase tracking-[0.2em] text-slate-500">
-              Password
-            </label>
-            <div className="relative">
-              <input id="login-password" type={showPassword ? "text" : "password"} required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-[...]" />
-              <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-white" aria-label={showPassword ? "Hide password" : "Show password"}>
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="rounded-md border border-red-400/20 bg-red-400/10 px-4 py-2 text-sm text-red-300">
+                {error}
+              </div>
+            )}
+
+            {info && (
+              <div className="rounded-md border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-300">
+                {info}
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="login-email" className="sr-only">
+                Email
+              </label>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <Mail className="h-4 w-4" />
+                </span>
+                <input
+                  id="login-email"
+                  type="email"
+                  required
+                  autoComplete="username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email"
+                  className="w-full rounded-2xl border border-white/10 bg-white/4 py-3 pr-4 pl-11 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+              </div>
             </div>
-          </div>
 
-          <button type="submit" disabled={submitting} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-500 px-6 py-3 text-sm font-semibold text-black transition hover:[...]">
-            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Sign in
-          </button>
+            <div>
+              <label htmlFor="login-password" className="sr-only">
+                Password
+              </label>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <Lock className="h-4 w-4" />
+                </span>
+                <input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  className="w-full rounded-2xl border border-white/10 bg-white/4 py-3 pr-10 pl-11 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
 
-          <button type="button" onClick={handleForgotPassword} className="w-full text-center text-xs text-slate-500 transition hover:text-amber-300">
-            Forgot password?
-          </button>
-        </form>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-500 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-600 disabled:opacity-60"
+            >
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Sign in
+            </button>
+
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="w-full text-center text-xs text-slate-400 hover:text-amber-300"
+            >
+              Forgot password?
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-xs text-slate-400">Restricted to authorised EV Exec staff</p>
+        </div>
       </div>
     </div>
   );
