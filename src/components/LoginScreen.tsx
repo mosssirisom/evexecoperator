@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Image from "next/image";
 import { Mail, Lock } from "lucide-react";
 
 interface Props {
@@ -30,18 +31,20 @@ export default function LoginScreen({ onSignIn }: Props) {
   return (
     <div className="min-h-screen bg-navy-900 flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1
-            className="text-white leading-none font-black tracking-tight"
-            style={{ fontSize: "clamp(2rem, 8vw, 2.8rem)", letterSpacing: "-0.01em" }}
-          >
-            EV EXEC
-          </h1>
+        <div className="flex flex-col items-center mb-8">
+          <Image
+            src="/logo.png"
+            alt="EV Exec"
+            width={180}
+            height={180}
+            priority
+            className="object-contain"
+          />
           <p
             className="text-slate-400 font-medium uppercase mt-2 tracking-widest"
             style={{ fontSize: "clamp(0.6rem, 1.5vw, 0.7rem)", letterSpacing: "0.22em" }}
           >
-            Operator Calendar
+            Operator Portal
           </p>
         </div>
 
