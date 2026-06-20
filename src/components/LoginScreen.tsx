@@ -38,7 +38,7 @@ export default function LoginScreen({ onSignIn }: Props) {
             src={LOGO_SRC}
             alt="EV Exec"
             width={220}
-            style={{ maxWidth: "240px", objectFit: "contain" }}
+            style={{ maxWidth: "240px", objectFit: "contain", mixBlendMode: "screen" }}
           />
           <p
             className="text-slate-400 font-medium uppercase mt-2 tracking-widest"
