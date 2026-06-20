@@ -13,6 +13,7 @@ const { mockChain, mockSupabase } = vi.hoisted(() => {
     single: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
+    delete: vi.fn(),
   };
   Object.values(chain).forEach((fn) => fn.mockReturnValue(chain));
 
@@ -290,5 +291,49 @@ describe("useBookings — updateStatus", () => {
     await expect(
       act(() => result.current.updateStatus("EVX-ERR", "En Route"))
     ).rejects.toThrow(/DB write error/);
+  });
+});
+
+describe("useBookings — deleteBooking", () => {
+  const row = {
+    ref: "EVX-DEL", customer_name: "Jane Doe", flight: null,
+    airport: "A", destination: "B", pickup_time: null,
+    drivers: null, price: null, status: "Unassigned",
+    priority: false, updated_at: null,
+  };
+
+  it("deletes the booking by ref and removes it from the list", async () => {
+    // Reset to clear any queued mockResolvedValueOnce values left by earlier suites.
+    mockChain.range.mockReset();
+    mockChain.range.mockResolvedValue({ data: [], count: 0, error: null });
+    primeRows([row], 4);
+
+    const { result } = renderHook(() => useBookings());
+    await act(async () => {});
+    expect(result.current.bookings.some((b) => b.id === "EVX-DEL")).toBe(true);
+
+    await act(async () => {
+      await result.current.deleteBooking("EVX-DEL");
+    });
+
+    expect(mockChain.delete).toHaveBeenCalled();
+    expect(mockChain.eq).toHaveBeenCalledWith("ref", "EVX-DEL");
+    expect(result.current.bookings.some((b) => b.id === "EVX-DEL")).toBe(false);
+  });
+
+  it("restores the booking and rethrows when Supabase returns an error", async () => {
+    mockChain.range.mockReset();
+    mockChain.range.mockResolvedValue({ data: [], count: 0, error: null });
+    primeRows([row], 4);
+    mockChain.eq.mockResolvedValueOnce({ data: [], error: { message: "DB delete error" } });
+
+    const { result } = renderHook(() => useBookings());
+    await act(async () => {});
+
+    await expect(
+      act(() => result.current.deleteBooking("EVX-DEL"))
+    ).rejects.toThrow(/DB delete error/);
+
+    expect(result.current.bookings.some((b) => b.id === "EVX-DEL")).toBe(true);
   });
 });

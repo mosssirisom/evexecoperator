@@ -14,6 +14,7 @@ import {
   UserCircle,
   Globe,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
 import BookingModal from "../components/BookingModal";
 import ETACountdown from "../components/ETACountdown";
@@ -132,7 +133,7 @@ function UpcomingPickups({ bookings, onNavigate }) {
   );
 }
 
-function TransferRow({ transfer, onManage }) {
+function TransferRow({ transfer, onManage, onDelete }) {
   return (
     <div
       className={`rounded-3xl border p-4 transition-all duration-300 sm:p-5 ${
@@ -183,12 +184,75 @@ function TransferRow({ transfer, onManage }) {
             </div>
           </div>
         </div>
-        <button
-          onClick={onManage}
-          className="self-end rounded-2xl border border-white/10 px-4 py-3 text-sm text-slate-300 transition hover:border-amber-400/20 hover:bg-amber-400/10 hover:text-amber-200 xl:self-auto"
-        >
-          Manage
-        </button>
+        <div className="flex items-center gap-2 self-end xl:self-auto">
+          <button
+            onClick={onManage}
+            className="rounded-2xl border border-white/10 px-4 py-3 text-sm text-slate-300 transition hover:border-amber-400/20 hover:bg-amber-400/10 hover:text-amber-200"
+          >
+            Manage
+          </button>
+          <button
+            onClick={onDelete}
+            title="Delete job"
+            aria-label={`Delete job ${transfer.id}`}
+            className="rounded-2xl border border-red-400/20 bg-red-400/10 p-3 text-red-300 transition hover:bg-red-400/20"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Delete booking confirmation modal ─────────────────────────────────────────
+function DeleteBookingModal({ booking, onClose, onConfirm }) {
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+
+  async function handleDelete() {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await onConfirm();
+    } catch (err) {
+      setDeleteError(err?.message ?? "Failed to delete booking.");
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-sm rounded-3xl border border-white/10 bg-[#0B132B] p-6 shadow-2xl">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-red-400/20 bg-red-400/10">
+          <Trash2 className="h-5 w-5 text-red-300" />
+        </div>
+        <h2 className="text-lg font-semibold text-white">Delete booking {booking.id}?</h2>
+        <p className="mt-2 text-sm text-slate-400">
+          This permanently removes {booking.customer}'s transfer. This action cannot be undone.
+        </p>
+        {deleteError && (
+          <p className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-xs text-red-300">
+            {deleteError}
+          </p>
+        )}
+        <div className="mt-6 flex gap-3">
+          <button
+            onClick={onClose}
+            disabled={deleting}
+            className="flex-1 rounded-2xl border border-white/10 py-3 text-sm text-slate-400 transition hover:text-white disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="flex-1 rounded-2xl border border-red-400/20 bg-red-400/10 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-400/20 disabled:opacity-50"
+          >
+            {deleting ? "Deleting…" : "Delete Job"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -273,9 +337,10 @@ function SkeletonRow() {
 
 export default function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const navigate = useNavigate();
   const toast = useToast();
-  const { bookings, totalCount, loading: bookingsLoading, error: bookingsError, createBooking } = useBookings();
+  const { bookings, totalCount, loading: bookingsLoading, error: bookingsError, createBooking, deleteBooking } = useBookings();
   const { bookings: todayBookings } = useTodayBookings();
   const { drivers } = useDrivers();
   const { calls } = useMissedCalls();
@@ -285,6 +350,13 @@ export default function Dashboard() {
     toast({ message: `Booking ${result.ref} created successfully`, type: "success" });
     return result;
   }, [createBooking, toast]);
+
+  const handleDeleteBooking = useCallback(async () => {
+    const ref = deleteTarget.id;
+    await deleteBooking(ref);
+    toast({ message: `Booking ${ref} deleted`, type: "success" });
+    setDeleteTarget(null);
+  }, [deleteBooking, deleteTarget, toast]);
 
   const activeCount = useMemo(
     () => bookings.filter((b) => ["Dispatched", "En Route", "Passenger On Board"].includes(b.status)).length,
@@ -332,6 +404,13 @@ export default function Dashboard() {
   return (
     <>
       <BookingModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreateBooking} />
+      {deleteTarget && (
+        <DeleteBookingModal
+          booking={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleDeleteBooking}
+        />
+      )}
       <div className="grid gap-4 p-4 sm:gap-6 sm:p-6 lg:p-10">
         {bookingsError && (
           <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
@@ -378,6 +457,7 @@ export default function Dashboard() {
                       key={transfer.id}
                       transfer={transfer}
                       onManage={() => navigate("/dispatch")}
+                      onDelete={() => setDeleteTarget(transfer)}
                     />
                   ))}
               {!bookingsLoading && bookings.length === 0 && (

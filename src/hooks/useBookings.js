@@ -457,7 +457,37 @@ export function useBookings() {
     }
   }, []);
 
-  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, updatePaymentStatus, refetch: fetchBookings };
+  const deleteBooking = useCallback(async (id) => {
+    const snapshot = bookingsRef.current;
+    const current = snapshot.find((b) => b.id === id);
+
+    // Optimistically drop the booking from the list.
+    setBookings((prev) => prev.filter((b) => b.id !== id));
+    setTotalCount((c) => Math.max(0, c - 1));
+
+    if (!isConfigured) return;
+
+    try {
+      const { error: err } = await supabase
+        .from("bookings")
+        .delete()
+        .eq("ref", id);
+      if (err) throw new Error(err.message);
+
+      logActivity({
+        action: "booking.deleted",
+        entityType: "booking",
+        entityId: id,
+        details: { customer: current?.customer ?? null, status: current?.status ?? null },
+      });
+    } catch (err) {
+      setBookings(snapshot);
+      setTotalCount((c) => c + 1);
+      throw err;
+    }
+  }, []);
+
+  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, updatePaymentStatus, deleteBooking, refetch: fetchBookings };
 }
 
 // Dedicated query for "today's" bookings (by pickup_time), independent of the
