@@ -39,7 +39,7 @@ export default function LoginScreen({ onSignIn }: Props) {
             src={LOGO_SRC}
             alt="EV Exec"
             width={260}
-            style={{ maxWidth: "260px", objectFit: "contain", mixBlendMode: "screen" }}
+            style={{ maxWidth: "260px", objectFit: "contain", mixBlendMode: "screen", maskImage: "radial-gradient(ellipse 80% 75% at 50% 45%, black 45%, transparent 78%)", WebkitMaskImage: "radial-gradient(ellipse 80% 75% at 50% 45%, black 45%, transparent 78%)" }}
           />
           <p
             className="text-slate-400 font-medium uppercase mt-1 tracking-widest"
