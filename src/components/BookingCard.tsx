@@ -107,10 +107,15 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
           )}
         </div>
 
-        <button onClick={() => setExpanded((e) => !e)} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors">
-          {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          {expanded ? "Less details" : "More details"}
-        </button>
+        <div className="flex items-center justify-between gap-2">
+          <button onClick={() => setExpanded((e) => !e)} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors">
+            {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            {expanded ? "Less details" : "More details"}
+          </button>
+          {onDangerAction && (
+            <button type="button" onClick={() => onDangerAction(booking)} title="Remove job" className="flex items-center gap-1 rounded-lg border border-red-400/20 bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-300 transition hover:bg-red-500/20"><Trash2 size={12} /> Remove</button>
+          )}
+        </div>
 
         {expanded && (
           <div className="space-y-2 pt-1 border-t border-white/5 slide-up">
@@ -124,7 +129,6 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
             {notification && notification.pendingCount > 0 && <div className="flex items-center gap-1.5 text-xs text-amber-300 bg-amber-900/20 px-3 py-1.5 rounded-lg"><Bell size={11} />{notification.pendingCount} notification{notification.pendingCount === 1 ? "" : "s"} pending</div>}
             {notification && notification.failedCount > 0 && <div className="flex items-center gap-1.5 text-xs text-red-300 bg-red-900/20 px-3 py-1.5 rounded-lg"><AlertTriangle size={11} />{notification.failedCount} notification{notification.failedCount === 1 ? "" : "s"} failed to send</div>}
             <button type="button" onClick={() => setEditing(true)} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-gold/25 bg-gold/10 px-3 py-2 text-xs font-semibold text-gold transition hover:bg-gold/20"><Pencil size={13} /> Edit job</button>
-            {onDangerAction && <button type="button" onClick={() => onDangerAction(booking)} className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/20"><Trash2 size={13} /> Remove job</button>}
           </div>
         )}
 
