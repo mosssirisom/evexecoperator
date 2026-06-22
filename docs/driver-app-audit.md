@@ -19,28 +19,46 @@ Premium airport-transfer / chauffeur context → **Blacklane, Wheely, Addison Le
 - Job lifecycle the driver drives: `Dispatched → En Route → Passenger On Board → Completed` (or `Cancelled`).
 - Day-off scheduling exists; operator-side licence/insurance/MOT expiry tracking exists.
 
+## ⚠️ Correction after inspecting the live database
+The initial gap list was inferred from the repo's typed model. Cross-checking the
+**live EV Exec Supabase schema** revealed infrastructure the repo types omit,
+which **invalidates three earlier findings**:
+
+- **`push_subscriptions`** (driver_id + Web Push keys `endpoint`/`p256dh`/`auth_key`,
+  plus customer fields) → **driver push infra already exists** (Web Push). The gap
+  is narrower than stated: confirm new-job pushes are actually *triggered* to drivers.
+- **`booking_expenses`** (`booking_id, type, amount, notes`) → **per-booking
+  waiting-time / tolls / extras capture already exists**. Gap is only whether the
+  driver app *surfaces* it.
+- **`reviews`** (`reviewer_name, rating, source, is_featured` — **no booking_id /
+  driver_id**) → this is a **marketing/testimonial** store, *not* per-trip two-way
+  ratings. So the ratings gap stands, but refined.
+
+Other live tables confirming a richer back end than the types show: `notification_log`,
+`notification_queue`, `profiles`, `saved_addresses`, `booking_audit_log`, `reviews`.
+
 ## Gaps by severity
 
-### P0 — table stakes (no supporting data exists today)
+### P0 — table stakes
 | Gap | Evidence | Impact |
 |---|---|---|
-| Live GPS location / tracking | No lat/lng/heading columns anywhere | No live ETA, no map, no "driver 6 min away" |
+| Live GPS location / tracking | No lat/lng/heading columns (now added: `driver_locations`) | No live ETA, no map, no "driver 6 min away" |
 | Turn-by-turn navigation hand-off | No nav deeplink/route data | Drivers expect one-tap Navigate |
 | Proof of pickup / completion | No photo/signature/POB-timestamp fields | No dispute/billing evidence |
-| Push notifications to drivers | No device-token table | Missed jobs when app backgrounded |
+| ~~Push notifications to drivers~~ → **partially built** | `push_subscriptions` table exists (Web Push) | Gap is *triggering* job pushes, not infra |
 
 ### P1 — premium differentiators
 - Live flight status on the driver side (operator has `check-flight`; driver side blind to delays).
 - Job **Offered → Accepted/Declined** loop with timeout + auto-reassign (today jumps straight to Dispatched).
 - In-app masked driver↔passenger contact (only free-text `driver_notes` + `contact_method`).
 - Driver earnings / payout visibility.
-- Two-way ratings capture (`drivers.rating` exists but nothing populates it).
+- **Per-trip** two-way ratings (`reviews` exists but is marketing testimonials with no booking/driver link; `drivers.rating` isn't populated from completed trips).
 - Airport meet-&-greet / arrivals / name-board workflow.
 
 ### P2 — operational maturity
 - Driver self-service compliance uploads + expiry reminders.
 - Safety: SOS / incident report / share-trip.
-- Waiting-time, tolls, extra-stop capture (revenue leakage).
+- ~~Waiting-time / tolls / extras capture~~ → **already exists** (`booking_expenses`); confirm the driver app exposes it.
 - Offline write-queue for status updates (airport dead zones).
 - Clock-in/out / online-offline utilisation.
 
@@ -56,26 +74,27 @@ office subscribes to it. Closing P0 flips the architecture onto that model.
 **P0**
 1. **Live location** — `driver_locations` table + Supabase Realtime; driver app upserts every ~10s on active jobs; operator dashboard + customer page subscribe → real ETAs + live map. *(Backend + operator side started in `003_driver_live_tracking.sql` + `useDriverLocations`.)*
 2. **Acceptance state machine** — `Offered → Accepted/Declined` before `Dispatched`; `POST /api/jobs/:ref/accept|decline` with timeout auto-reassign.
-3. **Driver push** — `device_tokens` + web-push/FCM on offer/assignment/cancellation.
+3. **Driver push** — infra exists (`push_subscriptions`/Web Push). Wire the *trigger*: send a push on offer/assignment/cancellation. (Not build-from-scratch.)
 4. **Proof of job** — `pob_at`, `completed_at`, `job_proofs` storage bucket (photo/signature).
 
 **P1**
 5. Live flight status in-app reusing the `check-flight` function with delay-shifted suggested pickup.
 6. Masked contact / quick messages via the existing SMS function.
-7. Earnings view — `job_fees` (base, waiting, extras, total) + weekly summary.
-8. Two-way ratings table + post-completion prompt feeding `drivers.rating`.
+7. Earnings view — derive from `booking_expenses` + base fare (base, waiting, extras, total) + weekly summary.
+8. Per-trip two-way ratings linked to `booking_id`/`driver_id`, post-completion prompt feeding `drivers.rating` (distinct from the marketing `reviews` table).
 
 **P2**
 9. Compliance self-service uploads + expiry reminders (close the loop on operator tracking).
 10. Safety — SOS + share-trip link.
-11. Waiting-time / extras capture at job level.
+11. Surface the existing `booking_expenses` (waiting-time / extras) in the driver app at job close.
 12. Offline status write-queue.
 
 ## Status of this work
 - [x] Audit written (this doc)
-- [x] P0 #1 schema: `driver_locations` (`supabase/migrations/003_driver_live_tracking.sql`)
+- [x] Corrected against the live Supabase schema (push/expenses/reviews findings revised)
+- [x] P0 #1 schema: `driver_locations` (`supabase/migrations/003_driver_live_tracking.sql`) — **applied to the live EV Exec project**
 - [x] P0 #1 operator side: `useDriverLocations` hook + live presence badge in Fleet view
 - [ ] P0 #1 live map + GPS-derived ETA (next increment)
 - [ ] P0 #2 acceptance state machine
-- [ ] P0 #3 driver push tokens
+- [ ] P0 #3 wire job-push triggers onto existing `push_subscriptions`
 - [ ] P0 #4 proof-of-job capture
