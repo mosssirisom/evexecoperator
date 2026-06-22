@@ -129,6 +129,17 @@ export const CONTACT_MESSAGE_STATUS = {
   READ: "read",
 } as const;
 
+export interface DbDriverLocation {
+  driver_id: string;
+  lat: number;
+  lng: number;
+  heading: number | null;
+  speed: number | null;
+  accuracy: number | null;
+  booking_ref: string | null;
+  updated_at: string | null;
+}
+
 export interface DbDriverUnavailableDate {
   id: string;
   driver_id: string;
@@ -196,6 +207,11 @@ export interface Database {
         Row: DbDriverUnavailableDate;
         Insert: Omit<DbDriverUnavailableDate, "id" | "created_at">;
         Update: Partial<DbDriverUnavailableDate>;
+      };
+      driver_locations: {
+        Row: DbDriverLocation;
+        Insert: Omit<DbDriverLocation, "updated_at">;
+        Update: Partial<DbDriverLocation>;
       };
       contact_messages: {
         Row: DbContactMessage;
