@@ -5,6 +5,7 @@ import { Calendar } from "lucide-react";
 import type { DbBooking, DbDriver, BookingStatus } from "@/lib/database.types";
 import type { BookingNotificationStatus } from "@/hooks/useNotifications";
 import type { DriverLocationMap } from "@/hooks/useDriverLocations";
+import type { JobProofMap } from "@/hooks/useJobProofs";
 import BookingCard from "./BookingCard";
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
   notifications: Record<string, BookingNotificationStatus>;
   unavailableDriverIds: Set<string>;
   driverLocations?: DriverLocationMap;
+  jobProofs?: JobProofMap;
   onStatusChange: (ref: string, status: BookingStatus) => void;
   onDriverAssign: (ref: string, driverId: string | null) => void;
   onDangerAction?: (booking: DbBooking) => void;
@@ -26,6 +28,7 @@ export default function DailyView({
   notifications,
   unavailableDriverIds,
   driverLocations,
+  jobProofs,
   onStatusChange,
   onDriverAssign,
   onDangerAction,
@@ -61,6 +64,7 @@ export default function DailyView({
             notification={notifications[booking.id]}
             unavailableDriverIds={unavailableDriverIds}
             driverLocation={booking.driver_id ? driverLocations?.[booking.driver_id] : undefined}
+            proofs={jobProofs?.[booking.id]}
             onStatusChange={onStatusChange}
             onDriverAssign={onDriverAssign}
             onDangerAction={onDangerAction}

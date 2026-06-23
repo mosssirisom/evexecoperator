@@ -44,6 +44,7 @@ import AuditLogTab from "@/components/AuditLogTab";
 import LoginScreen from "@/components/LoginScreen";
 import DriverLiveBadge from "@/components/DriverLiveBadge";
 import { useDriverLocations } from "@/hooks/useDriverLocations";
+import { useJobProofs } from "@/hooks/useJobProofs";
 
 type Tab = "calendar" | "transfers" | "fleet" | "inbox" | "activity";
 
@@ -70,6 +71,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   const { bookings, loading, error, updateStatus, assignDriver, createBooking, deleteBooking } = useBookings();
   const { drivers } = useDrivers();
   const { locations: driverLocations } = useDriverLocations();
+  const { proofs: jobProofs } = useJobProofs();
   const { quoteRequests, setStatus: setQuoteStatus } = useQuoteRequests();
   const { missedCalls, setResolved: setMissedCallResolved } = useMissedCalls();
   const { contactMessages, setStatus: setContactMessageStatus } = useContactMessages();
@@ -278,6 +280,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                     notifications={notifications}
                     unavailableDriverIds={unavailableDriverIds(format(selectedDate, "yyyy-MM-dd"))}
                     driverLocations={driverLocations}
+                    jobProofs={jobProofs}
                     onStatusChange={handleStatusChange}
                     onDriverAssign={handleDriverAssign}
                     onDangerAction={openDangerFlow}

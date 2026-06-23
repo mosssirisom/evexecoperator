@@ -58,6 +58,24 @@ export interface DbBooking {
   operator_note?: string | null;
   driver_notes?: string | null;
   vehicle_type?: string | null;
+
+  // Proof-of-job (P0 #4) — actual clock times the driver app records.
+  pob_at?: string | null;
+  completed_at?: string | null;
+}
+
+export type JobProofKind =
+  | "pob_photo"
+  | "signature"
+  | "completion_photo"
+  | "no_show_photo";
+
+export interface DbJobProof {
+  id: string;
+  booking_id: string;
+  kind: JobProofKind;
+  url: string;
+  created_at: string | null;
 }
 
 export interface DbDriver {
@@ -212,6 +230,11 @@ export interface Database {
         Row: DbDriverLocation;
         Insert: Omit<DbDriverLocation, "updated_at">;
         Update: Partial<DbDriverLocation>;
+      };
+      job_proofs: {
+        Row: DbJobProof;
+        Insert: Omit<DbJobProof, "id" | "created_at">;
+        Update: Partial<DbJobProof>;
       };
       contact_messages: {
         Row: DbContactMessage;

@@ -2,8 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { Clock, MapPin, Phone, ChevronDown, ChevronUp, MessageSquare, Star, AlertCircle, Bell, AlertTriangle, Trash2, Users, Briefcase, RotateCcw, Pencil, X } from "lucide-react";
-import type { DbBooking, DbDriver, BookingStatus, DbDriverLocation } from "@/lib/database.types";
+import { Clock, MapPin, Phone, ChevronDown, ChevronUp, MessageSquare, Star, AlertCircle, Bell, AlertTriangle, Trash2, Users, Briefcase, RotateCcw, Pencil, X, ShieldCheck, Camera } from "lucide-react";
+import type { DbBooking, DbDriver, BookingStatus, DbDriverLocation, DbJobProof, JobProofKind } from "@/lib/database.types";
 import { STATUS_NEXT_PRIMARY, STATUS_NEXT_LABEL } from "@/lib/database.types";
 import type { BookingNotificationStatus } from "@/hooks/useNotifications";
 import { supabase } from "@/lib/supabase";
@@ -26,6 +26,24 @@ interface Props {
   onDriverAssign:  (ref: string, driverId: string | null) => void;
   onDangerAction?: (booking: DbBooking) => void;
   driverLocation?: DbDriverLocation;
+  proofs?: DbJobProof[];
+}
+
+const PROOF_KIND_LABEL: Record<JobProofKind, string> = {
+  pob_photo: "Pickup photo",
+  signature: "Signature",
+  completion_photo: "Completion photo",
+  no_show_photo: "No-show photo",
+};
+
+function proofTime(value: string | null | undefined): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function short(value: string | null | undefined) {
@@ -37,7 +55,7 @@ function displayDate(value: string | null | undefined) {
   return new Date(value).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 }
 
-export default function BookingCard({ booking, drivers, notification, unavailableDriverIds, onStatusChange, onDriverAssign, onDangerAction, driverLocation }: Props) {
+export default function BookingCard({ booking, drivers, notification, unavailableDriverIds, onStatusChange, onDriverAssign, onDangerAction, driverLocation, proofs }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
 
@@ -131,6 +149,20 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
             {notification?.lastSent && <div className="flex items-center gap-1.5"><Bell size={11} className="text-gold/60 shrink-0" /><span className="text-xs text-slate-400">{NOTIFICATION_TYPE_LABELS[notification.lastSent.type] ?? notification.lastSent.type} sent {formatDistanceToNow(parseISO(notification.lastSent.sent_at), { addSuffix: true })}</span></div>}
             {notification && notification.pendingCount > 0 && <div className="flex items-center gap-1.5 text-xs text-amber-300 bg-amber-900/20 px-3 py-1.5 rounded-lg"><Bell size={11} />{notification.pendingCount} notification{notification.pendingCount === 1 ? "" : "s"} pending</div>}
             {notification && notification.failedCount > 0 && <div className="flex items-center gap-1.5 text-xs text-red-300 bg-red-900/20 px-3 py-1.5 rounded-lg"><AlertTriangle size={11} />{notification.failedCount} notification{notification.failedCount === 1 ? "" : "s"} failed to send</div>}
+            {(booking.pob_at || booking.completed_at || (proofs && proofs.length > 0)) && (
+              <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/5 p-3 space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-300"><ShieldCheck size={12} /> Proof of job</div>
+                {booking.pob_at && <DetailRow label="Picked up" value={proofTime(booking.pob_at)} />}
+                {booking.completed_at && <DetailRow label="Completed" value={proofTime(booking.completed_at)} />}
+                {proofs && proofs.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {proofs.map((p) => (
+                      <a key={p.id} href={p.url} target="_blank" rel="noopener noreferrer" title={PROOF_KIND_LABEL[p.kind]} className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-navy-900/60 px-2 py-1 text-[10px] font-semibold text-slate-300 transition hover:border-gold/30 hover:text-gold"><Camera size={10} />{PROOF_KIND_LABEL[p.kind]}</a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <button type="button" onClick={() => setEditing(true)} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-gold/25 bg-gold/10 px-3 py-2 text-xs font-semibold text-gold transition hover:bg-gold/20"><Pencil size={13} /> Edit job</button>
           </div>
         )}

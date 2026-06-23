@@ -94,7 +94,9 @@ office subscribes to it. Closing P0 flips the architecture onto that model.
 - [x] Corrected against the live Supabase schema (push/expenses/reviews findings revised)
 - [x] P0 #1 schema: `driver_locations` (`supabase/migrations/003_driver_live_tracking.sql`) — **applied to the live EV Exec project**
 - [x] P0 #1 operator side: `useDriverLocations` hook + live presence badge in Fleet view
+- [x] P0 #1 live location is actionable (tap-to-locate in Maps) + shown on each job card
 - [ ] P0 #1 live map + GPS-derived ETA (next increment)
 - [ ] P0 #2 acceptance state machine
 - [ ] P0 #3 wire job-push triggers onto existing `push_subscriptions`
-- [ ] P0 #4 proof-of-job capture
+- [x] P0 #4 proof-of-job schema (`004_proof_of_job.sql`: `bookings.pob_at/completed_at` + `job_proofs`) + operator-side display (migration not yet applied to live DB)
+- [ ] P0 #4 driver-app capture UI (photo/signature) — needs `evexecdriverapp`
