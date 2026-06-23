@@ -62,7 +62,15 @@ export interface DbBooking {
   // Proof-of-job (P0 #4) — actual clock times the driver app records.
   pob_at?: string | null;
   completed_at?: string | null;
+
+  // Job offer / acceptance loop (P0 #2) — orthogonal to `status`.
+  offer_status?: JobOfferStatus | null;
+  offered_at?: string | null;
+  offer_responded_at?: string | null;
+  offer_expires_at?: string | null;
 }
+
+export type JobOfferStatus = "pending" | "accepted" | "declined" | "expired";
 
 export type JobProofKind =
   | "pob_photo"

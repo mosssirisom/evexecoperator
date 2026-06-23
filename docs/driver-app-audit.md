@@ -96,7 +96,7 @@ office subscribes to it. Closing P0 flips the architecture onto that model.
 - [x] P0 #1 operator side: `useDriverLocations` hook + live presence badge in Fleet view
 - [x] P0 #1 live location is actionable (tap-to-locate in Maps) + shown on each job card
 - [ ] P0 #1 live map + GPS-derived ETA (next increment)
-- [ ] P0 #2 acceptance state machine
+- [x] P0 #2 offer/acceptance — additive offer columns (`005_job_offer_acceptance.sql`, not applied) + operator offer badge (Awaiting/Accepted/Declined/Expired with countdown). Driver app still needs `/api/jobs/:ref/accept|decline`.
 - [ ] P0 #3 wire job-push triggers onto existing `push_subscriptions`
 - [x] P0 #4 proof-of-job schema (`004_proof_of_job.sql`: `bookings.pob_at/completed_at` + `job_proofs`) + operator-side display (migration not yet applied to live DB)
 - [ ] P0 #4 driver-app capture UI (photo/signature) — needs `evexecdriverapp`

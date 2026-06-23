@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import StatusBadge from "./StatusBadge";
 import DriverDropdown from "./DriverDropdown";
 import DriverLiveBadge from "./DriverLiveBadge";
+import JobOfferBadge from "./JobOfferBadge";
 
 const NOTIFICATION_TYPE_LABELS: Record<string, string> = {
   confirmation: "Confirmation",
@@ -79,7 +80,10 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
           )}
           {notification && notification.failedCount > 0 && <AlertTriangle size={12} className="text-red-400" aria-label="Notification failed to send" />}
         </div>
-        <StatusBadge status={booking.status} />
+        <div className="flex items-center gap-1.5">
+          <JobOfferBadge booking={booking} />
+          <StatusBadge status={booking.status} />
+        </div>
       </div>
 
       <div className="px-4 pt-3 pb-4 space-y-3">
