@@ -3,12 +3,13 @@
 import { useState, type ReactNode } from "react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { Clock, MapPin, Phone, ChevronDown, ChevronUp, MessageSquare, Star, AlertCircle, Bell, AlertTriangle, Trash2, Users, Briefcase, RotateCcw, Pencil, X } from "lucide-react";
-import type { DbBooking, DbDriver, BookingStatus } from "@/lib/database.types";
+import type { DbBooking, DbDriver, BookingStatus, DbDriverLocation } from "@/lib/database.types";
 import { STATUS_NEXT_PRIMARY, STATUS_NEXT_LABEL } from "@/lib/database.types";
 import type { BookingNotificationStatus } from "@/hooks/useNotifications";
 import { supabase } from "@/lib/supabase";
 import StatusBadge from "./StatusBadge";
 import DriverDropdown from "./DriverDropdown";
+import DriverLiveBadge from "./DriverLiveBadge";
 
 const NOTIFICATION_TYPE_LABELS: Record<string, string> = {
   confirmation: "Confirmation",
@@ -24,6 +25,7 @@ interface Props {
   onStatusChange: (ref: string, status: BookingStatus) => void;
   onDriverAssign:  (ref: string, driverId: string | null) => void;
   onDangerAction?: (booking: DbBooking) => void;
+  driverLocation?: DbDriverLocation;
 }
 
 function short(value: string | null | undefined) {
@@ -35,7 +37,7 @@ function displayDate(value: string | null | undefined) {
   return new Date(value).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 }
 
-export default function BookingCard({ booking, drivers, notification, unavailableDriverIds, onStatusChange, onDriverAssign, onDangerAction }: Props) {
+export default function BookingCard({ booking, drivers, notification, unavailableDriverIds, onStatusChange, onDriverAssign, onDangerAction, driverLocation }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
 
@@ -102,6 +104,7 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-500 w-16 shrink-0">Driver</span>
           <DriverDropdown drivers={drivers} selectedDriverId={booking.driver_id} unavailableDriverIds={unavailableDriverIds} onAssign={(id) => onDriverAssign(booking.ref, id)} disabled={booking.status === "Completed" || booking.status === "Cancelled"} />
+          {driverLocation && <DriverLiveBadge location={driverLocation} />}
           {booking.driver_id && unavailableDriverIds?.has(booking.driver_id) && (
             <span className="flex items-center gap-1 text-[10px] font-bold text-red-400" title="Driver has marked this day unavailable"><AlertTriangle size={11} /> Unavailable</span>
           )}

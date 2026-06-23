@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { Calendar } from "lucide-react";
 import type { DbBooking, DbDriver, BookingStatus } from "@/lib/database.types";
 import type { BookingNotificationStatus } from "@/hooks/useNotifications";
+import type { DriverLocationMap } from "@/hooks/useDriverLocations";
 import BookingCard from "./BookingCard";
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
   drivers: DbDriver[];
   notifications: Record<string, BookingNotificationStatus>;
   unavailableDriverIds: Set<string>;
+  driverLocations?: DriverLocationMap;
   onStatusChange: (ref: string, status: BookingStatus) => void;
   onDriverAssign: (ref: string, driverId: string | null) => void;
   onDangerAction?: (booking: DbBooking) => void;
@@ -23,6 +25,7 @@ export default function DailyView({
   drivers,
   notifications,
   unavailableDriverIds,
+  driverLocations,
   onStatusChange,
   onDriverAssign,
   onDangerAction,
@@ -57,6 +60,7 @@ export default function DailyView({
             drivers={drivers}
             notification={notifications[booking.id]}
             unavailableDriverIds={unavailableDriverIds}
+            driverLocation={booking.driver_id ? driverLocations?.[booking.driver_id] : undefined}
             onStatusChange={onStatusChange}
             onDriverAssign={onDriverAssign}
             onDangerAction={onDangerAction}

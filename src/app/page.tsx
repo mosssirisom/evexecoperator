@@ -277,6 +277,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                     drivers={drivers}
                     notifications={notifications}
                     unavailableDriverIds={unavailableDriverIds(format(selectedDate, "yyyy-MM-dd"))}
+                    driverLocations={driverLocations}
                     onStatusChange={handleStatusChange}
                     onDriverAssign={handleDriverAssign}
                     onDangerAction={openDangerFlow}

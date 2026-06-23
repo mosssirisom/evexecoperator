@@ -36,29 +36,36 @@ export default function DriverLiveBadge({
   if (!location) return null;
 
   const live = isLocationLive(location, now);
+  const mapsUrl = `https://www.google.com/maps?q=${location.lat},${location.lng}`;
 
   if (live) {
     return (
-      <span
-        className="inline-flex items-center gap-1 rounded-full bg-emerald-900/40 px-2 py-0.5 text-[10px] font-semibold text-emerald-400"
-        title={`Live location · ${agoLabel(location.updated_at, now)}`}
+      <a
+        href={mapsUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 rounded-full bg-emerald-900/40 px-2 py-0.5 text-[10px] font-semibold text-emerald-400 transition hover:bg-emerald-900/70"
+        title={`Live location · ${agoLabel(location.updated_at, now)} · tap to locate`}
       >
         <span className="relative flex h-1.5 w-1.5">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
         </span>
         Live
-      </span>
+      </a>
     );
   }
 
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-500"
-      title={`Last position ${agoLabel(location.updated_at, now)}`}
+    <a
+      href={mapsUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-500 transition hover:text-slate-300"
+      title={`Last position ${agoLabel(location.updated_at, now)} · tap to locate`}
     >
       <MapPin size={9} />
       {agoLabel(location.updated_at, now)}
-    </span>
+    </a>
   );
 }
