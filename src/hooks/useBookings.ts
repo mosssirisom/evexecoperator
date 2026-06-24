@@ -130,7 +130,10 @@ export function useBookings() {
       const ref = generateBookingRef();
       const { error: err } = await supabase
         .from("bookings")
-        .insert({ ...data, ref });
+        // source:'operator' lets the DB enqueue the customer confirmation + 24h
+        // reminder texts for manually-entered bookings. Website bookings keep
+        // the default 'website' (notified by the site) so there are no duplicates.
+        .insert({ ...data, ref, source: "operator" });
       if (err) throw new Error(err.message);
       return ref;
     },

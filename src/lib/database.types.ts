@@ -58,6 +58,7 @@ export interface DbBooking {
   operator_note?: string | null;
   driver_notes?: string | null;
   vehicle_type?: string | null;
+  source?: string | null;
 
   // Proof-of-job (P0 #4) — actual clock times the driver app records.
   pob_at?: string | null;
