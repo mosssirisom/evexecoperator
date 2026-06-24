@@ -25,9 +25,11 @@ begin
   if coalesce(new.source, 'website') <> 'operator' then return new; end if;
   if v_phone is null then return new; end if;
 
+  -- travel_date is a date, travel_time is text, pickup_time is timestamptz.
   v_timetxt := coalesce(
     to_char(new.pickup_time, 'DD Mon HH24:MI'),
-    nullif(trim(coalesce(new.travel_date,'') || ' ' || coalesce(new.travel_time,'')), '')
+    nullif(btrim(coalesce(to_char(new.travel_date, 'DD Mon'), '')
+                 || ' ' || coalesce(new.travel_time, '')), '')
   );
 
   -- Confirmation / "update" text, sent immediately.
