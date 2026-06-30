@@ -24,6 +24,7 @@ import {
 import { useOperatorToast } from "@/components/operator/Toast";
 import { useBookings } from "@/hooks/operator/useBookings";
 import { useDrivers } from "@/hooks/operator/useDrivers";
+import { supabase } from "@/lib/supabase";
 import { bookingStatusColor } from "@/lib/operator/statusColor";
 
 function driverDot(status) {
@@ -611,6 +612,36 @@ function DispatchPageContent() {
     }
   }, [updatePaymentMethod, toast]);
 
+  const handleSendPaymentLink = useCallback(async (id) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        toast({ message: "Please sign in again to send a payment link.", type: "error" });
+        return;
+      }
+      const res = await fetch("/api/payment-link", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ref: id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({ message: data?.error ?? "Could not create payment link.", type: "error" });
+        return;
+      }
+      // Reflect the method locally so the badge/chip update immediately.
+      await updatePaymentMethod(id, "Payment link").catch(() => {});
+      setSelectedBooking((prev) => (prev?.id === id ? { ...prev, paymentMethod: "Payment link" } : prev));
+      toast({
+        message: data?.sent ? "Stripe payment link texted to the customer." : "Payment link created.",
+        type: "success",
+      });
+    } catch (err) {
+      toast({ message: err?.message ?? "Could not create payment link.", type: "error" });
+    }
+  }, [updatePaymentMethod, toast]);
+
   const handleCreateReturn = useCallback((booking) => {
     const flip = (dir) =>
       dir === "Airport → Destination" ? "Destination → Airport" : "Airport → Destination";
@@ -705,6 +736,7 @@ function DispatchPageContent() {
           onTogglePriority={handleTogglePriority}
           onUpdatePaymentStatus={handleUpdatePaymentStatus}
           onUpdatePaymentMethod={handleUpdatePaymentMethod}
+          onSendPaymentLink={handleSendPaymentLink}
           onCreateReturn={handleCreateReturn}
           onDelete={handleDeleteBooking}
         />

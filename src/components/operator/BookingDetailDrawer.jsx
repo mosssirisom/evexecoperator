@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   X, Phone, Mail, Plane, MapPin, Clock, Car, PoundSterling,
   User, AlertTriangle, FileText, ChevronDown, Check, Edit3, Loader2, RefreshCw,
-  CreditCard, Trash2, ShieldCheck,
+  CreditCard, Trash2, ShieldCheck, Send,
 } from "lucide-react";
 import { bookingStatusColor } from "@/lib/operator/statusColor";
 import ETACountdown from "./ETACountdown";
@@ -288,6 +288,7 @@ export default function BookingDetailDrawer({
   onTogglePriority,
   onUpdatePaymentStatus,
   onUpdatePaymentMethod,
+  onSendPaymentLink,
   onCreateReturn,
   onDelete,
 }) {
@@ -298,7 +299,18 @@ export default function BookingDetailDrawer({
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+  const [linkBusy, setLinkBusy] = useState(false);
   const drawerRef = useRef(null);
+
+  const sendPaymentLink = useCallback(async () => {
+    if (!onSendPaymentLink) return;
+    setLinkBusy(true);
+    try {
+      await onSendPaymentLink(booking.id);
+    } finally {
+      setLinkBusy(false);
+    }
+  }, [onSendPaymentLink, booking?.id]);
 
   useEffect(() => {
     // Reset the delete dialog whenever a different booking is opened.
@@ -509,6 +521,20 @@ export default function BookingDetailDrawer({
                           onSelect={(m) => onUpdatePaymentMethod?.(booking.id, m)}
                         />
                       </div>
+                    )}
+                    {onSendPaymentLink && (booking.paymentStatus ?? "Unpaid") !== "Paid" && (
+                      <button
+                        type="button"
+                        onClick={sendPaymentLink}
+                        disabled={linkBusy}
+                        className="mt-3 inline-flex items-center gap-2 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-semibold text-black transition hover:bg-amber-400 disabled:opacity-60"
+                      >
+                        {linkBusy ? (
+                          <><Loader2 className="h-3.5 w-3.5 animate-spin" />Sending…</>
+                        ) : (
+                          <><Send className="h-3.5 w-3.5" />Text Stripe payment link</>
+                        )}
+                      </button>
                     )}
                   </div>
                 </div>
