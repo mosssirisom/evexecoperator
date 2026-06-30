@@ -339,5 +339,35 @@ export function useBookings() {
     }
   }, []);
 
-  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, updatePaymentStatus, refetch: fetchBookings };
+  const deleteBooking = useCallback(async (id, password) => {
+    if (!password?.trim()) throw new Error("Enter your password to confirm deletion.");
+
+    // Second-factor style confirmation: re-verify the operator's password
+    // immediately before this destructive action.
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user?.email) {
+      throw new Error("You must be signed in to delete a booking.");
+    }
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: userData.user.email,
+      password,
+    });
+    if (authError) throw new Error("Password verification failed.");
+
+    const snapshot = bookingsRef.current;
+    setBookings((prev) => prev.filter((b) => b.id !== id));
+
+    if (!isConfigured) return true;
+
+    try {
+      const { error: err } = await supabase.from("bookings").delete().eq("ref", id);
+      if (err) throw new Error(err.message);
+      return true;
+    } catch (err) {
+      setBookings(snapshot);
+      throw err;
+    }
+  }, []);
+
+  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, updatePaymentStatus, deleteBooking, refetch: fetchBookings };
 }

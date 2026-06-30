@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   X, Phone, Mail, Plane, MapPin, Clock, Car, PoundSterling,
   User, AlertTriangle, FileText, ChevronDown, Check, Edit3, Loader2, RefreshCw,
-  CreditCard,
+  CreditCard, Trash2, ShieldCheck,
 } from "lucide-react";
 import { bookingStatusColor } from "@/lib/operator/statusColor";
 import ETACountdown from "./ETACountdown";
@@ -255,11 +255,36 @@ export default function BookingDetailDrawer({
   onTogglePriority,
   onUpdatePaymentStatus,
   onCreateReturn,
+  onDelete,
 }) {
   const [notes, setNotes] = useState(booking?.notes ?? "");
   const [editingNotes, setEditingNotes] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
   const drawerRef = useRef(null);
+
+  useEffect(() => {
+    // Reset the delete dialog whenever a different booking is opened.
+    setDeleteOpen(false);
+    setDeletePassword("");
+    setDeleteError(null);
+    setDeleteBusy(false);
+  }, [booking?.id]);
+
+  const confirmDelete = useCallback(async () => {
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await onDelete?.(booking.id, deletePassword);
+      // Parent closes the drawer on success.
+    } catch (err) {
+      setDeleteError(err?.message ?? "Failed to delete booking.");
+      setDeleteBusy(false);
+    }
+  }, [booking?.id, deletePassword, onDelete]);
 
   useEffect(() => {
     setNotes(booking?.notes ?? "");
@@ -548,9 +573,70 @@ export default function BookingDetailDrawer({
                 Close
               </button>
             </div>
+            {onDelete && (
+              <button
+                onClick={() => { setDeleteError(null); setDeletePassword(""); setDeleteOpen(true); }}
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-500/20"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Job
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      {deleteOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-red-400/20 bg-[#0B132B] p-5 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-red-300"><ShieldCheck className="h-5 w-5" /></div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Confirm job deletion</h2>
+                <p className="mt-1 text-sm text-slate-400">For security, re-enter your operator password before deleting this booking.</p>
+              </div>
+            </div>
+            <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.03] p-3 text-sm">
+              <p className="font-semibold text-slate-100">{booking.customer}</p>
+              <p className="mt-1 text-xs text-slate-500">{booking.id} · {booking.route}</p>
+            </div>
+            <div className="mt-4 flex gap-2 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-xs text-amber-200">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> This permanently removes the job from the operator and driver views.
+            </div>
+            {deleteError && (
+              <p className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-xs text-red-300">{deleteError}</p>
+            )}
+            <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-slate-500">Operator password</label>
+            <input
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter" && deletePassword.trim() && !deleteBusy) confirmDelete(); }}
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none focus:border-red-400/50"
+              placeholder="Enter password"
+            />
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => { setDeleteOpen(false); setDeletePassword(""); setDeleteError(null); }}
+                disabled={deleteBusy}
+                className="flex-1 rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 hover:border-white/20 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deleteBusy || !deletePassword.trim()}
+                className="flex-1 rounded-2xl border border-red-400/30 bg-red-500/15 px-4 py-3 text-sm font-semibold text-red-200 hover:bg-red-500/25 disabled:opacity-50"
+              >
+                {deleteBusy ? "Verifying…" : "Delete Job"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

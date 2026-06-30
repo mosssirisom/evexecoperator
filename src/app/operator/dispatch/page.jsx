@@ -488,6 +488,7 @@ function DispatchPageContent() {
     updateNotes,
     togglePriority,
     updatePaymentStatus,
+    deleteBooking,
   } = useBookings();
   const { drivers } = useDrivers();
 
@@ -529,6 +530,14 @@ function DispatchPageContent() {
       toast({ message: err?.message ?? "Failed to update status", type: "error" });
     }
   }, [updateStatus, toast]);
+
+  const handleDeleteBooking = useCallback(async (id, password) => {
+    // Throws on bad password / failure so the drawer's modal can show the error
+    // and keep itself open; on success we close the drawer.
+    await deleteBooking(id, password);
+    toast({ message: `Booking ${id} deleted`, type: "success" });
+    setSelectedBooking(null);
+  }, [deleteBooking, toast]);
 
   const handleAssignDriver = useCallback(async (id, driverId) => {
     const driver = drivers.find((d) => d.id === driverId);
@@ -670,6 +679,7 @@ function DispatchPageContent() {
           onTogglePriority={handleTogglePriority}
           onUpdatePaymentStatus={handleUpdatePaymentStatus}
           onCreateReturn={handleCreateReturn}
+          onDelete={handleDeleteBooking}
         />
       )}
 
