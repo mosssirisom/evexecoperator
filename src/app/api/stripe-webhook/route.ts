@@ -1,5 +1,5 @@
-import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
+import { verifyStripeSignature } from "@/lib/stripeSignature";
 
 // Receives Stripe webhook events and marks bookings paid when their Checkout
 // Session completes. Pairs with /api/payment-link, which creates the session
@@ -19,38 +19,6 @@ export const dynamic = "force-dynamic";
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-// Reject events whose timestamp is more than 5 minutes old (replay protection).
-const TOLERANCE_SECONDS = 300;
-
-function timingSafeEqual(a: string, b: string) {
-  const bufA = Buffer.from(a);
-  const bufB = Buffer.from(b);
-  if (bufA.length !== bufB.length) return false;
-  return crypto.timingSafeEqual(bufA, bufB);
-}
-
-// Verifies a Stripe-Signature header against the raw body without the SDK.
-function verifyStripeSignature(rawBody: string, header: string, secret: string): boolean {
-  const parts = Object.fromEntries(
-    header.split(",").map((kv) => {
-      const i = kv.indexOf("=");
-      return [kv.slice(0, i).trim(), kv.slice(i + 1).trim()];
-    })
-  ) as { t?: string; v1?: string };
-
-  if (!parts.t || !parts.v1) return false;
-
-  const age = Math.floor(Date.now() / 1000) - Number(parts.t);
-  if (!Number.isFinite(age) || age > TOLERANCE_SECONDS) return false;
-
-  const expected = crypto
-    .createHmac("sha256", secret)
-    .update(`${parts.t}.${rawBody}`, "utf8")
-    .digest("hex");
-
-  return timingSafeEqual(expected, parts.v1);
-}
 
 export async function POST(req: Request) {
   if (!WEBHOOK_SECRET || !SUPABASE_URL || !SERVICE_ROLE_KEY) {
