@@ -61,6 +61,7 @@ export function shapedBooking(row) {
     price: row.quoted_price ? `£${Number(row.quoted_price).toFixed(0)}` : "TBC",
     status: row.status,
     paymentStatus: row.payment_status ?? "Unpaid",
+    paymentMethod: row.payment_method ?? null,
     priority: row.priority ?? false,
     notes: row.notes ?? row.operator_note ?? "",
     updatedAt: row.updated_at ?? null,
@@ -339,6 +340,24 @@ export function useBookings() {
     }
   }, []);
 
+  const updatePaymentMethod = useCallback(async (id, paymentMethod) => {
+    const snapshot = bookingsRef.current;
+    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, paymentMethod } : b)));
+
+    if (!isConfigured) return;
+
+    try {
+      const { error: err } = await supabase
+        .from("bookings")
+        .update({ payment_method: paymentMethod })
+        .eq("ref", id);
+      if (err) throw new Error(err.message);
+    } catch (err) {
+      setBookings(snapshot);
+      throw err;
+    }
+  }, []);
+
   const deleteBooking = useCallback(async (id, password) => {
     if (!password?.trim()) throw new Error("Enter your password to confirm deletion.");
 
@@ -369,5 +388,5 @@ export function useBookings() {
     }
   }, []);
 
-  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, updatePaymentStatus, deleteBooking, refetch: fetchBookings };
+  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, updatePaymentStatus, updatePaymentMethod, deleteBooking, refetch: fetchBookings };
 }

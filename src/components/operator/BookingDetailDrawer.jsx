@@ -221,6 +221,39 @@ const PAYMENT_STATES = [
   { value: "Paid",     color: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300", dot: "bg-emerald-400" },
 ];
 
+// How the customer is paying — surfaced at dispatch so the driver/operator
+// knows whether to take a card machine, chase a payment link, etc.
+const PAYMENT_METHODS = ["Card", "Card machine", "Payment link", "Cash", "Bank transfer"];
+
+function PaymentMethodPicker({ value, onSelect }) {
+  const [pending, setPending] = useState(null);
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {PAYMENT_METHODS.map((m) => {
+        const active = value === m;
+        return (
+          <button
+            key={m}
+            type="button"
+            disabled={pending !== null}
+            onClick={async () => {
+              setPending(m);
+              try { await onSelect?.(active ? null : m); } finally { setPending(null); }
+            }}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
+              active
+                ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
+                : "border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200"
+            }`}
+          >
+            {pending === m ? "…" : m}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function PaymentBadge({ paymentStatus, onUpdate }) {
   const [pending, setPending] = useState(false);
   const current = PAYMENT_STATES.find((s) => s.value === paymentStatus) ?? PAYMENT_STATES[0];
@@ -254,6 +287,7 @@ export default function BookingDetailDrawer({
   onUpdateNotes,
   onTogglePriority,
   onUpdatePaymentStatus,
+  onUpdatePaymentMethod,
   onCreateReturn,
   onDelete,
 }) {
@@ -467,6 +501,15 @@ export default function BookingDetailDrawer({
                         onUpdate={(ps) => onUpdatePaymentStatus?.(booking.id, ps)}
                       />
                     </div>
+                    {onUpdatePaymentMethod && (
+                      <div className="mt-3">
+                        <p className="mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-600">Method</p>
+                        <PaymentMethodPicker
+                          value={booking.paymentMethod ?? null}
+                          onSelect={(m) => onUpdatePaymentMethod?.(booking.id, m)}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

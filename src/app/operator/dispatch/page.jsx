@@ -19,7 +19,7 @@ import DispatchButton from "@/components/operator/DispatchButton";
 import BookingDetailDrawer from "@/components/operator/BookingDetailDrawer";
 import ETACountdown from "@/components/operator/ETACountdown";
 import {
-  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2, Phone, ChevronDown, Check, Car,
+  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2, Phone, ChevronDown, Check, Car, Plane,
 } from "lucide-react";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { useBookings } from "@/hooks/operator/useBookings";
@@ -393,14 +393,29 @@ function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign
             </div>
             <p className="mt-0.5 truncate text-xs text-slate-500">{booking.route}</p>
             {booking.flight && booking.flight !== "—" && (
-              <p className="mt-0.5 text-[10px] text-slate-600">✈ {booking.flight}</p>
+              <p className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-600">
+                <Plane className="h-2.5 w-2.5" /> {booking.flight}
+              </p>
             )}
           </div>
-          <div className="flex-shrink-0 text-right">
+          <div className="flex flex-shrink-0 flex-col items-end text-right">
             <p className="text-sm font-bold text-amber-300">{booking.price}</p>
             <p className="text-[11px] text-slate-400">{booking.time}</p>
             {booking.pickupTime && (
               <ETACountdown pickupTime={booking.pickupTime} className="text-[10px]" />
+            )}
+            {(booking.paymentMethod || booking.paymentStatus !== "Paid") && (
+              <span
+                className={`mt-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
+                  booking.paymentStatus === "Paid"
+                    ? "bg-emerald-400/10 text-emerald-400/90"
+                    : booking.paymentStatus === "Invoiced"
+                    ? "bg-amber-400/10 text-amber-300/90"
+                    : "bg-red-400/10 text-red-300/90"
+                }`}
+              >
+                {booking.paymentMethod || booking.paymentStatus}
+              </span>
             )}
           </div>
         </div>
@@ -488,6 +503,7 @@ function DispatchPageContent() {
     updateNotes,
     togglePriority,
     updatePaymentStatus,
+    updatePaymentMethod,
     deleteBooking,
   } = useBookings();
   const { drivers } = useDrivers();
@@ -585,6 +601,16 @@ function DispatchPageContent() {
     }
   }, [updatePaymentStatus, toast]);
 
+  const handleUpdatePaymentMethod = useCallback(async (id, method) => {
+    try {
+      await updatePaymentMethod(id, method);
+      setSelectedBooking((prev) => (prev?.id === id ? { ...prev, paymentMethod: method } : prev));
+      toast({ message: method ? `Payment method: ${method}` : "Payment method cleared", type: "success" });
+    } catch (err) {
+      toast({ message: err?.message ?? "Failed to update payment method", type: "error" });
+    }
+  }, [updatePaymentMethod, toast]);
+
   const handleCreateReturn = useCallback((booking) => {
     const flip = (dir) =>
       dir === "Airport → Destination" ? "Destination → Airport" : "Airport → Destination";
@@ -678,6 +704,7 @@ function DispatchPageContent() {
           onUpdateNotes={handleUpdateNotes}
           onTogglePriority={handleTogglePriority}
           onUpdatePaymentStatus={handleUpdatePaymentStatus}
+          onUpdatePaymentMethod={handleUpdatePaymentMethod}
           onCreateReturn={handleCreateReturn}
           onDelete={handleDeleteBooking}
         />
@@ -840,8 +867,8 @@ function DispatchPageContent() {
               </div>
             </div>
 
-            {/* Mobile card layout */}
-            <div className="grid gap-2 sm:hidden">
+            {/* Mobile + tablet card layout */}
+            <div className="grid gap-2 lg:hidden">
               {loading && transfers.length === 0
                 ? [1, 2, 3].map((i) => (
                     <div key={i} className="animate-pulse rounded-2xl border border-white/5 bg-white/[0.02] p-4">
@@ -867,7 +894,7 @@ function DispatchPageContent() {
             </div>
 
             {/* Desktop table layout */}
-            <div className="hidden overflow-x-auto sm:block">
+            <div className="hidden overflow-x-auto lg:block">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/5 text-left">
