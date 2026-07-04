@@ -1,25 +1,25 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, Bell, X, Car, BookOpen, LogOut } from "lucide-react";
+import { Search, Bell, X, LogOut, Plus } from "lucide-react";
 import Sidebar from "./Sidebar";
 import LiveClock from "./LiveClock";
 import RealtimeDot from "./RealtimeDot";
 import ErrorBoundary from "./ErrorBoundary";
+import BookingModal from "./BookingModal";
+import { useOperatorToast } from "./Toast";
 import { useMissedCalls } from "@/hooks/operator/useMissedCalls";
-import { PORTALS } from "@/lib/operator/portals";
+import { useBookings } from "@/hooks/operator/useBookings";
 
 const pageMeta = {
-  "/operator/dashboard": { label: "EV Exec", title: "Operator Dashboard" },
   "/operator/dispatch": { label: "Live Operations", title: "Live Dispatch" },
   "/operator/drivers": { label: "Fleet", title: "Driver Management" },
-  "/operator/bookings": { label: "Automation", title: "Automated Bookings" },
   "/operator/analytics": { label: "Insights", title: "Analytics" },
   "/operator/settings": { label: "System", title: "Settings" },
 };
 
-function NotificationPopover({ calls, onClose, onNavigate, onResolve, onResolveAll }) {
+function NotificationPopover({ calls, onClose, onResolve, onResolveAll }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -73,14 +73,6 @@ function NotificationPopover({ calls, onClose, onNavigate, onResolve, onResolveA
           ))
         )}
       </div>
-      <div className="border-t border-white/5 p-2">
-        <button
-          onClick={onNavigate}
-          className="w-full rounded-xl py-2 text-xs text-amber-300 transition hover:bg-amber-400/10"
-        >
-          View all in Automation →
-        </button>
-      </div>
     </div>
   );
 }
@@ -88,11 +80,23 @@ function NotificationPopover({ calls, onClose, onNavigate, onResolve, onResolveA
 export default function Layout({ children, onSignOut }) {
   const pathname = usePathname();
   const router = useRouter();
-  const meta = pageMeta[pathname] ?? pageMeta["/operator/dashboard"];
+  const meta = pageMeta[pathname] ?? pageMeta["/operator/dispatch"];
   const [searchOpen, setSearchOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+  const [newBookingOpen, setNewBookingOpen] = useState(false);
   const { calls, resolve, resolveAll } = useMissedCalls();
+  const { createBooking } = useBookings();
+  const toast = useOperatorToast();
   const alertCount = calls.length;
+
+  // Dispatch has its own New Booking controls; show the global button elsewhere.
+  const showNewBooking = pathname !== "/operator/dispatch";
+
+  const handleCreateBooking = useCallback(async (form) => {
+    const result = await createBooking(form);
+    toast({ message: `Booking ${result.ref} created successfully`, type: "success" });
+    return result;
+  }, [createBooking, toast]);
 
   // Keep browser tab title in sync with the active page
   useEffect(() => {
@@ -153,26 +157,6 @@ export default function Layout({ children, onSignOut }) {
             <div className="flex items-center gap-2 sm:gap-3">
               <RealtimeDot />
 
-              {/* Portal quick-launch — hidden on very small screens, visible sm+ */}
-              <a
-                href={PORTALS.driverApp.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Open Driver Portal"
-                className="glass hidden items-center justify-center rounded-2xl h-10 w-10 transition hover:bg-white/10 sm:flex"
-              >
-                <Car className="h-4 w-4 text-slate-300" />
-              </a>
-              <a
-                href={PORTALS.bookingForm.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Open Customer Booking Form"
-                className="glass hidden items-center justify-center rounded-2xl h-10 w-10 transition hover:bg-white/10 lg:flex"
-              >
-                <BookOpen className="h-4 w-4 text-slate-300" />
-              </a>
-
               {/* Mobile search toggle */}
               {!searchOpen && (
                 <button
@@ -203,7 +187,6 @@ export default function Layout({ children, onSignOut }) {
                   <NotificationPopover
                     calls={calls}
                     onClose={() => setBellOpen(false)}
-                    onNavigate={() => { setBellOpen(false); router.push("/operator/bookings"); }}
                     onResolve={resolve}
                     onResolveAll={resolveAll}
                   />
@@ -243,6 +226,24 @@ export default function Layout({ children, onSignOut }) {
         </header>
         <ErrorBoundary>{children}</ErrorBoundary>
       </main>
+
+      {/* Global New Booking — one consistent action on every screen except
+          Dispatch, which has its own. Sits above the mobile tab bar. */}
+      {showNewBooking && (
+        <button
+          onClick={() => setNewBookingOpen(true)}
+          title="New Booking"
+          className="fixed bottom-24 right-4 z-40 flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-3 text-sm font-bold text-black shadow-xl shadow-amber-500/25 transition active:scale-95 sm:bottom-6 sm:right-6"
+        >
+          <Plus className="h-4 w-4" />
+          New Booking
+        </button>
+      )}
+      <BookingModal
+        open={newBookingOpen}
+        onClose={() => setNewBookingOpen(false)}
+        onSubmit={handleCreateBooking}
+      />
     </div>
   );
 }

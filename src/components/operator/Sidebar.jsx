@@ -3,10 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
   Route,
   Users,
-  Bot,
   BarChart3,
   Settings,
   Navigation,
@@ -17,12 +15,13 @@ import {
 } from "lucide-react";
 import { PORTALS } from "@/lib/operator/portals";
 
+// Trimmed to five essentials for a clean, thumb-reachable mobile bar. The old
+// Dashboard duplicated Dispatch, and the Automation page was a mock; both were
+// folded away (their routes redirect to Dispatch).
 const navItems = [
   { label: "Calendar", icon: CalendarDays, href: "/" },
-  { label: "Dashboard", icon: LayoutDashboard, href: "/operator/dashboard" },
   { label: "Dispatch", icon: Route, href: "/operator/dispatch" },
   { label: "Drivers", icon: Users, href: "/operator/drivers" },
-  { label: "Bookings", icon: Bot, href: "/operator/bookings" },
   { label: "Analytics", icon: BarChart3, href: "/operator/analytics" },
   { label: "Settings", icon: Settings, href: "/operator/settings" },
 ];
