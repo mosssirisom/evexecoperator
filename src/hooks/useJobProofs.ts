@@ -7,9 +7,10 @@ import type { DbJobProof } from "@/lib/database.types";
 export type JobProofMap = Record<string, DbJobProof[]>;
 
 /**
- * Loads job proofs (P0 #4) and keys them by booking_id, updating in real time.
- * The driver app inserts proofs (pickup photo, signature, completion / no-show);
- * the operator dashboard reads them. Capped to recent rows to stay bounded.
+ * Loads job proofs and keys them by booking_id, updating in real time.
+ * The driver app inserts proofs (pickup photo, signature, completion / no-show)
+ * into `booking_photos`; the operator dashboard reads them from there.
+ * Capped to recent rows to stay bounded.
  */
 export function useJobProofs() {
   const [proofs, setProofs] = useState<JobProofMap>({});
@@ -17,7 +18,7 @@ export function useJobProofs() {
 
   const fetch = useCallback(async () => {
     const { data } = await supabase
-      .from("job_proofs")
+      .from("booking_photos")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(500);
@@ -36,7 +37,7 @@ export function useJobProofs() {
       .channel("job-proofs")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "job_proofs" },
+        { event: "*", schema: "public", table: "booking_photos" },
         () => fetch()
       )
       .subscribe();
