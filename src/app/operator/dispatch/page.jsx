@@ -134,10 +134,12 @@ const STATUS_FILTERS = [
   "Unassigned",
   "Dispatched",
   "En Route",
+  "Arrived",
   "Passenger On Board",
   "Completed",
   "Cancelled",
   "Unassigned / Missed Call Recovery",
+  "CRITICAL_UNALLOCATED",
 ];
 
 // ── Schedule view row ─────────────────────────────────────────────────────────
@@ -145,7 +147,7 @@ function ScheduleRow({ booking, onSelect }) {
   const now = Date.now();
   const ts = booking.pickupTime ? new Date(booking.pickupTime).getTime() : null;
   const isPast = ts && ts < now - 30 * 60 * 1000;
-  const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
+  const isActive = ["Dispatched", "En Route", "Arrived", "Passenger On Board"].includes(booking.status);
 
   return (
     <button
@@ -182,6 +184,7 @@ function ScheduleRow({ booking, onSelect }) {
 const SHEET_STATUSES = [
   { value: "Dispatched",           color: "text-amber-300"   },
   { value: "En Route",             color: "text-blue-300"    },
+  { value: "Arrived",              color: "text-cyan-300"    },
   { value: "Passenger On Board",   color: "text-emerald-300" },
   { value: "Completed",            color: "text-slate-300"   },
   { value: "Cancelled",            color: "text-red-400"     },
@@ -347,7 +350,7 @@ function MobileDriverSheet({ booking, drivers, onAssign, onClose }) {
 // ── Mobile booking card ───────────────────────────────────────────────────────
 function cardAccent(booking) {
   if (booking.priority) return "bg-red-500";
-  if (["Dispatched", "En Route", "Passenger On Board"].includes(booking.status)) return "bg-amber-400";
+  if (["Dispatched", "En Route", "Arrived", "Passenger On Board"].includes(booking.status)) return "bg-amber-400";
   if (booking.status === "Completed") return "bg-emerald-400";
   if (booking.status === "Cancelled") return "bg-slate-700";
   return "bg-slate-600/50";
@@ -356,7 +359,7 @@ function cardAccent(booking) {
 function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign }) {
   const [driverSheetOpen, setDriverSheetOpen] = useState(false);
   const [statusSheetOpen, setStatusSheetOpen] = useState(false);
-  const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
+  const isActive = ["Dispatched", "En Route", "Arrived", "Passenger On Board"].includes(booking.status);
   const isCancelled = booking.status === "Cancelled";
   const statusLabel =
     booking.status === "Unassigned / Missed Call Recovery" ? "Missed Call" :
@@ -699,12 +702,13 @@ function DispatchPageContent() {
   const stats = useMemo(
     () => ({
       active: transfers.filter((t) =>
-        ["Dispatched", "En Route", "Passenger On Board"].includes(t.status)
+        ["Dispatched", "En Route", "Arrived", "Passenger On Board"].includes(t.status)
       ).length,
       completed: transfers.filter((t) => t.status === "Completed").length,
       pending: transfers.filter(
         (t) =>
           t.status === "Unassigned / Missed Call Recovery" ||
+          t.status === "CRITICAL_UNALLOCATED" ||
           (t.status === "Unassigned" && t.priority)
       ).length,
     }),
