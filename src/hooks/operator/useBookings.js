@@ -358,6 +358,51 @@ export function useBookings() {
     }
   }, []);
 
+  // Edit an existing booking's details (passengers, bags, time, addresses, etc.).
+  // `fields` is a partial of shaped-booking keys; only the keys present are
+  // written. Optimistically merges locally, then re-fetches authoritative data
+  // (so derived values like route/pickupTime stay correct) and rolls back on error.
+  const updateBooking = useCallback(async (id, fields) => {
+    const FIELD_TO_COLUMN = {
+      customer:       (v) => ({ customer_name: sanitizeText(v, 120) }),
+      phone:          (v) => ({ customer_phone: sanitizeText(v, 30) }),
+      email:          (v) => ({ customer_email: v?.trim() || null }),
+      flight:         (v) => ({ flight_number: v?.trim() || null }),
+      passengers:     (v) => ({ passengers: v === "" || v == null ? null : Number(v) }),
+      luggage:        (v) => ({ luggage: (v ?? "").toString().trim() || null }),
+      pickupLocation: (v) => ({ pickup_location: v?.trim() || null }),
+      dropoffAddress: (v) => ({ dropoff_address: v?.trim() || null }),
+      airport:        (v) => ({ airport: v?.trim() || null }),
+      travelDate:     (v) => ({ travel_date: v || null }),
+      time:           (v) => ({ travel_time: v || null }),
+      price:          (v) => ({ quoted_price: v === "" || v == null ? null : Number(v) }),
+      vehicleType:    (v) => ({ vehicle_type: v?.trim() || null }),
+    };
+
+    const dbPatch = {};
+    for (const [k, v] of Object.entries(fields)) {
+      if (FIELD_TO_COLUMN[k]) Object.assign(dbPatch, FIELD_TO_COLUMN[k](v));
+    }
+    // When the pickup date/time changes, clear the stored pickup_time so the
+    // display falls back to the edited travel_date + travel_time consistently.
+    if ("travelDate" in fields || "time" in fields) dbPatch.pickup_time = null;
+    if (Object.keys(dbPatch).length === 0) return;
+
+    const snapshot = bookingsRef.current;
+    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, ...fields } : b)));
+
+    if (!isConfigured) return;
+
+    try {
+      const { error: err } = await supabase.from("bookings").update(dbPatch).eq("ref", id);
+      if (err) throw new Error(err.message);
+      await fetchBookings();
+    } catch (err) {
+      setBookings(snapshot);
+      throw err;
+    }
+  }, [fetchBookings]);
+
   const deleteBooking = useCallback(async (id, password) => {
     if (!password?.trim()) throw new Error("Enter your password to confirm deletion.");
 
@@ -388,5 +433,5 @@ export function useBookings() {
     }
   }, []);
 
-  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, updatePaymentStatus, updatePaymentMethod, deleteBooking, refetch: fetchBookings };
+  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, updatePaymentStatus, updatePaymentMethod, updateBooking, deleteBooking, refetch: fetchBookings };
 }

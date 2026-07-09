@@ -505,6 +505,7 @@ function DispatchPageContent() {
     togglePriority,
     updatePaymentStatus,
     updatePaymentMethod,
+    updateBooking,
     deleteBooking,
   } = useBookings();
   const { drivers } = useDrivers();
@@ -611,6 +612,17 @@ function DispatchPageContent() {
       toast({ message: err?.message ?? "Failed to update payment method", type: "error" });
     }
   }, [updatePaymentMethod, toast]);
+
+  const handleUpdateBooking = useCallback(async (id, fields) => {
+    try {
+      await updateBooking(id, fields);
+      setSelectedBooking((prev) => (prev?.id === id ? { ...prev, ...fields } : prev));
+      toast({ message: "Booking updated", type: "success" });
+    } catch (err) {
+      toast({ message: err?.message ?? "Failed to update booking", type: "error" });
+      throw err;
+    }
+  }, [updateBooking, toast]);
 
   const handleSendPaymentLink = useCallback(async (id) => {
     try {
@@ -737,6 +749,7 @@ function DispatchPageContent() {
           onUpdatePaymentStatus={handleUpdatePaymentStatus}
           onUpdatePaymentMethod={handleUpdatePaymentMethod}
           onSendPaymentLink={handleSendPaymentLink}
+          onUpdateBooking={handleUpdateBooking}
           onCreateReturn={handleCreateReturn}
           onDelete={handleDeleteBooking}
         />

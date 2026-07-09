@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   X, Phone, Mail, Plane, MapPin, Clock, Car, PoundSterling,
   User, AlertTriangle, FileText, ChevronDown, Check, Edit3, Loader2, RefreshCw,
-  CreditCard, Trash2, ShieldCheck, Send,
+  CreditCard, Trash2, ShieldCheck, Send, Users, Briefcase, Calendar,
 } from "lucide-react";
 import { bookingStatusColor } from "@/lib/operator/statusColor";
 import ETACountdown from "./ETACountdown";
@@ -278,6 +278,134 @@ function PaymentBadge({ paymentStatus, onUpdate }) {
   );
 }
 
+const editInputCls =
+  "w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-amber-400/40";
+
+function EditField({ label, icon: Icon, children }) {
+  return (
+    <div>
+      <p className="mb-1.5 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500">
+        {Icon && <Icon className="h-3 w-3" />} {label}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+// Edit an existing booking's core details (passengers, bags, time, addresses…).
+// Seeds from the booking, saves only what changed.
+function BookingEditForm({ booking, onSave, onCancel }) {
+  const initial = useMemo(
+    () => ({
+      customer: booking.customer ?? "",
+      phone: booking.phone ?? "",
+      passengers: booking.passengers != null ? String(booking.passengers) : "",
+      luggage: booking.luggage ?? "",
+      travelDate: booking.travelDate ?? "",
+      time: booking.time && booking.time !== "—" ? booking.time : "",
+      pickupLocation: booking.pickupLocation ?? "",
+      dropoffAddress: booking.dropoffAddress ?? booking.destination ?? "",
+      flight: booking.flight && booking.flight !== "—" ? booking.flight : "",
+      price: booking.price && booking.price !== "TBC" ? booking.price.replace(/[^0-9.]/g, "") : "",
+    }),
+    [booking]
+  );
+
+  const [form, setForm] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const save = async () => {
+    const changed = {};
+    for (const k of Object.keys(initial)) {
+      if (form[k] !== initial[k]) changed[k] = form[k].trim() === "" ? null : form[k].trim();
+    }
+    if (Object.keys(changed).length === 0) {
+      onCancel();
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      await onSave(changed);
+    } catch (e) {
+      setErr(e?.message ?? "Failed to save changes.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4 px-5 py-5 sm:px-6">
+      <p className="text-[10px] uppercase tracking-[0.28em] text-amber-400">Edit booking</p>
+
+      <EditField label="Customer" icon={User}>
+        <input className={editInputCls} value={form.customer} onChange={set("customer")} placeholder="Customer name" />
+      </EditField>
+      <EditField label="Phone" icon={Phone}>
+        <input className={editInputCls} value={form.phone} onChange={set("phone")} inputMode="tel" placeholder="Phone number" />
+      </EditField>
+
+      <div className="grid grid-cols-2 gap-3">
+        <EditField label="Passengers" icon={Users}>
+          <input className={editInputCls} value={form.passengers} onChange={set("passengers")} inputMode="numeric" placeholder="0" />
+        </EditField>
+        <EditField label="Bags" icon={Briefcase}>
+          <input className={editInputCls} value={form.luggage} onChange={set("luggage")} placeholder="e.g. 2" />
+        </EditField>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <EditField label="Pickup date" icon={Calendar}>
+          <input type="date" className={editInputCls} value={form.travelDate} onChange={set("travelDate")} />
+        </EditField>
+        <EditField label="Pickup time" icon={Clock}>
+          <input type="time" className={editInputCls} value={form.time} onChange={set("time")} />
+        </EditField>
+      </div>
+
+      <EditField label="Pickup location" icon={MapPin}>
+        <input className={editInputCls} value={form.pickupLocation} onChange={set("pickupLocation")} placeholder="Pickup address / airport" />
+      </EditField>
+      <EditField label="Drop-off address" icon={MapPin}>
+        <input className={editInputCls} value={form.dropoffAddress} onChange={set("dropoffAddress")} placeholder="Destination address" />
+      </EditField>
+
+      <div className="grid grid-cols-2 gap-3">
+        <EditField label="Flight" icon={Plane}>
+          <input className={editInputCls} value={form.flight} onChange={set("flight")} placeholder="e.g. BA123" />
+        </EditField>
+        <EditField label="Price (£)" icon={PoundSterling}>
+          <input className={editInputCls} value={form.price} onChange={set("price")} inputMode="decimal" placeholder="0.00" />
+        </EditField>
+      </div>
+
+      {err && (
+        <p className="rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-300">{err}</p>
+      )}
+
+      <div className="flex gap-2 pt-1">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={busy}
+          className="flex-1 rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-white/20 disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={save}
+          disabled={busy}
+          className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-amber-500 px-4 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:opacity-60"
+        >
+          {busy ? <><Loader2 className="h-4 w-4 animate-spin" />Saving…</> : "Save changes"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function BookingDetailDrawer({
   booking,
   drivers = [],
@@ -289,6 +417,7 @@ export default function BookingDetailDrawer({
   onUpdatePaymentStatus,
   onUpdatePaymentMethod,
   onSendPaymentLink,
+  onUpdateBooking,
   onCreateReturn,
   onDelete,
 }) {
@@ -300,7 +429,13 @@ export default function BookingDetailDrawer({
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
   const [linkBusy, setLinkBusy] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const drawerRef = useRef(null);
+
+  const handleSaveEdit = useCallback(async (fields) => {
+    await onUpdateBooking?.(booking.id, fields);
+    setEditMode(false);
+  }, [booking?.id, onUpdateBooking]);
 
   const sendPaymentLink = useCallback(async () => {
     if (!onSendPaymentLink) return;
@@ -335,6 +470,7 @@ export default function BookingDetailDrawer({
   useEffect(() => {
     setNotes(booking?.notes ?? "");
     setEditingNotes(false);
+    setEditMode(false);
   }, [booking?.id, booking?.notes]);
 
   // Close on outside click (pointerdown fires on touch too)
@@ -416,12 +552,24 @@ export default function BookingDetailDrawer({
               />
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="ml-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-white/10 text-slate-500 transition hover:bg-white/5 hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="ml-3 flex flex-shrink-0 items-center gap-2">
+            {onUpdateBooking && !editMode && (
+              <button
+                onClick={() => setEditMode(true)}
+                title="Edit booking"
+                aria-label="Edit booking"
+                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 text-slate-400 transition hover:bg-white/5 hover:text-amber-300"
+              >
+                <Edit3 className="h-4 w-4" />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 text-slate-500 transition hover:bg-white/5 hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* ETA banner for active jobs */}
@@ -437,6 +585,14 @@ export default function BookingDetailDrawer({
 
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto overscroll-contain">
+          {editMode ? (
+            <BookingEditForm
+              key={booking.id}
+              booking={booking}
+              onSave={handleSaveEdit}
+              onCancel={() => setEditMode(false)}
+            />
+          ) : (
           <div className="space-y-6 px-5 py-5 sm:px-6">
             {/* Contact */}
             <div>
@@ -494,6 +650,8 @@ export default function BookingDetailDrawer({
               <div className="space-y-3">
                 <Row icon={MapPin} label="Route" value={booking.route} />
                 <Row icon={Plane} label="Flight" value={booking.flight !== "—" ? booking.flight : null} />
+                <Row icon={Users} label="Passengers" value={booking.passengers != null ? String(booking.passengers) : null} />
+                <Row icon={Briefcase} label="Bags" value={booking.luggage || null} />
                 <Row icon={Clock} label="Pickup time" value={
                   booking.pickupTime
                     ? new Date(booking.pickupTime).toLocaleString("en-GB", {
@@ -608,9 +766,11 @@ export default function BookingDetailDrawer({
               )}
             </div>
           </div>
+          )}
         </div>
 
         {/* Footer actions */}
+        {!editMode && (
         <div className="flex-shrink-0 border-t border-white/5 px-5 py-4 sm:px-6">
           <div className="flex flex-col gap-2">
             {/* Return journey */}
@@ -653,6 +813,7 @@ export default function BookingDetailDrawer({
             )}
           </div>
         </div>
+        )}
       </div>
 
       {deleteOpen && (
