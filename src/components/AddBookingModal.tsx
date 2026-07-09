@@ -195,7 +195,7 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
               <label className="text-xs text-slate-500 mb-1 block">Driver</label>
               <select value={form.driver_id} onChange={(e) => set("driver_id", e.target.value)} className={inputCls}>
                 <option value="">Unassigned</option>
-                {drivers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                {drivers.map((d) => <option key={d.id} value={d.id}>{d.full_name}</option>)}
               </select>
             </div>
             <div>
