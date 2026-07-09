@@ -12,7 +12,7 @@ export function useDrivers() {
     const { data } = await supabase
       .from("drivers")
       .select("*")
-      .order("name", { ascending: true });
+      .order("full_name", { ascending: true });
     setDrivers((data as DbDriver[]) ?? []);
     setLoading(false);
   }, []);
