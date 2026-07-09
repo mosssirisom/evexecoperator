@@ -7,6 +7,7 @@ import { bookingStatusColor } from "@/lib/operator/statusColor";
 const STATUSES = [
   { value: "Dispatched", icon: Loader2, spin: true, color: "text-amber-300" },
   { value: "En Route", icon: MapPin, spin: false, color: "text-blue-300" },
+  { value: "Arrived", icon: MapPin, spin: false, color: "text-cyan-300" },
   { value: "Passenger On Board", icon: CheckCircle2, spin: false, color: "text-emerald-300" },
   { value: "Completed", icon: CheckCircle2, spin: false, color: "text-slate-400" },
   { value: "Cancelled", icon: XCircle, spin: false, color: "text-red-400" },
