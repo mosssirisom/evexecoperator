@@ -39,7 +39,7 @@ export default function DriverDropdown({
       >
         <User size={13} className="text-gold/70 shrink-0" />
         <span className={selected ? "text-slate-200" : "text-slate-500"}>
-          {selected ? selected.name : "Unassigned"}
+          {selected ? selected.full_name : "Unassigned"}
         </span>
         <ChevronDown
           size={13}
@@ -81,7 +81,7 @@ export default function DriverDropdown({
                   `}
                 >
                   <div className="flex items-center gap-1.5">
-                    <span className="font-medium text-sm">{driver.name}</span>
+                    <span className="font-medium text-sm">{driver.full_name}</span>
                     {unavailable && (
                       <span className="text-[10px] font-bold text-red-400 bg-red-900/30 px-1.5 py-0.5 rounded-full">
                         Off this day
@@ -89,7 +89,7 @@ export default function DriverDropdown({
                     )}
                   </div>
                   <div className="text-xs text-slate-500 mt-0.5">
-                    {driver.vehicle ?? "—"}{driver.plate ? ` · ${driver.plate}` : ""}
+                    {driver.vehicle_model ?? "—"}{driver.vehicle_registration ? ` · ${driver.vehicle_registration}` : ""}
                   </div>
                 </button>
               );
