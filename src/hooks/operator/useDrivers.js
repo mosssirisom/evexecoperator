@@ -9,13 +9,12 @@ const PHONE_RE = /^[+\d][\d\s\-().]{4,}$/;
 function shapedDriver(row) {
   return {
     id: row.id,
-    name: row.name,
-    status: row.status,
+    full_name: row.full_name,
+    is_online: row.is_online,
     job: "No active job",
-    vehicle: row.vehicle ?? "—",
-    plate: row.plate ?? "—",
+    vehicle_registration: row.vehicle_registration ?? "—",
+    vehicle_model: row.vehicle_model ?? "—",
     phone: row.phone ?? "—",
-    email: row.email ?? null,
     completedToday: 0,
     rating: row.rating ?? 5.0,
   };
@@ -36,7 +35,7 @@ export function useDrivers() {
       tomorrow.setDate(tomorrow.getDate() + 1);
 
       const [{ data, error: err }, { data: completedData }] = await Promise.all([
-        supabase.from("drivers").select("*").order("name"),
+        supabase.from("drivers").select("*").order("full_name"),
         supabase
           .from("bookings")
           .select("driver_id")
@@ -64,61 +63,57 @@ export function useDrivers() {
 
   useRealtimeDrivers(fetchDrivers);
 
-  const updateStatus = useCallback(async (id, status) => {
+  const updateOnlineStatus = useCallback(async (id, isOnline) => {
     if (!isConfigured) throw new Error("Database not configured.");
     const { error: err } = await supabase
       .from("drivers")
-      .update({ status })
+      .update({ is_online: isOnline })
       .eq("id", id);
     if (err) throw new Error(err.message);
     await fetchDrivers();
   }, [fetchDrivers]);
 
   const createDriver = useCallback(async (form) => {
-    const name = form.name?.trim();
+    const full_name = form.full_name?.trim();
     const phone = form.phone?.trim() || null;
-    const email = form.email?.trim() || null;
-    const vehicle = form.vehicle?.trim() || null;
-    const plate = form.plate?.trim() || null;
+    const vehicle_registration = form.vehicle_registration?.trim() || null;
+    const vehicle_model = form.vehicle_model?.trim() || null;
 
-    if (!name) throw new Error("Driver name is required.");
-    if (name.length > 120) throw new Error("Name must be 120 characters or fewer.");
+    if (!full_name) throw new Error("Driver name is required.");
+    if (full_name.length > 120) throw new Error("Name must be 120 characters or fewer.");
     if (phone && !PHONE_RE.test(phone)) throw new Error("Please enter a valid phone number.");
-    if (plate && plate.length > 20) throw new Error("Plate number must be 20 characters or fewer.");
+    if (vehicle_registration && vehicle_registration.length > 20) throw new Error("Registration must be 20 characters or fewer.");
 
     if (!isConfigured) throw new Error("Database not configured.");
 
     const { error: err } = await supabase.from("drivers").insert({
-      name,
+      full_name,
       phone,
-      email,
-      vehicle,
-      plate,
-      status: "Available",
+      vehicle_registration,
+      vehicle_model,
+      is_online: true,
       rating: 5.0,
-      password: "evexec2026",
     });
     if (err) throw new Error(err.message);
     await fetchDrivers();
   }, [fetchDrivers]);
 
   const updateDriver = useCallback(async (id, form) => {
-    const name = form.name?.trim();
+    const full_name = form.full_name?.trim();
     const phone = form.phone?.trim() || null;
-    const email = form.email?.trim() || null;
-    const vehicle = form.vehicle?.trim() || null;
-    const plate = form.plate?.trim() || null;
+    const vehicle_registration = form.vehicle_registration?.trim() || null;
+    const vehicle_model = form.vehicle_model?.trim() || null;
 
-    if (!name) throw new Error("Driver name is required.");
-    if (name.length > 120) throw new Error("Name must be 120 characters or fewer.");
+    if (!full_name) throw new Error("Driver name is required.");
+    if (full_name.length > 120) throw new Error("Name must be 120 characters or fewer.");
     if (phone && !PHONE_RE.test(phone)) throw new Error("Please enter a valid phone number.");
-    if (plate && plate.length > 20) throw new Error("Plate number must be 20 characters or fewer.");
+    if (vehicle_registration && vehicle_registration.length > 20) throw new Error("Registration must be 20 characters or fewer.");
 
     if (!isConfigured) throw new Error("Database not configured.");
 
     const { error: err } = await supabase
       .from("drivers")
-      .update({ name, phone, email, vehicle, plate })
+      .update({ full_name, phone, vehicle_registration, vehicle_model })
       .eq("id", id);
     if (err) throw new Error(err.message);
     await fetchDrivers();
@@ -134,5 +129,5 @@ export function useDrivers() {
     await fetchDrivers();
   }, [fetchDrivers]);
 
-  return { drivers, loading, error, updateStatus, createDriver, updateDriver, deleteDriver, refetch: fetchDrivers };
+  return { drivers, loading, error, updateOnlineStatus, createDriver, updateDriver, deleteDriver, refetch: fetchDrivers };
 }
