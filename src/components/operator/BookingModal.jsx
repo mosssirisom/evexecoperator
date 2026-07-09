@@ -99,7 +99,7 @@ const empty = {
 export default function BookingModal({ open, onClose, onSubmit, initialValues }) {
   const { drivers } = useDrivers();
   const vehicles = useMemo(
-    () => drivers.map((d) => ({ id: d.id, label: `${d.name} — ${d.vehicle}` })),
+    () => drivers.map((d) => ({ id: d.id, label: `${d.full_name} — ${d.vehicle_registration ?? d.vehicle_model ?? ""}` })),
     [drivers]
   );
   const [form, setForm] = useState(empty);
