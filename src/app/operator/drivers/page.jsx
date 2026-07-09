@@ -4,7 +4,7 @@ import React, { useMemo, useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Car, Phone, Star, CheckCircle2, Clock, UserX, MoreVertical, Plus, X,
-  User, Hash, Truck, MapPin, ExternalLink, Edit2, Trash2, Mail,
+  User, Hash, Truck, MapPin, ExternalLink, Edit2, Trash2,
 } from "lucide-react";
 import { useDrivers } from "@/hooks/operator/useDrivers";
 import { useBookings } from "@/hooks/operator/useBookings";
@@ -12,28 +12,24 @@ import { useOperatorToast } from "@/components/operator/Toast";
 import { bookingStatusColor } from "@/lib/operator/statusColor";
 import { PORTALS } from "@/lib/operator/portals";
 
-function statusBadge(status) {
-  if (status === "Available") return "text-emerald-300 bg-emerald-400/10 border-emerald-400/20";
-  if (status === "En route" || status === "Passenger onboard")
-    return "text-blue-300 bg-blue-400/10 border-blue-400/20";
-  if (status === "Available soon")
-    return "text-amber-300 bg-amber-400/10 border-amber-400/20";
-  return "text-slate-400 bg-slate-500/10 border-slate-500/20";
+function onlineBadge(isOnline) {
+  return isOnline
+    ? "text-emerald-300 bg-emerald-400/10 border-emerald-400/20"
+    : "text-slate-400 bg-slate-500/10 border-slate-500/20";
 }
 
 // ── Shared driver form fields ─────────────────────────────────────────────────
 const DRIVER_FIELDS = [
-  { key: "name",    label: "Full Name",    placeholder: "James Whitmore",        icon: User,  type: "text"  },
-  { key: "phone",   label: "Phone",        placeholder: "+44 7700 900000",       icon: Phone, type: "tel"   },
-  { key: "email",   label: "Email",        placeholder: "driver@example.com",    icon: Mail,  type: "email" },
-  { key: "vehicle", label: "Vehicle",      placeholder: "Tesla Model Y",         icon: Truck, type: "text"  },
-  { key: "plate",   label: "Plate Number", placeholder: "EV21 XYZ",              icon: Hash,  type: "text"  },
+  { key: "full_name",            label: "Full Name",           placeholder: "James Whitmore", icon: User,  type: "text" },
+  { key: "phone",                label: "Phone",                placeholder: "+44 7700 900000", icon: Phone, type: "tel" },
+  { key: "vehicle_registration", label: "Vehicle Registration", placeholder: "EV21 XYZ",        icon: Hash,  type: "text" },
+  { key: "vehicle_model",        label: "Vehicle Model",        placeholder: "Tesla Model Y",    icon: Truck, type: "text" },
 ];
 
 // ── Driver form modal (used for both Add and Edit) ────────────────────────────
 function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
   const [form, setForm] = useState(
-    initial ?? { name: "", phone: "", email: "", vehicle: "", plate: "" }
+    initial ?? { full_name: "", phone: "", vehicle_registration: "", vehicle_model: "" }
   );
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -41,7 +37,7 @@ function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.name.trim()) return;
+    if (!form.full_name.trim()) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -83,14 +79,14 @@ function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
               <div key={key}>
                 <label className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-500">
                   <Icon className="h-3.5 w-3.5" />
-                  {label}{key === "name" && <span className="text-red-400">*</span>}
+                  {label}{key === "full_name" && <span className="text-red-400">*</span>}
                 </label>
                 <input
                   type={type}
                   value={form[key] ?? ""}
                   onChange={set(key)}
                   placeholder={placeholder}
-                  required={key === "name"}
+                  required={key === "full_name"}
                   className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 transition focus:border-amber-400/40"
                 />
               </div>
@@ -112,7 +108,7 @@ function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
               </button>
               <button
                 type="submit"
-                disabled={submitting || !form.name.trim()}
+                disabled={submitting || !form.full_name.trim()}
                 className="flex-1 rounded-2xl bg-amber-500 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? "Saving…" : submitLabel}
@@ -148,7 +144,7 @@ function DeleteDriverModal({ driver, onClose, onConfirm }) {
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-red-400/20 bg-red-400/10">
           <Trash2 className="h-5 w-5 text-red-300" />
         </div>
-        <h2 className="text-lg font-semibold text-white">Remove {driver.name}?</h2>
+        <h2 className="text-lg font-semibold text-white">Remove {driver.full_name}?</h2>
         <p className="mt-2 text-sm text-slate-400">
           This will permanently remove the driver from the fleet. Any bookings currently assigned to them will become unassigned.
         </p>
@@ -198,7 +194,7 @@ function AssignJobModal({ driver, bookings, onAssign, onClose }) {
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Fleet</p>
             <h2 className="mt-1 text-xl font-semibold text-white">
-              Assign job to {driver.name}
+              Assign job to {driver.full_name}
             </h2>
           </div>
           <button
@@ -260,7 +256,7 @@ function AssignJobModal({ driver, bookings, onAssign, onClose }) {
 }
 
 // ── Driver context menu (MoreVertical) ────────────────────────────────────────
-function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob, onEdit, onDelete }) {
+function DriverMenu({ driver, onClose, onToggleOnline, onAssignJob, onEdit, onDelete }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -268,8 +264,6 @@ function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob, onEdit, onDe
     document.addEventListener("pointerdown", h);
     return () => document.removeEventListener("pointerdown", h);
   }, [onClose]);
-
-  const statusOptions = ["Available", "Available soon", "Off duty"];
 
   return (
     <div
@@ -284,16 +278,6 @@ function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob, onEdit, onDe
         <Phone className="h-3.5 w-3.5 text-slate-500" />
         Call Driver
       </a>
-      {driver.email && (
-        <a
-          href={`mailto:${driver.email}`}
-          onClick={onClose}
-          className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-slate-300 transition hover:bg-white/5"
-        >
-          <Mail className="h-3.5 w-3.5 text-slate-500" />
-          Email Driver
-        </a>
-      )}
       <button
         onClick={() => { onAssignJob(driver); onClose(); }}
         className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs text-slate-300 transition hover:bg-white/5"
@@ -314,26 +298,13 @@ function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob, onEdit, onDe
 
       <div className="my-1 border-t border-white/5" />
 
-      {statusOptions.map((s) => (
-        <button
-          key={s}
-          onClick={() => { onUpdateStatus(driver.id, s); onClose(); }}
-          className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-white/5 ${
-            driver.status === s ? "text-amber-300" : "text-slate-400"
-          }`}
-        >
-          <span
-            className={`h-2 w-2 rounded-full ${
-              s === "Available"
-                ? "bg-emerald-400"
-                : s === "Available soon"
-                ? "bg-amber-400"
-                : "bg-slate-500"
-            }`}
-          />
-          {s}
-        </button>
-      ))}
+      <button
+        onClick={() => { onToggleOnline(driver.id, !driver.is_online); onClose(); }}
+        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs text-slate-300 transition hover:bg-white/5"
+      >
+        <span className={`h-2 w-2 rounded-full ${driver.is_online ? "bg-slate-500" : "bg-emerald-400"}`} />
+        Mark {driver.is_online ? "Offline" : "Online"}
+      </button>
 
       <div className="my-1 border-t border-white/5" />
 
@@ -356,7 +327,7 @@ function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob, onEdit, onDe
 }
 
 // ── Driver Card ───────────────────────────────────────────────────────────────
-function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
+function DriverCard({ driver, onAssignJob, onToggleOnline, onEdit, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -364,11 +335,11 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-400/10 text-xl font-semibold text-amber-300">
-            {driver.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+            {driver.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
           </div>
           <div>
-            <h3 className="font-semibold text-white">{driver.name}</h3>
-            <p className="mt-0.5 text-xs text-slate-500">{driver.plate}</p>
+            <h3 className="font-semibold text-white">{driver.full_name}</h3>
+            <p className="mt-0.5 text-xs text-slate-500">{driver.vehicle_registration}</p>
           </div>
         </div>
         <div className="relative">
@@ -383,7 +354,7 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
             <DriverMenu
               driver={driver}
               onClose={() => setMenuOpen(false)}
-              onUpdateStatus={onUpdateStatus}
+              onToggleOnline={onToggleOnline}
               onAssignJob={onAssignJob}
               onEdit={onEdit}
               onDelete={onDelete}
@@ -393,15 +364,15 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
       </div>
 
       <span
-        className={`self-start rounded-full border px-3 py-1 text-xs font-medium ${statusBadge(driver.status)}`}
+        className={`self-start rounded-full border px-3 py-1 text-xs font-medium ${onlineBadge(driver.is_online)}`}
       >
-        {driver.status}
+        {driver.is_online ? "Online" : "Offline"}
       </span>
 
       <div className="space-y-3 text-sm">
         <div className="flex items-center gap-2 text-slate-400">
           <Car className="h-4 w-4 text-slate-600" />
-          {driver.vehicle}
+          {driver.vehicle_model}
         </div>
         <a
           href={`tel:${driver.phone}`}
@@ -410,15 +381,6 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
           <Phone className="h-4 w-4 text-slate-600" />
           {driver.phone}
         </a>
-        {driver.email && (
-          <a
-            href={`mailto:${driver.email}`}
-            className="flex items-center gap-2 truncate text-slate-400 transition hover:text-white"
-          >
-            <Mail className="h-4 w-4 flex-shrink-0 text-slate-600" />
-            {driver.email}
-          </a>
-        )}
         <div className="flex items-center gap-2 text-slate-400">
           <Clock className="h-4 w-4 text-slate-600" />
           {driver.job}
@@ -452,16 +414,15 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
 export default function DriversPage() {
   const router = useRouter();
   const toast = useOperatorToast();
-  const { drivers, updateStatus, createDriver, updateDriver, deleteDriver } = useDrivers();
+  const { drivers, updateOnlineStatus, createDriver, updateDriver, deleteDriver } = useDrivers();
   const { bookings, assignDriver } = useBookings();
   const [assignModal, setAssignModal] = useState(null);
   const [addModal, setAddModal] = useState(false);
   const [editModal, setEditModal] = useState(null);   // driver object to edit
   const [deleteModal, setDeleteModal] = useState(null); // driver object to delete
 
-  const available = drivers.filter((d) => ["Available", "Available soon"].includes(d.status)).length;
-  const active = drivers.filter((d) => ["En route", "Passenger onboard"].includes(d.status)).length;
-  const offDuty = drivers.length - active - available;
+  const online = drivers.filter((d) => d.is_online).length;
+  const offline = drivers.length - online;
 
   const todayJobs = useMemo(() => {
     const today = new Date();
@@ -481,7 +442,7 @@ export default function DriversPage() {
     if (!assignModal) return;
     try {
       await assignDriver(booking.id, assignModal.id);
-      toast({ message: `${booking.customer} → ${assignModal.name}`, type: "success" });
+      toast({ message: `${booking.customer} → ${assignModal.full_name}`, type: "success" });
       setAssignModal(null);
     } catch (err) {
       toast({ message: err?.message ?? "Failed to assign driver", type: "error" });
@@ -490,26 +451,26 @@ export default function DriversPage() {
 
   const handleAddDriver = async (form) => {
     await createDriver(form);
-    toast({ message: `${form.name} added to the fleet`, type: "success" });
+    toast({ message: `${form.full_name} added to the fleet`, type: "success" });
     setAddModal(false);
   };
 
   const handleEditDriver = async (form) => {
     await updateDriver(editModal.id, form);
-    toast({ message: `${form.name} updated`, type: "success" });
+    toast({ message: `${form.full_name} updated`, type: "success" });
     setEditModal(null);
   };
 
   const handleDeleteDriver = async () => {
     await deleteDriver(deleteModal.id);
-    toast({ message: `${deleteModal.name} removed from fleet`, type: "success" });
+    toast({ message: `${deleteModal.full_name} removed from fleet`, type: "success" });
     setDeleteModal(null);
   };
 
-  const handleUpdateStatus = async (id, status) => {
+  const handleToggleOnline = async (id, isOnline) => {
     try {
-      await updateStatus(id, status);
-      toast({ message: `Status updated to ${status}`, type: "success" });
+      await updateOnlineStatus(id, isOnline);
+      toast({ message: `Marked ${isOnline ? "Online" : "Offline"}`, type: "success" });
     } catch (err) {
       toast({ message: err?.message ?? "Failed to update status", type: "error" });
     }
@@ -537,7 +498,12 @@ export default function DriversPage() {
         <DriverFormModal
           title="Edit Driver"
           submitLabel="Save Changes"
-          initial={{ name: editModal.name, phone: editModal.phone === "—" ? "" : editModal.phone, email: editModal.email ?? "", vehicle: editModal.vehicle === "—" ? "" : editModal.vehicle, plate: editModal.plate === "—" ? "" : editModal.plate }}
+          initial={{
+            full_name: editModal.full_name,
+            phone: editModal.phone === "—" ? "" : editModal.phone,
+            vehicle_registration: editModal.vehicle_registration === "—" ? "" : editModal.vehicle_registration,
+            vehicle_model: editModal.vehicle_model === "—" ? "" : editModal.vehicle_model,
+          }}
           onClose={() => setEditModal(null)}
           onSubmit={handleEditDriver}
         />
@@ -552,12 +518,11 @@ export default function DriversPage() {
 
       <div className="grid gap-4 p-4 sm:gap-6 sm:p-6 lg:p-10">
         {/* Stats strip */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
           {[
             { label: "Total Drivers", value: drivers.length, icon: CheckCircle2, color: "text-white" },
-            { label: "On Job", value: active, icon: Car, color: "text-blue-300" },
-            { label: "Available", value: available, icon: CheckCircle2, color: "text-emerald-300" },
-            { label: "Off Duty", value: offDuty < 0 ? 0 : offDuty, icon: UserX, color: "text-slate-400" },
+            { label: "Online", value: online, icon: CheckCircle2, color: "text-emerald-300" },
+            { label: "Offline", value: offline < 0 ? 0 : offline, icon: UserX, color: "text-slate-400" },
           ].map((s) => (
             <div key={s.label} className="card p-4 sm:p-5">
               <div className="mb-2 flex items-center justify-between sm:mb-3">
@@ -604,7 +569,7 @@ export default function DriversPage() {
               key={driver.id}
               driver={driver}
               onAssignJob={setAssignModal}
-              onUpdateStatus={handleUpdateStatus}
+              onToggleOnline={handleToggleOnline}
               onEdit={setEditModal}
               onDelete={setDeleteModal}
             />
