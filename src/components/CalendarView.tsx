@@ -31,7 +31,10 @@ function isoWeekday(date: Date): number {
 function classifyBookings(dayBookings: DbBooking[]) {
   const active = dayBookings.filter((b) => b.status !== "Cancelled");
   const pending = active.filter(
-    (b) => b.status === "Unassigned" || b.status === "Unassigned / Missed Call Recovery"
+    (b) =>
+      b.status === "Unassigned" ||
+      b.status === "Unassigned / Missed Call Recovery" ||
+      b.status === "CRITICAL_UNALLOCATED"
   ).length;
   const confirmed = active.length - pending;
   const hasAirport = active.some((b) => b.flight_number !== null);
