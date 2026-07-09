@@ -10,9 +10,9 @@ import { bookingStatusColor } from "@/lib/operator/statusColor";
 import ETACountdown from "./ETACountdown";
 
 const STATUSES = [
-  "Unassigned", "Dispatched", "En Route",
+  "Unassigned", "Dispatched", "En Route", "Arrived",
   "Passenger On Board", "Completed", "Cancelled",
-  "Unassigned / Missed Call Recovery",
+  "Unassigned / Missed Call Recovery", "CRITICAL_UNALLOCATED",
 ];
 
 function Row({ icon: Icon, label, value, muted }) {
