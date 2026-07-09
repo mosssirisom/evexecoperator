@@ -12,9 +12,11 @@ const CONFIG: Record<BookingStatus, { label: string; dot: string; bg: string; te
   "Unassigned / Missed Call Recovery": { label: "Missed Call",   dot: "bg-orange-400",  bg: "bg-orange-900/30",  text: "text-orange-300", pulse: true  },
   "Dispatched":                    { label: "Dispatched",         dot: "bg-amber-400",   bg: "bg-amber-900/30",   text: "text-amber-300",  pulse: true  },
   "En Route":                      { label: "En Route",           dot: "bg-blue-400",    bg: "bg-blue-900/30",    text: "text-blue-300",   pulse: true  },
+  "Arrived":                       { label: "Arrived",            dot: "bg-cyan-400",    bg: "bg-cyan-900/30",    text: "text-cyan-300",   pulse: true  },
   "Passenger On Board":            { label: "Passenger On Board", dot: "bg-purple-400",  bg: "bg-purple-900/30",  text: "text-purple-300", pulse: true  },
   "Completed":                     { label: "Completed",          dot: "bg-emerald-400", bg: "bg-emerald-900/30", text: "text-emerald-300",pulse: false },
   "Cancelled":                     { label: "Cancelled",          dot: "bg-red-500",     bg: "bg-red-900/30",     text: "text-red-400",    pulse: false },
+  "CRITICAL_UNALLOCATED":          { label: "Critical",           dot: "bg-red-500",     bg: "bg-red-900/40",     text: "text-red-300",    pulse: true  },
 };
 
 export default function StatusBadge({ status, compact = false }: Props) {
