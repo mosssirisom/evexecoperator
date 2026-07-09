@@ -119,10 +119,8 @@ function StatusPicker({ currentStatus, onUpdate }) {
   );
 }
 
-function driverDot(status) {
-  if (status === "Available") return "bg-emerald-400";
-  if (status === "On Trip") return "bg-amber-400";
-  return "bg-slate-600";
+function driverDot(isOnline) {
+  return isOnline ? "bg-emerald-400" : "bg-slate-600";
 }
 
 function DriverPicker({ currentDriverId, drivers, onAssign }) {
@@ -163,9 +161,9 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
           </>
         ) : current ? (
           <>
-            <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${driverDot(current.status)}`} />
-            <span className="flex-1 text-left font-medium">{current.name}</span>
-            <span className="text-xs text-slate-500">{current.vehicle}</span>
+            <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${driverDot(current.is_online)}`} />
+            <span className="flex-1 text-left font-medium">{current.full_name}</span>
+            <span className="text-xs text-slate-500">{current.vehicle_registration ?? current.vehicle_model}</span>
           </>
         ) : (
           <>
@@ -203,9 +201,9 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
                 d.id === currentDriverId ? "text-amber-300" : "text-slate-300"
               }`}
             >
-              <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${driverDot(d.status)}`} />
-              <span className="flex-1 text-left">{d.name}</span>
-              <span className="text-xs text-slate-600">{d.vehicle || d.status}</span>
+              <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${driverDot(d.is_online)}`} />
+              <span className="flex-1 text-left">{d.full_name}</span>
+              <span className="text-xs text-slate-600">{d.vehicle_registration || d.vehicle_model || (d.is_online ? "Online" : "Offline")}</span>
               {d.id === currentDriverId && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
             </button>
           ))}
