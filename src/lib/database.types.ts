@@ -4,10 +4,12 @@ export type BookingStatus =
   | "Unassigned"
   | "Dispatched"
   | "En Route"
+  | "Arrived"
   | "Passenger On Board"
   | "Completed"
   | "Cancelled"
-  | "Unassigned / Missed Call Recovery";
+  | "Unassigned / Missed Call Recovery"
+  | "CRITICAL_UNALLOCATED";
 
 export type PaymentStatus = "Unpaid" | "Paid" | "Invoiced";
 
@@ -32,7 +34,7 @@ export interface DbBooking {
   notes: string | null;
   updated_at: string | null;
   created_at: string | null;
-  drivers?: { name: string } | null;
+  drivers?: { full_name: string } | null;
 
   // Optional extended journey fields from the live public booking schema.
   // These are optional because some internal/operator-created bookings do not
@@ -79,23 +81,35 @@ export type JobProofKind =
   | "completion_photo"
   | "no_show_photo";
 
+// Job proofs live in `booking_photos` (what the driver app actually writes
+// to) — there is no separate `job_proofs` table backing this in the live
+// schema. `kind` is nullable since older/unclassified rows may not have it.
 export interface DbJobProof {
   id: string;
   booking_id: string;
-  kind: JobProofKind;
+  driver_id: string | null;
+  kind: JobProofKind | null;
   url: string;
+  caption: string | null;
   created_at: string | null;
 }
 
 export interface DbDriver {
   id: string;
-  name: string;
-  status: string | null;
-  vehicle: string | null;
-  plate: string | null;
+  full_name: string;
   phone: string | null;
-  email: string | null;
+  vehicle_registration: string | null;
+  vehicle_model: string | null;
+  is_online: boolean;
+  avatar_url: string | null;
   rating: number | null;
+  battery_percent: number | null;
+  current_lat: number | null;
+  current_lng: number | null;
+  location_updated_at: string | null;
+  license_expiry: string | null;
+  dbs_expiry: string | null;
+  pcol_expiry: string | null;
 }
 
 export interface DbMissedCall {
@@ -235,12 +249,7 @@ export interface Database {
         Insert: Omit<DbDriverUnavailableDate, "id" | "created_at">;
         Update: Partial<DbDriverUnavailableDate>;
       };
-      driver_locations: {
-        Row: DbDriverLocation;
-        Insert: Omit<DbDriverLocation, "updated_at">;
-        Update: Partial<DbDriverLocation>;
-      };
-      job_proofs: {
+      booking_photos: {
         Row: DbJobProof;
         Insert: Omit<DbJobProof, "id" | "created_at">;
         Update: Partial<DbJobProof>;
@@ -264,9 +273,11 @@ export interface Database {
 export const STATUS_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
   "Unassigned": ["Dispatched", "Cancelled", "Unassigned / Missed Call Recovery"],
   "Unassigned / Missed Call Recovery": ["Dispatched", "Cancelled"],
-  "Dispatched": ["En Route", "Cancelled"],
-  "En Route": ["Passenger On Board", "Cancelled"],
+  "Dispatched": ["En Route", "Arrived", "Cancelled"],
+  "En Route": ["Arrived", "Passenger On Board", "Cancelled"],
+  "Arrived": ["Passenger On Board", "Cancelled"],
   "Passenger On Board": ["Completed", "Cancelled"],
+  "CRITICAL_UNALLOCATED": ["Dispatched", "Cancelled"],
   "Completed": [],
   "Cancelled": [],
 };
@@ -275,8 +286,10 @@ export const STATUS_NEXT_PRIMARY: Record<BookingStatus, BookingStatus | null> = 
   "Unassigned": "Dispatched",
   "Unassigned / Missed Call Recovery": "Dispatched",
   "Dispatched": "En Route",
-  "En Route": "Passenger On Board",
+  "En Route": "Arrived",
+  "Arrived": "Passenger On Board",
   "Passenger On Board": "Completed",
+  "CRITICAL_UNALLOCATED": "Dispatched",
   "Completed": null,
   "Cancelled": null,
 };
@@ -285,8 +298,10 @@ export const STATUS_NEXT_LABEL: Record<BookingStatus, string | null> = {
   "Unassigned": "Dispatch",
   "Unassigned / Missed Call Recovery": "Dispatch",
   "Dispatched": "Mark En Route",
-  "En Route": "Passenger On Board",
+  "En Route": "Mark Arrived",
+  "Arrived": "Passenger On Board",
   "Passenger On Board": "Complete",
+  "CRITICAL_UNALLOCATED": "Re-dispatch",
   "Completed": null,
   "Cancelled": null,
 };
