@@ -9,22 +9,48 @@ export const LIVE_LOCATION_FRESH_MS = 60_000;
 
 export type DriverLocationMap = Record<string, DbDriverLocation>;
 
+interface DriverPositionRow {
+  id: string;
+  current_lat: number | null;
+  current_lng: number | null;
+  location_updated_at: string | null;
+}
+
+function toLocation(row: DriverPositionRow): DbDriverLocation | null {
+  if (row.current_lat == null || row.current_lng == null) return null;
+  return {
+    driver_id: row.id,
+    lat: row.current_lat,
+    lng: row.current_lng,
+    heading: null,
+    speed: null,
+    accuracy: null,
+    booking_ref: null,
+    updated_at: row.location_updated_at,
+  };
+}
+
 /**
- * Subscribes to live driver positions (P0 #1 of the driver-app audit).
+ * Subscribes to live driver positions.
  *
- * The driver app upserts into `driver_locations` (~every 10s on an active job);
- * this hook keeps an in-memory map keyed by driver_id and updates it in real
- * time via Supabase `postgres_changes`, mirroring the convention in useDrivers.
+ * The driver app writes GPS fixes directly onto `drivers.current_lat` /
+ * `current_lng` / `location_updated_at` — not a separate `driver_locations`
+ * table (that table isn't written to by anything). This hook reads from
+ * `drivers` directly and keeps an in-memory map keyed by driver id, updated
+ * in real time via Supabase `postgres_changes`.
  */
 export function useDriverLocations() {
   const [locations, setLocations] = useState<DriverLocationMap>({});
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
-    const { data } = await supabase.from("driver_locations").select("*");
+    const { data } = await supabase
+      .from("drivers")
+      .select("id, current_lat, current_lng, location_updated_at");
     const map: DriverLocationMap = {};
-    for (const row of (data as DbDriverLocation[]) ?? []) {
-      map[row.driver_id] = row;
+    for (const row of (data as DriverPositionRow[]) ?? []) {
+      const loc = toLocation(row);
+      if (loc) map[row.id] = loc;
     }
     setLocations(map);
     setLoading(false);
@@ -37,19 +63,18 @@ export function useDriverLocations() {
       .channel("driver-locations")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "driver_locations" },
+        { event: "UPDATE", schema: "public", table: "drivers" },
         (payload) => {
-          if (payload.eventType === "DELETE") {
-            const old = payload.old as DbDriverLocation;
-            setLocations((prev) => {
+          const row = payload.new as DriverPositionRow;
+          const loc = toLocation(row);
+          setLocations((prev) => {
+            if (!loc) {
               const next = { ...prev };
-              delete next[old.driver_id];
+              delete next[row.id];
               return next;
-            });
-          } else {
-            const row = payload.new as DbDriverLocation;
-            setLocations((prev) => ({ ...prev, [row.driver_id]: row }));
-          }
+            }
+            return { ...prev, [row.id]: loc };
+          });
         }
       )
       .subscribe();
