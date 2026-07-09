@@ -8,10 +8,12 @@ export const BOOKING_STATUSES = [
   "Unassigned",
   "Dispatched",
   "En Route",
+  "Arrived",
   "Passenger On Board",
   "Completed",
   "Cancelled",
   "Unassigned / Missed Call Recovery",
+  "CRITICAL_UNALLOCATED",
 ];
 
 export const DRIVER_STATUSES = [
