@@ -56,7 +56,7 @@ export function shapedBooking(row) {
     returnRoute,
     vehicleType: row.vehicle_type ?? null,
     contactMethod: row.contact_method ?? null,
-    driver: row.drivers?.name ?? "Unassigned",
+    driver: row.drivers?.full_name ?? "Unassigned",
     driverId: row.driver_id ?? row.assigned_driver_id ?? null,
     price: row.quoted_price ? `£${Number(row.quoted_price).toFixed(0)}` : "TBC",
     status: row.status,
@@ -92,7 +92,7 @@ export function useBookings() {
     try {
       const { data, count, error: err } = await supabase
         .from("bookings")
-        .select("*, drivers!driver_id(name)", { count: "exact" })
+        .select("*, drivers!driver_id(full_name)", { count: "exact" })
         .order("travel_date", { ascending: true })
         .order("travel_time", { ascending: true })
         .range(0, PAGE_SIZE - 1);
@@ -113,7 +113,7 @@ export function useBookings() {
     try {
       const { data, error: err } = await supabase
         .from("bookings")
-        .select("*, drivers!driver_id(name)")
+        .select("*, drivers!driver_id(full_name)")
         .order("travel_date", { ascending: true })
         .order("travel_time", { ascending: true })
         .range(from, from + PAGE_SIZE - 1);
@@ -197,7 +197,7 @@ export function useBookings() {
       const { data: driverRow } = form.driver
         ? await supabase
             .from("drivers")
-            .select("id, name")
+            .select("id, full_name")
             .eq("id", form.driver)
             .single()
         : { data: null };
@@ -238,7 +238,7 @@ export function useBookings() {
         flight: form.flight,
         pickupTime: form.date && form.time ? `${form.date}T${form.time}` : null,
         price: form.price ? `£${form.price}` : "TBC",
-        driver: driverRow?.name ?? null,
+        driver: driverRow?.full_name ?? null,
         status: createdStatus,
       }).catch(() => {});
 
