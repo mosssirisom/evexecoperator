@@ -27,10 +27,12 @@ import { useDrivers } from "@/hooks/operator/useDrivers";
 import { supabase } from "@/lib/supabase";
 import { bookingStatusColor } from "@/lib/operator/statusColor";
 
-function driverDot(status) {
-  if (status === "Available") return "bg-emerald-400";
-  if (status === "On Trip") return "bg-amber-400";
-  return "bg-slate-600";
+function driverDot(isOnline) {
+  return isOnline ? "bg-emerald-400" : "bg-slate-600";
+}
+
+function driverSubtitle(driver) {
+  return driver.vehicle_registration || driver.vehicle_model || (driver.is_online ? "Online" : "Offline");
 }
 
 // Renders in a portal so the dropdown escapes the overflow-x-auto table wrapper
@@ -82,8 +84,8 @@ function InlineDriverCell({ bookingId, currentDriverId, drivers, onAssign }) {
           <Loader2 className="h-3 w-3 animate-spin" />
         ) : current ? (
           <>
-            <span className={`h-2 w-2 flex-shrink-0 rounded-full ${driverDot(current.status)}`} />
-            {current.name}
+            <span className={`h-2 w-2 flex-shrink-0 rounded-full ${driverDot(current.is_online)}`} />
+            {current.full_name}
           </>
         ) : (
           <span className="rounded-full border border-dashed border-amber-400/40 px-2 py-0.5">
@@ -117,9 +119,9 @@ function InlineDriverCell({ bookingId, currentDriverId, drivers, onAssign }) {
                   d.id === currentDriverId ? "text-amber-300" : "text-slate-300"
                 }`}
               >
-                <span className={`h-2 w-2 flex-shrink-0 rounded-full ${driverDot(d.status)}`} />
-                <span className="flex-1 text-left">{d.name}</span>
-                <span className="text-slate-600">{d.vehicle || d.status}</span>
+                <span className={`h-2 w-2 flex-shrink-0 rounded-full ${driverDot(d.is_online)}`} />
+                <span className="flex-1 text-left">{d.full_name}</span>
+                <span className="text-slate-600">{driverSubtitle(d)}</span>
               </button>
             ))}
           </div>,
@@ -325,9 +327,9 @@ function MobileDriverSheet({ booking, drivers, onAssign, onClose }) {
                   isCurrent ? "bg-amber-400/10 text-amber-300" : "text-slate-300 hover:bg-white/5"
                 }`}
               >
-                <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${driverDot(d.status)}`} />
-                <span className="flex-1 text-left font-medium">{d.name}</span>
-                <span className="text-xs text-slate-600">{d.vehicle || d.status}</span>
+                <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${driverDot(d.is_online)}`} />
+                <span className="flex-1 text-left font-medium">{d.full_name}</span>
+                <span className="text-xs text-slate-600">{driverSubtitle(d)}</span>
                 {isCurrent && <Check className="h-4 w-4 flex-shrink-0 ml-1" />}
               </button>
             );
@@ -562,11 +564,11 @@ function DispatchPageContent() {
   const handleAssignDriver = useCallback(async (id, driverId) => {
     const driver = drivers.find((d) => d.id === driverId);
     try {
-      await assignDriver(id, driverId, driver?.name ?? null);
-      toast({ message: driver ? `Assigned to ${driver.name}` : "Driver unassigned", type: "success" });
+      await assignDriver(id, driverId, driver?.full_name ?? null);
+      toast({ message: driver ? `Assigned to ${driver.full_name}` : "Driver unassigned", type: "success" });
       setSelectedBooking((prev) => {
         if (prev?.id !== id) return prev;
-        return { ...prev, driverId, driver: driver?.name ?? "Unassigned" };
+        return { ...prev, driverId, driver: driver?.full_name ?? "Unassigned" };
       });
     } catch (err) {
       toast({ message: err?.message ?? "Failed to assign driver", type: "error" });
