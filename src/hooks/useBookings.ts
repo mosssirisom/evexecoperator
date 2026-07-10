@@ -15,7 +15,7 @@ export function useBookings() {
     setLoading(true);
     const { data, error: err } = await supabase
       .from("bookings")
-      .select("*, drivers!driver_id(name)")
+      .select("*, drivers!driver_id(full_name)")
       .order("travel_date", { ascending: true })
       .order("travel_time", { ascending: true });
 
