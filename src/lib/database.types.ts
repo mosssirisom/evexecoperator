@@ -267,7 +267,8 @@ export const STATUS_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
   "Dispatched": ["En Route", "Cancelled"],
   "En Route": ["Passenger On Board", "Cancelled"],
   "Passenger On Board": ["Completed", "Cancelled"],
-  "Completed": [],
+  // Operators may cancel/void a job even after it was marked complete.
+  "Completed": ["Cancelled"],
   "Cancelled": [],
 };
 
