@@ -312,15 +312,17 @@ function IntegrationSettings({ toast }) {
           />
           <IntegrationItem
             name="Twilio"
-            description="SMS & voice for missed call recovery"
-            connected={false}
-            onAction={() => toast({ message: "Twilio integration coming soon", type: "info" })}
+            description="Customer SMS: confirmations, 24h reminders & status updates"
+            connected={true}
+            actionLabel="Live"
+            onAction={() => toast({ message: "Twilio SMS is live — booking, reminder and status texts are sending", type: "success" })}
           />
           <IntegrationItem
             name="Stripe"
-            description="Payment processing & invoicing"
-            connected={false}
-            onAction={() => toast({ message: "Stripe integration coming soon", type: "info" })}
+            description="Payment links + auto-reconcile webhook (mark Paid on payment)"
+            connected={true}
+            actionLabel="Live"
+            onAction={() => toast({ message: "Stripe payment links are live. Manage keys in the Vercel environment settings.", type: "success" })}
           />
           <IntegrationItem
             name="Google Maps API"

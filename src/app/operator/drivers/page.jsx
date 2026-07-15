@@ -655,43 +655,33 @@ export default function DriversPage() {
               </button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-white/5 text-left">
-                    {["Time", "Customer", "Route", "Driver", "Price", "Status"].map((h) => (
-                      <th
-                        key={h}
-                        className="pb-3 pr-6 text-[10px] font-normal uppercase tracking-[0.2em] text-slate-600"
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.03]">
-                  {todayJobs.map((b) => (
-                    <tr
-                      key={b.id}
-                      onClick={() => router.push("/operator/dispatch")}
-                      className="cursor-pointer transition-colors hover:bg-white/[0.02]"
+            /* Responsive list — no horizontal scroll on mobile */
+            <div className="space-y-2">
+              {todayJobs.map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() => router.push("/operator/dispatch")}
+                  className="flex w-full items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-3 text-left transition hover:border-amber-400/20 hover:bg-white/[0.03]"
+                >
+                  <div className="w-12 flex-shrink-0 text-center">
+                    <p className="text-sm font-semibold text-white">{b.time}</p>
+                  </div>
+                  <div className="h-8 w-px flex-shrink-0 bg-white/10" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-white">{b.customer}</p>
+                    <p className="truncate text-xs text-slate-500">{b.route}</p>
+                    <p className="mt-0.5 truncate text-xs text-slate-600">{b.driver}</p>
+                  </div>
+                  <div className="flex flex-shrink-0 flex-col items-end gap-1">
+                    <span className="text-sm font-semibold text-amber-300">{b.price}</span>
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${bookingStatusColor(b.status)}`}
                     >
-                      <td className="py-3 pr-6 font-semibold text-white">{b.time}</td>
-                      <td className="py-3 pr-6 text-slate-300">{b.customer}</td>
-                      <td className="max-w-[180px] truncate py-3 pr-6 text-slate-400">{b.route}</td>
-                      <td className="py-3 pr-6 text-slate-300">{b.driver}</td>
-                      <td className="py-3 pr-6 font-semibold text-amber-300">{b.price}</td>
-                      <td className="py-3">
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${bookingStatusColor(b.status)}`}
-                        >
-                          {b.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      {b.status}
+                    </span>
+                  </div>
+                </button>
+              ))}
             </div>
           )}
         </div>

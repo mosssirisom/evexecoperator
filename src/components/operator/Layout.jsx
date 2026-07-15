@@ -82,8 +82,21 @@ export default function Layout({ children, onSignOut }) {
   const router = useRouter();
   const meta = pageMeta[pathname] ?? pageMeta["/operator/dispatch"];
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [bellOpen, setBellOpen] = useState(false);
   const [newBookingOpen, setNewBookingOpen] = useState(false);
+
+  // The header search jumps to the Dispatch board filtered by the term — that
+  // board already does the actual customer/flight/ref/driver matching.
+  const submitSearch = useCallback(
+    (e) => {
+      e.preventDefault();
+      const q = searchTerm.trim();
+      setSearchOpen(false);
+      router.push(q ? `/operator/dispatch?q=${encodeURIComponent(q)}` : "/operator/dispatch");
+    },
+    [searchTerm, router]
+  );
   const { calls, resolve, resolveAll } = useMissedCalls();
   const { createBooking } = useBookings();
   const toast = useOperatorToast();
@@ -120,38 +133,45 @@ export default function Layout({ children, onSignOut }) {
 
             {/* Mobile search — expanded inline */}
             {searchOpen && (
-              <div className="flex flex-1 items-center gap-2 sm:hidden">
+              <form onSubmit={submitSearch} className="flex flex-1 items-center gap-2 sm:hidden">
                 <div className="glass flex flex-1 items-center gap-3 rounded-2xl px-4 py-3">
                   <Search className="h-4 w-4 flex-shrink-0 text-slate-500" />
                   <input
                     autoFocus
-                    type="text"
+                    type="search"
+                    enterKeyHint="search"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     aria-label="Search bookings and drivers"
                     placeholder="Search bookings, drivers…"
                     className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-600"
                   />
                 </div>
                 <button
+                  type="button"
                   onClick={() => setSearchOpen(false)}
                   className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-white/10 text-slate-400 transition hover:text-white"
                 >
                   <X className="h-4 w-4" />
                 </button>
-              </div>
+              </form>
             )}
 
             {/* Desktop centre search */}
-            <div className="hidden flex-1 justify-center xl:flex">
+            <form onSubmit={submitSearch} className="hidden flex-1 justify-center xl:flex">
               <div className="glass flex w-full max-w-lg items-center gap-3 rounded-2xl px-4 py-3">
                 <Search className="h-4 w-4 text-slate-500" />
                 <input
-                  type="text"
+                  type="search"
+                  enterKeyHint="search"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   aria-label="Search bookings, flights and drivers"
-                  placeholder="Search bookings, flights, drivers..."
+                  placeholder="Search bookings, flights, drivers…"
                   className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-600"
                 />
               </div>
-            </div>
+            </form>
 
             {/* Right actions */}
             <div className="flex items-center gap-2 sm:gap-3">

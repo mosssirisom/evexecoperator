@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { TrendingUp, Leaf, PoundSterling, Users, Calendar, Trophy, PieChart, CheckCircle2 } from "lucide-react";
+import { TrendingUp, Repeat, PoundSterling, Users, Calendar, Trophy, PieChart, CheckCircle2 } from "lucide-react";
 import { useBookings } from "@/hooks/operator/useBookings";
 import { useDrivers } from "@/hooks/operator/useDrivers";
 
@@ -200,7 +200,6 @@ export default function Analytics() {
     ? todayData.totalBookings
     : bars.reduce((acc, d) => acc + d.bookings, 0);
   const newCustomers = isToday ? todayData.newCustomers : periodData?.newCustomers ?? 0;
-  const co2 = isToday ? todayData.co2 : periodData?.co2 ?? "—";
   const subRevenue = isToday ? todayData.subRevenue : periodData?.subRevenue ?? "";
   const peakDay = isToday
     ? todayData.peakDay
@@ -260,6 +259,19 @@ export default function Analytics() {
     return total > 0 ? Math.round((cancelled / total) * 100) : 0;
   }, [bookings]);
 
+  // Real repeat-customer count: customers (by phone, else name) with >1 booking.
+  const repeatCustomers = useMemo(() => {
+    const counts = new Map();
+    for (const b of bookings) {
+      const key = (b.phone || b.customer || "").trim().toLowerCase();
+      if (!key) continue;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    let n = 0;
+    for (const c of counts.values()) if (c > 1) n++;
+    return n;
+  }, [bookings]);
+
   return (
     <div className="grid gap-6 p-4 sm:p-6 lg:p-10">
       {/* Period selector */}
@@ -303,14 +315,14 @@ export default function Analytics() {
           {
             label: "New Customers",
             value: newCustomers,
-            sub: "Including automation recovery",
+            sub: "First-time this period",
             icon: Users,
           },
           {
-            label: "CO₂ Saved",
-            value: co2,
-            sub: "vs equivalent petrol fleet",
-            icon: Leaf,
+            label: "Repeat Customers",
+            value: repeatCustomers,
+            sub: "Booked more than once",
+            icon: Repeat,
           },
         ].map((kpi) => (
           <div key={kpi.label} className="card p-4 sm:p-5">

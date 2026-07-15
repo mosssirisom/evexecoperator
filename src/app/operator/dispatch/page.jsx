@@ -481,7 +481,7 @@ export default function DispatchPage() {
 function DispatchPageContent() {
   const searchParams = useSearchParams();
   const [activeFilter, setActiveFilter] = useState("All");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [view, setView] = useState(
     searchParams.get("view") === "schedule" ? "schedule" : "board"
   );
@@ -514,6 +514,8 @@ function DispatchPageContent() {
 
   useEffect(() => {
     if (searchParams.get("view") === "schedule") setView("schedule");
+    const q = searchParams.get("q");
+    if (q != null) setSearch(q);
   }, [searchParams]);
 
   // Keyboard shortcuts: N = new booking, / or F = focus search
