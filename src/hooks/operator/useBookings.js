@@ -223,6 +223,10 @@ export function useBookings() {
           status:             driverRow ? "Dispatched" : "Unassigned",
           payment_status:     "Unpaid",
           notes:              form.notes?.trim() || null,
+          // Tag as an operator booking so the DB trigger sends the customer the
+          // confirmation, 24h reminder and status-update SMS (website bookings
+          // get theirs from the public site, so they're gated out).
+          source:             "operator",
         });
 
         if (!insertErr) { succeeded = true; break; }
