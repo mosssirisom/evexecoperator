@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, Bell, X, LogOut, Plus } from "lucide-react";
+import { Search, Bell, X, LogOut, Plus, CalendarPlus, PhoneMissed } from "lucide-react";
 import Sidebar from "./Sidebar";
 import LiveClock from "./LiveClock";
 import RealtimeDot from "./RealtimeDot";
@@ -10,7 +10,9 @@ import ErrorBoundary from "./ErrorBoundary";
 import BookingModal from "./BookingModal";
 import { useOperatorToast } from "./Toast";
 import { useMissedCalls } from "@/hooks/operator/useMissedCalls";
+import { useNewBookingAlerts } from "@/hooks/operator/useNewBookingAlerts";
 import { useBookings } from "@/hooks/operator/useBookings";
+import { playNewBookingChime } from "@/lib/operator/notificationSound";
 
 const pageMeta = {
   "/operator/dispatch": { label: "Live Operations", title: "Live Dispatch" },
@@ -19,7 +21,16 @@ const pageMeta = {
   "/operator/settings": { label: "System", title: "Settings" },
 };
 
-function NotificationPopover({ calls, onClose, onResolve, onResolveAll }) {
+function NotificationPopover({
+  newBookings,
+  calls,
+  onClose,
+  onResolve,
+  onResolveAll,
+  onOpenBooking,
+  onDismissBooking,
+  onClearBookings,
+}) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -28,17 +39,19 @@ function NotificationPopover({ calls, onClose, onResolve, onResolveAll }) {
     return () => document.removeEventListener("pointerdown", h);
   }, [onClose]);
 
+  const total = newBookings.length + calls.length;
+
   return (
     <div
       ref={ref}
       className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-white/10 bg-[#0B132B] shadow-2xl sm:w-80"
     >
       <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400">Alerts</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400">Notifications</p>
         <div className="flex items-center gap-2">
-          {calls.length > 0 && (
+          {total > 0 && (
             <button
-              onClick={onResolveAll}
+              onClick={() => { onResolveAll(); onClearBookings(); }}
               className="text-[10px] text-slate-400 hover:text-amber-300 transition"
               title="Mark all as read"
             >
@@ -50,27 +63,69 @@ function NotificationPopover({ calls, onClose, onResolve, onResolveAll }) {
           </button>
         </div>
       </div>
-      <div className="max-h-72 overflow-y-auto">
-        {calls.length === 0 ? (
-          <p className="py-6 text-center text-sm text-slate-600">No pending alerts</p>
-        ) : (
-          calls.map((c) => (
-            <div key={c.id} className="flex items-start gap-3 border-b border-white/5 px-4 py-3 last:border-0">
-              <div className="mt-0.5 h-2 w-2 flex-shrink-0 rounded-full bg-red-400" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white">{c.caller}</p>
-                <p className="mt-0.5 text-xs text-slate-500 truncate">{c.notes || "Missed call"}</p>
-                <p className="mt-0.5 text-[10px] text-slate-600">{c.time}</p>
+
+      <div className="max-h-80 overflow-y-auto">
+        {total === 0 && (
+          <p className="py-6 text-center text-sm text-slate-600">You're all caught up</p>
+        )}
+
+        {/* New bookings */}
+        {newBookings.length > 0 && (
+          <>
+            <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-400/80">
+              New bookings
+            </p>
+            {newBookings.map((b) => (
+              <div key={`b-${b.id}`} className="flex items-start gap-3 border-b border-white/5 px-4 py-3 last:border-0">
+                <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-400/10">
+                  <CalendarPlus className="h-3.5 w-3.5 text-emerald-300" />
+                </div>
+                <button onClick={() => onOpenBooking(b)} className="min-w-0 flex-1 text-left">
+                  <p className="truncate text-sm font-medium text-white">{b.customer}</p>
+                  <p className="mt-0.5 truncate text-xs text-slate-500">{b.route}</p>
+                  <p className="mt-0.5 text-[10px] text-slate-600">
+                    {b.source === "website" ? "Online booking" : "New booking"}
+                    {b.time ? ` · ${b.time}` : ""} · {b.ref}
+                  </p>
+                </button>
+                <button
+                  onClick={() => onDismissBooking(b.id)}
+                  className="mt-0.5 flex-shrink-0 text-slate-600 hover:text-white transition"
+                  title="Dismiss"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
               </div>
-              <button
-                onClick={() => onResolve(c.id)}
-                className="mt-0.5 flex-shrink-0 text-slate-600 hover:text-white transition"
-                title="Dismiss"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))
+            ))}
+          </>
+        )}
+
+        {/* Missed calls */}
+        {calls.length > 0 && (
+          <>
+            <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-red-400/80">
+              Missed calls
+            </p>
+            {calls.map((c) => (
+              <div key={`c-${c.id}`} className="flex items-start gap-3 border-b border-white/5 px-4 py-3 last:border-0">
+                <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-red-400/10">
+                  <PhoneMissed className="h-3.5 w-3.5 text-red-300" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white">{c.caller}</p>
+                  <p className="mt-0.5 text-xs text-slate-500 truncate">{c.notes || "Missed call"}</p>
+                  <p className="mt-0.5 text-[10px] text-slate-600">{c.time}</p>
+                </div>
+                <button
+                  onClick={() => onResolve(c.id)}
+                  className="mt-0.5 flex-shrink-0 text-slate-600 hover:text-white transition"
+                  title="Dismiss"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </>
         )}
       </div>
     </div>
@@ -100,7 +155,26 @@ export default function Layout({ children, onSignOut }) {
   const { calls, resolve, resolveAll } = useMissedCalls();
   const { createBooking } = useBookings();
   const toast = useOperatorToast();
-  const alertCount = calls.length;
+
+  // Real-time new-booking alerts: toast + chime on arrival, and a running list
+  // in the bell. Ignores bookings this operator just created themselves.
+  const handleNewBooking = useCallback((b) => {
+    toast({
+      message: `New booking — ${b.customer}${b.route && b.route !== "New booking" ? ` (${b.route})` : ""}`,
+      type: "success",
+    });
+    playNewBookingChime();
+  }, [toast]);
+  const { newBookings, clear: clearNewBookings, dismiss: dismissNewBooking } =
+    useNewBookingAlerts({ onNew: handleNewBooking });
+
+  const alertCount = calls.length + newBookings.length;
+
+  const openBooking = useCallback((b) => {
+    setBellOpen(false);
+    dismissNewBooking(b.id);
+    router.push(`/operator/dispatch?q=${encodeURIComponent(b.ref)}`);
+  }, [router, dismissNewBooking]);
 
   // Dispatch has its own New Booking controls; show the global button elsewhere.
   const showNewBooking = pathname !== "/operator/dispatch";
@@ -205,10 +279,14 @@ export default function Layout({ children, onSignOut }) {
                 </button>
                 {bellOpen && (
                   <NotificationPopover
+                    newBookings={newBookings}
                     calls={calls}
                     onClose={() => setBellOpen(false)}
                     onResolve={resolve}
                     onResolveAll={resolveAll}
+                    onOpenBooking={openBooking}
+                    onDismissBooking={dismissNewBooking}
+                    onClearBookings={clearNewBookings}
                   />
                 )}
               </div>

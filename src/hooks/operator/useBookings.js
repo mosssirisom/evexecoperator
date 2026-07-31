@@ -12,6 +12,7 @@ import {
   generateBookingRef,
   sanitizeText,
 } from "@/lib/operator/validation";
+import { markBookingCreated } from "@/lib/operator/recentBookingRefs";
 
 function compact(value) {
   return value ? String(value).split(",")[0] : null;
@@ -233,6 +234,9 @@ export function useBookings() {
         if (insertErr.code !== "23505") throw new Error(insertErr.message);
       }
       if (!succeeded) throw new Error("Failed to generate a unique booking reference after 3 attempts. Please try again.");
+
+      // Suppress the new-booking alert for a booking this operator just made.
+      markBookingCreated(ref);
 
       const createdStatus = driverRow ? "Dispatched" : "Unassigned";
       dispatchJobToDriverApp({
