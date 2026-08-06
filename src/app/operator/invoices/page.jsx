@@ -2,7 +2,8 @@
 
 import React, { useMemo, useState, useCallback } from "react";
 import {
-  FileText, Plus, X, Printer, Trash2, Check, PoundSterling, Send, CircleDollarSign, Clock,
+  FileText, Plus, X, Printer, Trash2, Check, Send, CircleDollarSign, Clock,
+  MapPin, Plane, Users, Briefcase, Car, CalendarClock,
 } from "lucide-react";
 import { useInvoices, computeTotals } from "@/hooks/operator/useInvoices";
 import { useBookings } from "@/hooks/operator/useBookings";
@@ -25,17 +26,31 @@ function statusChip(status) {
   }
 }
 
+// Human date/time for the printed sheet.
+function niceDate(d) {
+  if (!d) return null;
+  const dt = new Date(`${d}T00:00:00`);
+  if (isNaN(dt)) return d;
+  return dt.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+}
+function journeyHasContent(j) {
+  return j && (j.pickup || j.dropoff || j.date || j.time || j.flight || j.passengers || j.luggage || j.vehicle || j.returnDate);
+}
+
 const inputCls =
   "w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-amber-400/40";
+const labelCls = "mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500";
 
 /* ─── Create-invoice modal ──────────────────────────────────────────────── */
 function InvoiceModal({ open, onClose, onCreate, bookings }) {
   const blankItem = { description: "", quantity: 1, unit_price: "" };
+  const emptyJourney = { pickup: "", dropoff: "", date: "", time: "", flight: "", passengers: "", luggage: "", vehicle: "", returnDate: "", returnTime: "" };
   const [customer, setCustomer] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [bookingRef, setBookingRef] = useState("");
+  const [journey, setJourney] = useState({ ...emptyJourney });
   const [items, setItems] = useState([{ ...blankItem }]);
   const [vatRate, setVatRate] = useState(0);
   const [issueDate, setIssueDate] = useState(today());
@@ -46,23 +61,46 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
 
   const reset = () => {
     setCustomer(""); setEmail(""); setPhone(""); setAddress(""); setBookingRef("");
+    setJourney({ ...emptyJourney });
     setItems([{ ...blankItem }]); setVatRate(0); setIssueDate(today()); setDueDate("");
     setNotes(""); setErr(null);
   };
 
+  const setJ = (key, val) => setJourney((prev) => ({ ...prev, [key]: val }));
+
   const prefillFromBooking = (ref) => {
     setBookingRef(ref);
+    if (!ref) { setJourney({ ...emptyJourney }); return; }
     const b = bookings.find((x) => x.id === ref);
     if (!b) return;
     setCustomer(b.customer || "");
-    setPhone(b.phone || "");
-    setEmail(b.email || "");
-    const price = b.price && b.price !== "TBC" ? Number(b.price.replace(/[^0-9.]/g, "")) : "";
-    setItems([{
-      description: `Airport transfer${b.route && b.route !== "—" ? ` — ${b.route}` : ""}${b.travelDate ? ` (${b.travelDate})` : ""}`,
-      quantity: 1,
-      unit_price: price,
-    }]);
+    setPhone(b.phone && b.phone !== "—" ? b.phone : "");
+    setEmail(b.email && b.email !== "—" ? b.email : "");
+
+    const pickup = b.pickupLocation && b.pickupLocation !== "—" ? b.pickupLocation : (b.airport && b.airport !== "—" ? b.airport : "");
+    const dropoff = b.dropoffAddress && b.dropoffAddress !== "—" ? b.dropoffAddress : "";
+    const j = {
+      pickup,
+      dropoff,
+      date: b.travelDate || "",
+      time: b.time && b.time !== "—" ? b.time : "",
+      flight: b.flight && b.flight !== "—" ? b.flight : "",
+      passengers: b.passengers != null ? String(b.passengers) : "",
+      luggage: b.luggage != null ? String(b.luggage) : "",
+      vehicle: b.vehicleType && b.vehicleType !== "—" ? b.vehicleType : "",
+      returnDate: b.returnJourney && b.returnDate ? b.returnDate : "",
+      returnTime: b.returnJourney && b.returnTime ? b.returnTime : "",
+    };
+    setJourney(j);
+
+    const routeText = b.route && b.route !== "—" ? b.route : [pickup, dropoff].filter(Boolean).join(" → ");
+    const price = b.price && b.price !== "TBC" ? Number(String(b.price).replace(/[^0-9.]/g, "")) : "";
+    const desc = `Airport transfer${routeText ? ` — ${routeText}` : ""}`;
+    const seeded = [{ description: desc, quantity: 1, unit_price: price }];
+    if (b.returnJourney && b.returnRoute) {
+      seeded.push({ description: `Return transfer — ${b.returnRoute}`, quantity: 1, unit_price: "" });
+    }
+    setItems(seeded);
   };
 
   const setItem = (i, key, val) =>
@@ -82,8 +120,13 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
       const cleanItems = items
         .filter((it) => it.description.trim())
         .map((it) => ({ description: it.description.trim(), quantity: Number(it.quantity) || 1, unit_price: Number(it.unit_price) || 0 }));
+      // Keep only journey fields the operator actually filled in.
+      const cleanJourney = Object.fromEntries(
+        Object.entries(journey).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v]).filter(([, v]) => v !== "" && v != null)
+      );
       await onCreate({
         customer, email, phone, address, bookingRef: bookingRef || null,
+        journey: cleanJourney,
         lineItems: cleanItems, vatRate, issueDate, dueDate: dueDate || null, notes, status: "Draft",
       });
       reset();
@@ -109,42 +152,84 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {bookings.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500">Prefill from booking</p>
+              <p className={labelCls}>Prefill from booking</p>
               <select value={bookingRef} onChange={(e) => prefillFromBooking(e.target.value)} className={inputCls}>
                 <option value="">— none (manual) —</option>
                 {bookings.slice(0, 60).map((b) => (
                   <option key={b.id} value={b.id}>{b.id} · {b.customer} · {b.price}</option>
                 ))}
               </select>
+              <p className="mt-1 text-[10px] text-slate-600">Pulls in the customer, journey and price — you can edit anything below.</p>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <p className="mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500">Customer name *</p>
+              <p className={labelCls}>Customer name *</p>
               <input value={customer} onChange={(e) => setCustomer(e.target.value)} className={inputCls} placeholder="Customer or company" />
             </div>
             <div>
-              <p className="mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500">Email</p>
+              <p className={labelCls}>Email</p>
               <input value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="name@email.com" />
             </div>
             <div>
-              <p className="mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500">Phone</p>
+              <p className={labelCls}>Phone</p>
               <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} placeholder="Phone" />
             </div>
             <div className="col-span-2">
-              <p className="mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500">Billing address</p>
+              <p className={labelCls}>Billing address</p>
               <input value={address} onChange={(e) => setAddress(e.target.value)} className={inputCls} placeholder="Address (optional)" />
             </div>
           </div>
 
-          {/* Line items */}
+          {/* Journey details — the heart of an airport-transfer invoice */}
+          <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-3">
+            <p className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-amber-400/80">
+              <MapPin className="h-3 w-3" /> Journey details
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <p className={labelCls}>Pickup address</p>
+                <input value={journey.pickup} onChange={(e) => setJ("pickup", e.target.value)} className={inputCls} placeholder="e.g. 12 High St, Guildford GU1" />
+              </div>
+              <div className="col-span-2">
+                <p className={labelCls}>Drop-off address</p>
+                <input value={journey.dropoff} onChange={(e) => setJ("dropoff", e.target.value)} className={inputCls} placeholder="e.g. Heathrow Terminal 5" />
+              </div>
+              <div>
+                <p className={labelCls}>Date</p>
+                <input type="date" value={journey.date} onChange={(e) => setJ("date", e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <p className={labelCls}>Pickup time</p>
+                <input value={journey.time} onChange={(e) => setJ("time", e.target.value)} className={inputCls} placeholder="e.g. 06:30" />
+              </div>
+              <div>
+                <p className={labelCls}>Flight no.</p>
+                <input value={journey.flight} onChange={(e) => setJ("flight", e.target.value)} className={inputCls} placeholder="e.g. BA2772" />
+              </div>
+              <div>
+                <p className={labelCls}>Vehicle</p>
+                <input value={journey.vehicle} onChange={(e) => setJ("vehicle", e.target.value)} className={inputCls} placeholder="e.g. Executive" />
+              </div>
+              <div>
+                <p className={labelCls}>Passengers</p>
+                <input value={journey.passengers} onChange={(e) => setJ("passengers", e.target.value)} inputMode="numeric" className={inputCls} placeholder="e.g. 2" />
+              </div>
+              <div>
+                <p className={labelCls}>Luggage</p>
+                <input value={journey.luggage} onChange={(e) => setJ("luggage", e.target.value)} inputMode="numeric" className={inputCls} placeholder="e.g. 3" />
+              </div>
+            </div>
+          </div>
+
+          {/* Line items — what's being charged */}
           <div>
-            <p className="mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500">Line items</p>
+            <p className={labelCls}>Charges</p>
             <div className="space-y-2">
               {items.map((it, i) => (
                 <div key={i} className="flex items-start gap-2">
-                  <input value={it.description} onChange={(e) => setItem(i, "description", e.target.value)} className={inputCls + " flex-1"} placeholder="Description" />
+                  <input value={it.description} onChange={(e) => setItem(i, "description", e.target.value)} className={inputCls + " flex-1"} placeholder="What's being charged" />
                   <input value={it.quantity} onChange={(e) => setItem(i, "quantity", e.target.value)} inputMode="numeric" className={inputCls + " w-14 text-center"} placeholder="Qty" />
                   <input value={it.unit_price} onChange={(e) => setItem(i, "unit_price", e.target.value)} inputMode="decimal" className={inputCls + " w-20"} placeholder="£" />
                   <button onClick={() => removeItem(i)} className="mt-1 flex-shrink-0 text-slate-600 hover:text-red-300" title="Remove line"><X className="h-4 w-4" /></button>
@@ -152,29 +237,29 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
               ))}
             </div>
             <button onClick={addItem} className="mt-2 inline-flex items-center gap-1.5 text-xs text-amber-300 hover:text-amber-200">
-              <Plus className="h-3.5 w-3.5" /> Add line
+              <Plus className="h-3.5 w-3.5" /> Add charge
             </button>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500">VAT</p>
+              <p className={labelCls}>VAT</p>
               <select value={vatRate} onChange={(e) => setVatRate(Number(e.target.value))} className={inputCls}>
                 {VAT_RATES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
             </div>
             <div>
-              <p className="mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500">Issue date</p>
+              <p className={labelCls}>Issue date</p>
               <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <p className="mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500">Due date</p>
+              <p className={labelCls}>Due date</p>
               <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={inputCls} />
             </div>
           </div>
 
           <div>
-            <p className="mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500">Notes / payment terms</p>
+            <p className={labelCls}>Notes / payment terms</p>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={inputCls} placeholder="e.g. Payment due within 14 days. Bank: …" />
           </div>
 
@@ -194,6 +279,38 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
             {busy ? "Creating…" : "Create Invoice"}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Journey block for the printed sheet ───────────────────────────────── */
+function JourneyDetails({ journey: j }) {
+  if (!journeyHasContent(j)) return null;
+  const rows = [
+    { icon: MapPin, label: "Pickup", value: j.pickup },
+    { icon: MapPin, label: "Drop-off", value: j.dropoff },
+    { icon: CalendarClock, label: "Date & time", value: [niceDate(j.date), j.time].filter(Boolean).join(" · ") || null },
+    { icon: Plane, label: "Flight", value: j.flight },
+    { icon: Car, label: "Vehicle", value: j.vehicle },
+    { icon: Users, label: "Passengers", value: j.passengers },
+    { icon: Briefcase, label: "Luggage", value: j.luggage },
+    { icon: CalendarClock, label: "Return", value: j.returnDate ? [niceDate(j.returnDate), j.returnTime].filter(Boolean).join(" · ") : null },
+  ].filter((r) => r.value);
+
+  return (
+    <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-5">
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Journey details</p>
+      <div className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-start gap-2">
+            <r.icon className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
+            <div className="min-w-0">
+              <span className="text-slate-500">{r.label}: </span>
+              <span className="font-medium text-slate-800">{r.value}</span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -228,8 +345,8 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete }) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-2xl font-black tracking-tight">EV EXEC</p>
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Airport Transfers</p>
-              <p className="mt-2 text-xs text-slate-500">evexec.co.uk</p>
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Executive Airport Transfers</p>
+              <p className="mt-2 text-xs text-slate-500">evexec.co.uk · bookings@evexec.co.uk</p>
             </div>
             <div className="text-right">
               <p className="text-xl font-bold text-slate-800">INVOICE</p>
@@ -251,11 +368,13 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete }) {
               {inv.phone && <p className="text-slate-600">{inv.phone}</p>}
             </div>
             <div className="text-right">
-              <p className="text-slate-500">Issue date: <span className="font-medium text-slate-800">{inv.issueDate || "—"}</span></p>
-              {inv.dueDate && <p className="mt-1 text-slate-500">Due date: <span className="font-medium text-slate-800">{inv.dueDate}</span></p>}
-              {inv.bookingRef && <p className="mt-1 text-slate-500">Booking: <span className="font-medium text-slate-800">{inv.bookingRef}</span></p>}
+              <p className="text-slate-500">Issue date: <span className="font-medium text-slate-800">{niceDate(inv.issueDate) || inv.issueDate || "—"}</span></p>
+              {inv.dueDate && <p className="mt-1 text-slate-500">Due date: <span className="font-medium text-slate-800">{niceDate(inv.dueDate) || inv.dueDate}</span></p>}
+              {inv.bookingRef && <p className="mt-1 text-slate-500">Booking ref: <span className="font-medium text-slate-800">{inv.bookingRef}</span></p>}
             </div>
           </div>
+
+          <JourneyDetails journey={inv.journey} />
 
           <table className="mt-8 w-full text-sm">
             <thead>
@@ -282,7 +401,7 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete }) {
             <div className="w-full max-w-xs space-y-1 text-sm">
               <div className="flex justify-between text-slate-500"><span>Subtotal</span><span>{money(inv.subtotal)}</span></div>
               {inv.vatRate > 0 && <div className="flex justify-between text-slate-500"><span>VAT ({Math.round(inv.vatRate * 100)}%)</span><span>{money(inv.vatAmount)}</span></div>}
-              <div className="flex justify-between border-t-2 border-slate-200 pt-2 text-base font-bold text-slate-900"><span>Total</span><span>{money(inv.total)}</span></div>
+              <div className="flex justify-between border-t-2 border-slate-200 pt-2 text-base font-bold text-slate-900"><span>Total due</span><span>{money(inv.total)}</span></div>
             </div>
           </div>
 
@@ -423,7 +542,10 @@ export default function InvoicesPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-white">{inv.customer}</p>
-                    <p className="truncate text-xs text-slate-500">{inv.number}{inv.issueDate ? ` · ${inv.issueDate}` : ""}</p>
+                    <p className="truncate text-xs text-slate-500">
+                      {inv.number}{inv.issueDate ? ` · ${inv.issueDate}` : ""}
+                      {inv.journey?.pickup || inv.journey?.dropoff ? ` · ${[inv.journey.pickup, inv.journey.dropoff].filter(Boolean).join(" → ")}` : ""}
+                    </p>
                   </div>
                   <div className="flex flex-shrink-0 flex-col items-end gap-1">
                     <span className="text-sm font-bold text-amber-300">{money(inv.total)}</span>

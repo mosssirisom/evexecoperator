@@ -22,6 +22,9 @@ create table if not exists public.invoices (
   customer_phone text,
   customer_address text,
   line_items     jsonb not null default '[]'::jsonb,
+  -- Structured airport-transfer details (pickup, dropoff, date, time, flight,
+  -- passengers, luggage, vehicle, return) rendered on the printed invoice.
+  journey        jsonb not null default '{}'::jsonb,
   subtotal       numeric not null default 0,
   vat_rate       numeric not null default 0,
   vat_amount     numeric not null default 0,
