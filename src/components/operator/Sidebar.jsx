@@ -12,6 +12,7 @@ import {
   Car,
   BookOpen,
   CalendarDays,
+  FileText,
 } from "lucide-react";
 import { PORTALS } from "@/lib/operator/portals";
 
@@ -22,6 +23,7 @@ const navItems = [
   { label: "Calendar", icon: CalendarDays, href: "/" },
   { label: "Dispatch", icon: Route, href: "/operator/dispatch" },
   { label: "Drivers", icon: Users, href: "/operator/drivers" },
+  { label: "Invoices", icon: FileText, href: "/operator/invoices" },
   { label: "Analytics", icon: BarChart3, href: "/operator/analytics" },
   { label: "Settings", icon: Settings, href: "/operator/settings" },
 ];

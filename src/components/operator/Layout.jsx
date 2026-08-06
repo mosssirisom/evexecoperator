@@ -17,6 +17,7 @@ import { playNewBookingChime } from "@/lib/operator/notificationSound";
 const pageMeta = {
   "/operator/dispatch": { label: "Live Operations", title: "Live Dispatch" },
   "/operator/drivers": { label: "Fleet", title: "Driver Management" },
+  "/operator/invoices": { label: "Billing", title: "Invoices" },
   "/operator/analytics": { label: "Insights", title: "Analytics" },
   "/operator/settings": { label: "System", title: "Settings" },
 };
