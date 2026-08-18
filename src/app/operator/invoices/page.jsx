@@ -4,6 +4,7 @@ import React, { useMemo, useState, useCallback } from "react";
 import {
   FileText, Plus, X, Printer, Trash2, Check, Send, CircleDollarSign, Clock,
   MapPin, Plane, Users, Briefcase, Car, CalendarClock,
+  Calendar, CreditCard, Gem, Phone, Mail, Globe,
 } from "lucide-react";
 import { useInvoices, computeTotals } from "@/hooks/operator/useInvoices";
 import { useBookings } from "@/hooks/operator/useBookings";
@@ -13,6 +14,21 @@ const VAT_RATES = [
   { label: "No VAT", value: 0 },
   { label: "VAT 20%", value: 0.2 },
 ];
+
+// Brand colours from the EV Exec invoice template.
+const NAVY = "#0f1c3c";
+const GOLD = "#d7a23f";
+
+// Fixed company details shown on every invoice (from EV Exec's letterhead).
+const COMPANY = {
+  addressLines: ["EV Exec", "Wheeler Hub Drive", "Blackpool, FY2 0FD", "United Kingdom"],
+  phone: "07721 070370",
+  email: "book@evexec.co.uk",
+  web: "evexec.co.uk",
+  tagline1: "ELEVATING EXPERIENCES",
+  tagline2: "DRIVING EXCELLENCE.",
+};
+const DEFAULT_TERMS = "Payment is due within 15 days of invoice date.\nBank Transfer / BACS Preferred.";
 
 const money = (n) => `£${(Number(n) || 0).toFixed(2)}`;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -26,20 +42,89 @@ function statusChip(status) {
   }
 }
 
-// Human date/time for the printed sheet.
-function niceDate(d) {
+// "7th August 2026" for the printed date.
+function longDate(d) {
   if (!d) return null;
   const dt = new Date(`${d}T00:00:00`);
   if (isNaN(dt)) return d;
-  return dt.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  const day = dt.getDate();
+  const s = day % 10 === 1 && day !== 11 ? "st" : day % 10 === 2 && day !== 12 ? "nd" : day % 10 === 3 && day !== 13 ? "rd" : "th";
+  return `${day}${s} ${dt.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}`;
 }
-function journeyHasContent(j) {
-  return j && (j.pickup || j.dropoff || j.date || j.time || j.flight || j.passengers || j.luggage || j.vehicle || j.returnDate);
+// "4/11/26" compact date used inside description lines.
+function shortDate(d) {
+  if (!d) return null;
+  const dt = new Date(`${d}T00:00:00`);
+  if (isNaN(dt)) return d;
+  return `${dt.getDate()}/${dt.getMonth() + 1}/${String(dt.getFullYear()).slice(2)}`;
+}
+
+// Journey → the muted description sub-lines shown under a charge (mirrors how
+// EV Exec write transfers: "Pick up 08.30 4/11/26", "Return MAN T2 17.05 …").
+function journeyLines(j) {
+  if (!j) return [];
+  const lines = [];
+  if (j.pickup) lines.push(`Pick-up: ${j.pickup}`);
+  const pu = [j.time, shortDate(j.date)].filter(Boolean).join("  ");
+  if (pu) lines.push(`Pick-up time: ${pu}`);
+  if (j.dropoff) lines.push(`Drop-off: ${j.dropoff}`);
+  if (j.flight) lines.push(`Flight: ${j.flight}`);
+  const ret = [j.returnTime, shortDate(j.returnDate)].filter(Boolean).join("  ");
+  if (ret) lines.push(`Return: ${ret}`);
+  const veh = [j.vehicle, j.passengers ? `${j.passengers} pax` : null, j.luggage ? `${j.luggage} bags` : null].filter(Boolean).join("  ·  ");
+  if (veh) lines.push(veh);
+  return lines;
 }
 
 const inputCls =
   "w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-amber-400/40";
 const labelCls = "mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500";
+
+/* ─── EV Exec emblem (inline SVG — self-contained, prints crisp) ─────────── */
+function EvExecEmblem({ size = 92 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id="evGold" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#f6d98a" />
+          <stop offset="0.5" stopColor="#d7a23f" />
+          <stop offset="1" stopColor="#a9781f" />
+        </linearGradient>
+        <clipPath id="evDisc"><circle cx="60" cy="60" r="50" /></clipPath>
+      </defs>
+      {/* Ring */}
+      <circle cx="60" cy="60" r="55" fill={NAVY} stroke="url(#evGold)" strokeWidth="4" />
+      {/* Diagonal gold stripes inside the disc */}
+      <g clipPath="url(#evDisc)" opacity="0.9">
+        <rect x="-10" y="8" width="150" height="7" transform="rotate(35 60 60)" fill="url(#evGold)" opacity="0.55" />
+        <rect x="-10" y="26" width="150" height="7" transform="rotate(35 60 60)" fill="url(#evGold)" opacity="0.35" />
+        <rect x="-10" y="-10" width="150" height="7" transform="rotate(35 60 60)" fill="url(#evGold)" opacity="0.35" />
+      </g>
+      {/* Sports-car silhouette */}
+      <path
+        d="M30 71c1-5 5-8 11-9l9-9c5-4 15-5 21-1l8 6c6 1 10 4 13 8l3 5H30z"
+        fill="url(#evGold)"
+      />
+      <circle cx="46" cy="76" r="6" fill={NAVY} stroke="url(#evGold)" strokeWidth="2.5" />
+      <circle cx="82" cy="76" r="6" fill={NAVY} stroke="url(#evGold)" strokeWidth="2.5" />
+      {/* Lightning bolt */}
+      <path d="M64 30 52 55h8l-5 16 18-27h-9l6-14z" fill="url(#evGold)" stroke={NAVY} strokeWidth="1" />
+    </svg>
+  );
+}
+
+function InvoiceLogo() {
+  return (
+    <div className="flex flex-col items-start">
+      <EvExecEmblem size={86} />
+      <p className="mt-2 text-2xl font-black tracking-[0.12em]" style={{ color: GOLD }}>EV EXEC</p>
+      <div className="mt-1 h-px w-28" style={{ background: GOLD, opacity: 0.6 }} />
+      <p className="mt-1.5 text-[9px] font-semibold leading-relaxed tracking-[0.28em]" style={{ color: GOLD }}>
+        {COMPANY.tagline1}<br />{COMPANY.tagline2}
+      </p>
+    </div>
+  );
+}
 
 /* ─── Create-invoice modal ──────────────────────────────────────────────── */
 function InvoiceModal({ open, onClose, onCreate, bookings }) {
@@ -79,9 +164,8 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
 
     const pickup = b.pickupLocation && b.pickupLocation !== "—" ? b.pickupLocation : (b.airport && b.airport !== "—" ? b.airport : "");
     const dropoff = b.dropoffAddress && b.dropoffAddress !== "—" ? b.dropoffAddress : "";
-    const j = {
-      pickup,
-      dropoff,
+    setJourney({
+      pickup, dropoff,
       date: b.travelDate || "",
       time: b.time && b.time !== "—" ? b.time : "",
       flight: b.flight && b.flight !== "—" ? b.flight : "",
@@ -90,13 +174,11 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
       vehicle: b.vehicleType && b.vehicleType !== "—" ? b.vehicleType : "",
       returnDate: b.returnJourney && b.returnDate ? b.returnDate : "",
       returnTime: b.returnJourney && b.returnTime ? b.returnTime : "",
-    };
-    setJourney(j);
+    });
 
     const routeText = b.route && b.route !== "—" ? b.route : [pickup, dropoff].filter(Boolean).join(" → ");
     const price = b.price && b.price !== "TBC" ? Number(String(b.price).replace(/[^0-9.]/g, "")) : "";
-    const desc = `Airport transfer${routeText ? ` — ${routeText}` : ""}`;
-    const seeded = [{ description: desc, quantity: 1, unit_price: price }];
+    const seeded = [{ description: `Airport transfer${routeText ? ` — ${routeText}` : ""}`, quantity: 1, unit_price: price }];
     if (b.returnJourney && b.returnRoute) {
       seeded.push({ description: `Return transfer — ${b.returnRoute}`, quantity: 1, unit_price: "" });
     }
@@ -120,7 +202,6 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
       const cleanItems = items
         .filter((it) => it.description.trim())
         .map((it) => ({ description: it.description.trim(), quantity: Number(it.quantity) || 1, unit_price: Number(it.unit_price) || 0 }));
-      // Keep only journey fields the operator actually filled in.
       const cleanJourney = Object.fromEntries(
         Object.entries(journey).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v]).filter(([, v]) => v !== "" && v != null)
       );
@@ -178,11 +259,11 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
             </div>
             <div className="col-span-2">
               <p className={labelCls}>Billing address</p>
-              <input value={address} onChange={(e) => setAddress(e.target.value)} className={inputCls} placeholder="Address (optional)" />
+              <input value={address} onChange={(e) => setAddress(e.target.value)} className={inputCls} placeholder="Address (shown under Invoice To)" />
             </div>
           </div>
 
-          {/* Journey details — the heart of an airport-transfer invoice */}
+          {/* Journey details */}
           <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-3">
             <p className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-amber-400/80">
               <MapPin className="h-3 w-3" /> Journey details
@@ -190,11 +271,11 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <p className={labelCls}>Pickup address</p>
-                <input value={journey.pickup} onChange={(e) => setJ("pickup", e.target.value)} className={inputCls} placeholder="e.g. 12 High St, Guildford GU1" />
+                <input value={journey.pickup} onChange={(e) => setJ("pickup", e.target.value)} className={inputCls} placeholder="e.g. 27 Springbrook Avenue, FY5 3SN" />
               </div>
               <div className="col-span-2">
                 <p className={labelCls}>Drop-off address</p>
-                <input value={journey.dropoff} onChange={(e) => setJ("dropoff", e.target.value)} className={inputCls} placeholder="e.g. Heathrow Terminal 5" />
+                <input value={journey.dropoff} onChange={(e) => setJ("dropoff", e.target.value)} className={inputCls} placeholder="e.g. Manchester Airport T2" />
               </div>
               <div>
                 <p className={labelCls}>Date</p>
@@ -202,11 +283,11 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
               </div>
               <div>
                 <p className={labelCls}>Pickup time</p>
-                <input value={journey.time} onChange={(e) => setJ("time", e.target.value)} className={inputCls} placeholder="e.g. 06:30" />
+                <input value={journey.time} onChange={(e) => setJ("time", e.target.value)} className={inputCls} placeholder="e.g. 08.30" />
               </div>
               <div>
                 <p className={labelCls}>Flight no.</p>
-                <input value={journey.flight} onChange={(e) => setJ("flight", e.target.value)} className={inputCls} placeholder="e.g. BA2772" />
+                <input value={journey.flight} onChange={(e) => setJ("flight", e.target.value)} className={inputCls} placeholder="e.g. EZY2010" />
               </div>
               <div>
                 <p className={labelCls}>Vehicle</p>
@@ -220,10 +301,18 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
                 <p className={labelCls}>Luggage</p>
                 <input value={journey.luggage} onChange={(e) => setJ("luggage", e.target.value)} inputMode="numeric" className={inputCls} placeholder="e.g. 3" />
               </div>
+              <div>
+                <p className={labelCls}>Return date</p>
+                <input type="date" value={journey.returnDate} onChange={(e) => setJ("returnDate", e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <p className={labelCls}>Return time</p>
+                <input value={journey.returnTime} onChange={(e) => setJ("returnTime", e.target.value)} className={inputCls} placeholder="e.g. 17.05" />
+              </div>
             </div>
           </div>
 
-          {/* Line items — what's being charged */}
+          {/* Line items */}
           <div>
             <p className={labelCls}>Charges</p>
             <div className="space-y-2">
@@ -259,11 +348,10 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
           </div>
 
           <div>
-            <p className={labelCls}>Notes / payment terms</p>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={inputCls} placeholder="e.g. Payment due within 14 days. Bank: …" />
+            <p className={labelCls}>Payment terms / notes</p>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={inputCls} placeholder={"Leave blank for the standard terms:\nPayment due within 15 days · Bank Transfer / BACS preferred"} />
           </div>
 
-          {/* Totals preview */}
           <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-sm">
             <div className="flex justify-between text-slate-400"><span>Subtotal</span><span>{money(totals.subtotal)}</span></div>
             {vatRate > 0 && <div className="mt-1 flex justify-between text-slate-400"><span>VAT ({Math.round(vatRate * 100)}%)</span><span>{money(totals.vatAmount)}</span></div>}
@@ -284,41 +372,13 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
   );
 }
 
-/* ─── Journey block for the printed sheet ───────────────────────────────── */
-function JourneyDetails({ journey: j }) {
-  if (!journeyHasContent(j)) return null;
-  const rows = [
-    { icon: MapPin, label: "Pickup", value: j.pickup },
-    { icon: MapPin, label: "Drop-off", value: j.dropoff },
-    { icon: CalendarClock, label: "Date & time", value: [niceDate(j.date), j.time].filter(Boolean).join(" · ") || null },
-    { icon: Plane, label: "Flight", value: j.flight },
-    { icon: Car, label: "Vehicle", value: j.vehicle },
-    { icon: Users, label: "Passengers", value: j.passengers },
-    { icon: Briefcase, label: "Luggage", value: j.luggage },
-    { icon: CalendarClock, label: "Return", value: j.returnDate ? [niceDate(j.returnDate), j.returnTime].filter(Boolean).join(" · ") : null },
-  ].filter((r) => r.value);
-
-  return (
-    <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-5">
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Journey details</p>
-      <div className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
-        {rows.map((r) => (
-          <div key={r.label} className="flex items-start gap-2">
-            <r.icon className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
-            <div className="min-w-0">
-              <span className="text-slate-500">{r.label}: </span>
-              <span className="font-medium text-slate-800">{r.value}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ─── Printable invoice preview ─────────────────────────────────────────── */
+/* ─── Printable invoice — EV Exec navy & gold template ──────────────────── */
 function InvoicePreview({ invoice, onClose, onStatus, onDelete }) {
   const inv = invoice;
+  const jLines = journeyLines(inv.journey);
+  const terms = (inv.notes && inv.notes.trim()) || DEFAULT_TERMS;
+  const exact = { WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" };
+
   return (
     <div className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm">
       <div className="w-full max-w-2xl">
@@ -340,79 +400,155 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete }) {
           </div>
         </div>
 
-        {/* The invoice sheet — white document, prints on its own */}
-        <div className="invoice-print rounded-2xl bg-white p-8 text-slate-900 shadow-2xl sm:p-10">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-2xl font-black tracking-tight">EV EXEC</p>
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Executive Airport Transfers</p>
-              <p className="mt-2 text-xs text-slate-500">evexec.co.uk · bookings@evexec.co.uk</p>
+        {/* The invoice sheet */}
+        <div className="invoice-print overflow-hidden rounded-2xl bg-white text-slate-900 shadow-2xl" style={exact}>
+          {/* ── Header band ── */}
+          <div className="relative px-8 pt-8 pb-14 sm:px-10" style={{ backgroundColor: NAVY, ...exact }}>
+            <div className="flex items-start justify-between gap-4">
+              <InvoiceLogo />
+              <div className="text-right">
+                <p className="text-3xl font-light tracking-[0.35em]" style={{ color: GOLD }}>INVOICE</p>
+                <div className="ml-auto mt-2 h-0.5 w-24" style={{ background: GOLD }} />
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-xl font-bold text-slate-800">INVOICE</p>
-              <p className="mt-1 text-sm font-semibold text-slate-700">{inv.number}</p>
-              <span className={`mt-2 inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
-                inv.status === "Paid" ? "border-emerald-500 text-emerald-700"
-                : inv.status === "Sent" ? "border-blue-500 text-blue-700"
-                : inv.status === "Void" ? "border-slate-400 text-slate-500"
-                : "border-amber-500 text-amber-700"}`}>{inv.status}</span>
-            </div>
+            {/* angled gold accent toward the white body */}
+            <svg className="absolute inset-x-0 bottom-0 h-8 w-full" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+              <polygon points="0,10 100,10 100,3 55,10" fill="#ffffff" />
+              <line x1="55" y1="10" x2="100" y2="3" stroke={GOLD} strokeWidth="0.4" />
+            </svg>
           </div>
 
-          <div className="mt-8 grid grid-cols-2 gap-6 text-sm">
+          {/* ── Bill-to + meta ── */}
+          <div className="grid grid-cols-2 gap-6 px-8 pt-6 text-sm sm:px-10">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Bill to</p>
-              <p className="mt-1 font-semibold text-slate-800">{inv.customer}</p>
-              {inv.address && <p className="text-slate-600">{inv.address}</p>}
-              {inv.email && <p className="text-slate-600">{inv.email}</p>}
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Invoice to</p>
+              <p className="mt-2 text-lg font-bold text-slate-900">{inv.customer}</p>
+              {inv.address && inv.address.split(/,\s*/).map((ln, i) => (
+                <p key={i} className="text-slate-600">{ln}</p>
+              ))}
+              {inv.email && <p className="mt-1 text-slate-600">{inv.email}</p>}
               {inv.phone && <p className="text-slate-600">{inv.phone}</p>}
             </div>
-            <div className="text-right">
-              <p className="text-slate-500">Issue date: <span className="font-medium text-slate-800">{niceDate(inv.issueDate) || inv.issueDate || "—"}</span></p>
-              {inv.dueDate && <p className="mt-1 text-slate-500">Due date: <span className="font-medium text-slate-800">{niceDate(inv.dueDate) || inv.dueDate}</span></p>}
-              {inv.bookingRef && <p className="mt-1 text-slate-500">Booking ref: <span className="font-medium text-slate-800">{inv.bookingRef}</span></p>}
+            <div className="border-l pl-6" style={{ borderColor: `${GOLD}55` }}>
+              <div className="flex items-start gap-3">
+                <Calendar className="mt-0.5 h-5 w-5" style={{ color: GOLD }} />
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Date</p>
+                  <p className="mt-0.5 font-medium text-slate-800">{longDate(inv.issueDate) || inv.issueDate || "—"}</p>
+                </div>
+              </div>
+              <div className="my-3 h-px w-full" style={{ background: `${GOLD}33` }} />
+              <div className="flex items-start gap-3">
+                <FileText className="mt-0.5 h-5 w-5" style={{ color: GOLD }} />
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Invoice number</p>
+                  <p className="mt-0.5 font-medium text-slate-800">{inv.number}</p>
+                  {inv.status !== "Draft" && (
+                    <span className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                      inv.status === "Paid" ? "border-emerald-500 text-emerald-700"
+                      : inv.status === "Sent" ? "border-blue-500 text-blue-700"
+                      : "border-slate-400 text-slate-500"}`}>{inv.status}</span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-          <JourneyDetails journey={inv.journey} />
-
-          <table className="mt-8 w-full text-sm">
-            <thead>
-              <tr className="border-b-2 border-slate-200 text-left text-[11px] uppercase tracking-wider text-slate-400">
-                <th className="pb-2">Description</th>
-                <th className="pb-2 text-center">Qty</th>
-                <th className="pb-2 text-right">Unit</th>
-                <th className="pb-2 text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {inv.lineItems.map((li, i) => (
-                <tr key={i} className="border-b border-slate-100">
-                  <td className="py-2.5 text-slate-700">{li.description}</td>
-                  <td className="py-2.5 text-center text-slate-600">{li.quantity}</td>
-                  <td className="py-2.5 text-right text-slate-600">{money(li.unit_price)}</td>
-                  <td className="py-2.5 text-right font-medium text-slate-800">{money((Number(li.quantity) || 0) * (Number(li.unit_price) || 0))}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <div className="mt-4 flex justify-end">
-            <div className="w-full max-w-xs space-y-1 text-sm">
-              <div className="flex justify-between text-slate-500"><span>Subtotal</span><span>{money(inv.subtotal)}</span></div>
-              {inv.vatRate > 0 && <div className="flex justify-between text-slate-500"><span>VAT ({Math.round(inv.vatRate * 100)}%)</span><span>{money(inv.vatAmount)}</span></div>}
-              <div className="flex justify-between border-t-2 border-slate-200 pt-2 text-base font-bold text-slate-900"><span>Total due</span><span>{money(inv.total)}</span></div>
+          {/* ── Line-items table ── */}
+          <div className="px-8 pt-6 sm:px-10">
+            <div className="overflow-hidden rounded-sm border" style={{ borderColor: `${GOLD}66` }}>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ backgroundColor: NAVY, ...exact }}>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: GOLD }}>Description</th>
+                    <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: GOLD }}>Qty</th>
+                    <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: GOLD }}>Unit Price</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: GOLD }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inv.lineItems.map((li, i) => (
+                    <tr key={i} className="align-top" style={{ borderTop: i === 0 ? "none" : `1px solid ${GOLD}22` }}>
+                      <td className="px-4 py-3 text-slate-700">
+                        <p className="font-medium text-slate-800">{li.description}</p>
+                        {i === 0 && jLines.length > 0 && (
+                          <div className="mt-1 space-y-0.5">
+                            {jLines.map((l, k) => <p key={k} className="text-[11px] text-slate-500">{l}</p>)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-center text-slate-600">{li.quantity}</td>
+                      <td className="px-3 py-3 text-center text-slate-600">{money(li.unit_price)}</td>
+                      <td className="px-4 py-3 text-center font-medium text-slate-800">{money((Number(li.quantity) || 0) * (Number(li.unit_price) || 0))}</td>
+                    </tr>
+                  ))}
+                  {/* spacer to give the table body some height like the template */}
+                  <tr><td colSpan={4} className="py-6" /></tr>
+                  {/* Subtotal */}
+                  <tr style={{ borderTop: `1px solid ${GOLD}66` }}>
+                    <td className="px-4 py-2.5" />
+                    <td colSpan={2} className="px-3 py-2.5 text-center text-[12px] font-bold uppercase tracking-wider text-slate-600" style={{ borderLeft: `1px solid ${GOLD}66` }}>Subtotal</td>
+                    <td className="px-4 py-2.5 text-center font-medium text-slate-800">{money(inv.subtotal)}</td>
+                  </tr>
+                  {/* Tax */}
+                  <tr style={{ borderTop: `1px solid ${GOLD}66` }}>
+                    <td className="px-4 py-2.5" />
+                    <td colSpan={2} className="px-3 py-2.5 text-center text-[12px] font-bold uppercase tracking-wider text-slate-600" style={{ borderLeft: `1px solid ${GOLD}66` }}>
+                      Tax ({Math.round((inv.vatRate || 0) * 100)}%)
+                    </td>
+                    <td className="px-4 py-2.5 text-center font-medium text-slate-800">{money(inv.vatAmount)}</td>
+                  </tr>
+                  {/* Total */}
+                  <tr style={{ backgroundColor: NAVY, ...exact }}>
+                    <td className="px-4 py-3.5" />
+                    <td colSpan={2} className="px-3 py-3.5 text-center text-lg font-bold uppercase tracking-wider" style={{ color: GOLD }}>Total</td>
+                    <td className="px-4 py-3.5 text-center text-lg font-black" style={{ color: GOLD }}>{money(inv.total)}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {inv.notes && (
-            <div className="mt-8 border-t border-slate-100 pt-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Notes</p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{inv.notes}</p>
+          {/* ── Payment terms + thank you ── */}
+          <div className="grid grid-cols-2 gap-6 px-8 py-8 sm:px-10">
+            <div className="flex items-start gap-3">
+              <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border-2" style={{ borderColor: GOLD }}>
+                <CreditCard className="h-5 w-5" style={{ color: GOLD }} />
+              </span>
+              <div>
+                <p className="text-[12px] font-bold uppercase tracking-[0.15em] text-slate-800">Payment terms</p>
+                <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-slate-600">{terms}</p>
+              </div>
             </div>
-          )}
+            <div className="flex items-start gap-3 border-l pl-6" style={{ borderColor: `${GOLD}33` }}>
+              <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border-2" style={{ borderColor: GOLD }}>
+                <Gem className="h-5 w-5" style={{ color: GOLD }} />
+              </span>
+              <div>
+                <p className="text-[12px] font-bold uppercase tracking-[0.15em] text-slate-800">Thank you</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-600">We appreciate your business and look forward to our continued partnership.</p>
+              </div>
+            </div>
+          </div>
 
-          <p className="mt-8 text-center text-xs text-slate-400">Thank you for travelling with EV Exec.</p>
+          {/* ── Footer band ── */}
+          <div className="flex flex-wrap items-center justify-between gap-4 px-8 py-5 text-[11px] sm:px-10" style={{ backgroundColor: NAVY, ...exact }}>
+            <div className="flex items-start gap-2">
+              <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: GOLD }} />
+              <div className="leading-snug text-slate-200">
+                {COMPANY.addressLines.map((l, i) => <p key={i}>{l}</p>)}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-slate-200">
+              <Phone className="h-4 w-4" style={{ color: GOLD }} /> {COMPANY.phone}
+            </div>
+            <div className="flex items-center gap-2 text-slate-200">
+              <Mail className="h-4 w-4" style={{ color: GOLD }} /> {COMPANY.email}
+            </div>
+            <div className="flex items-center gap-2 text-slate-200">
+              <Globe className="h-4 w-4" style={{ color: GOLD }} /> {COMPANY.web}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -470,10 +606,10 @@ export default function InvoicesPage() {
 
   return (
     <>
-      {/* Print isolation: only the invoice sheet prints */}
+      {/* Print isolation: only the invoice sheet prints, with backgrounds intact */}
       <style>{`@media print {
         body * { visibility: hidden !important; }
-        .invoice-print, .invoice-print * { visibility: visible !important; }
+        .invoice-print, .invoice-print * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         .invoice-print { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; border-radius: 0 !important; }
         .no-print { display: none !important; }
       }`}</style>
