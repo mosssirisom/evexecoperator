@@ -9,14 +9,16 @@ import {
 import { useInvoices, computeTotals } from "@/hooks/operator/useInvoices";
 import { useBookings } from "@/hooks/operator/useBookings";
 import { useOperatorToast } from "@/components/operator/Toast";
+import { EV_EXEC_LOGO } from "@/lib/operator/brandLogo";
 
 const VAT_RATES = [
   { label: "No VAT", value: 0 },
   { label: "VAT 20%", value: 0.2 },
 ];
 
-// Brand colours from the EV Exec invoice template.
-const NAVY = "#0f1c3c";
+// Brand colours. NAVY matches the logo's own flat background (#04080f) so the
+// real EV Exec badge blends into the header/footer bands with no visible box.
+const NAVY = "#04080f";
 const GOLD = "#d7a23f";
 
 // Fixed company details shown on every invoice (from EV Exec's letterhead).
@@ -64,13 +66,16 @@ function shortDate(d) {
 function journeyLines(j) {
   if (!j) return [];
   const lines = [];
-  if (j.pickup) lines.push(`Pick-up: ${j.pickup}`);
-  const pu = [j.time, shortDate(j.date)].filter(Boolean).join("  ");
-  if (pu) lines.push(`Pick-up time: ${pu}`);
-  if (j.dropoff) lines.push(`Drop-off: ${j.dropoff}`);
-  if (j.flight) lines.push(`Flight: ${j.flight}`);
-  const ret = [j.returnTime, shortDate(j.returnDate)].filter(Boolean).join("  ");
-  if (ret) lines.push(`Return: ${ret}`);
+  if (j.pickup) lines.push(j.pickup);
+  const pu = ["Pick up", j.time, shortDate(j.date)].filter(Boolean).join(" ");
+  if (j.time || j.date) lines.push(pu);
+  const hasReturn = j.returnDate || j.returnTime;
+  if (!hasReturn) {
+    if (j.dropoff) lines.push(`Drop-off ${j.dropoff}`);
+    if (j.flight) lines.push(`Flight ${j.flight}`);
+  } else {
+    lines.push(["Return", j.dropoff, j.returnTime, shortDate(j.returnDate), j.flight].filter(Boolean).join(" "));
+  }
   const veh = [j.vehicle, j.passengers ? `${j.passengers} pax` : null, j.luggage ? `${j.luggage} bags` : null].filter(Boolean).join("  ·  ");
   if (veh) lines.push(veh);
   return lines;
@@ -80,45 +85,13 @@ const inputCls =
   "w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-amber-400/40";
 const labelCls = "mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500";
 
-/* ─── EV Exec emblem (inline SVG — self-contained, prints crisp) ─────────── */
-function EvExecEmblem({ size = 92 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <defs>
-        <linearGradient id="evGold" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#f6d98a" />
-          <stop offset="0.5" stopColor="#d7a23f" />
-          <stop offset="1" stopColor="#a9781f" />
-        </linearGradient>
-        <clipPath id="evDisc"><circle cx="60" cy="60" r="50" /></clipPath>
-      </defs>
-      {/* Ring */}
-      <circle cx="60" cy="60" r="55" fill={NAVY} stroke="url(#evGold)" strokeWidth="4" />
-      {/* Diagonal gold stripes inside the disc */}
-      <g clipPath="url(#evDisc)" opacity="0.9">
-        <rect x="-10" y="8" width="150" height="7" transform="rotate(35 60 60)" fill="url(#evGold)" opacity="0.55" />
-        <rect x="-10" y="26" width="150" height="7" transform="rotate(35 60 60)" fill="url(#evGold)" opacity="0.35" />
-        <rect x="-10" y="-10" width="150" height="7" transform="rotate(35 60 60)" fill="url(#evGold)" opacity="0.35" />
-      </g>
-      {/* Sports-car silhouette */}
-      <path
-        d="M30 71c1-5 5-8 11-9l9-9c5-4 15-5 21-1l8 6c6 1 10 4 13 8l3 5H30z"
-        fill="url(#evGold)"
-      />
-      <circle cx="46" cy="76" r="6" fill={NAVY} stroke="url(#evGold)" strokeWidth="2.5" />
-      <circle cx="82" cy="76" r="6" fill={NAVY} stroke="url(#evGold)" strokeWidth="2.5" />
-      {/* Lightning bolt */}
-      <path d="M64 30 52 55h8l-5 16 18-27h-9l6-14z" fill="url(#evGold)" stroke={NAVY} strokeWidth="1" />
-    </svg>
-  );
-}
-
 function InvoiceLogo() {
   return (
     <div className="flex flex-col items-start">
-      <EvExecEmblem size={86} />
-      <p className="mt-2 text-2xl font-black tracking-[0.12em]" style={{ color: GOLD }}>EV EXEC</p>
-      <div className="mt-1 h-px w-28" style={{ background: GOLD, opacity: 0.6 }} />
+      {/* Real EV Exec badge — its background is the same navy as the header band */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={EV_EXEC_LOGO} alt="EV Exec" className="h-32 w-auto" />
+      <div className="mt-1 h-px w-40" style={{ background: GOLD, opacity: 0.55 }} />
       <p className="mt-1.5 text-[9px] font-semibold leading-relaxed tracking-[0.28em]" style={{ color: GOLD }}>
         {COMPANY.tagline1}<br />{COMPANY.tagline2}
       </p>
