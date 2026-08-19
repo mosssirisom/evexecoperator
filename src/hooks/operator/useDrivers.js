@@ -96,7 +96,6 @@ export function useDrivers() {
       plate,
       status: "Available",
       rating: 5.0,
-      password: "evexec2026",
     });
     if (err) throw new Error(err.message);
     await fetchDrivers();
