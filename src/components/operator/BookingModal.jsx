@@ -9,6 +9,13 @@ const AIRPORTS = [
   "Liverpool Airport (LPL)",
   "Leeds Bradford Airport (LBA)",
   "Birmingham Airport (BHX)",
+  "Blackpool Airport (BLK)",
+  "London Heathrow (LHR)",
+  "London Gatwick (LGW)",
+  "East Midlands Airport (EMA)",
+  "Newcastle Airport (NCL)",
+  "Glasgow Airport (GLA)",
+  "Edinburgh Airport (EDI)",
 ];
 
 const DESTINATIONS = [
@@ -18,7 +25,6 @@ const DESTINATIONS = [
   "Preston",
   "Southport",
   "Chorley",
-  "Custom address…",
 ];
 
 function getSuggestedPrice(airport) {
@@ -87,6 +93,7 @@ const empty = {
   direction: "Airport → Destination",
   airport: "",
   destination: "",
+  bespoke: false,
   customAddress: "",
   flight: "",
   date: "",
@@ -123,8 +130,18 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues })
       setSubmitting(false);
       setSubmitError(null);
     } else {
-      // Pre-fill with initial values when provided (e.g. return journey)
-      setForm(initialValues ? { ...empty, ...initialValues } : empty);
+      // Pre-fill with initial values when provided (e.g. return journey). If the
+      // prefilled destination isn't one of the listed towns, treat it as bespoke.
+      const iv = initialValues ? { ...empty, ...initialValues } : { ...empty };
+      if (iv.destination && iv.destination !== "Custom address…" && !DESTINATIONS.includes(iv.destination)) {
+        iv.bespoke = true;
+        iv.customAddress = iv.customAddress || iv.destination;
+        iv.destination = "";
+      } else if (iv.destination === "Custom address…") {
+        iv.bespoke = true;
+        iv.destination = "";
+      }
+      setForm(iv);
       // Focus first focusable element when modal opens
       setTimeout(() => {
         const first = dialogRef.current?.querySelector(
@@ -170,20 +187,22 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues })
   );
 
   useEffect(() => {
-    if (!form.airport || !form.destination || form.destination === "Custom address…") return;
+    if (!form.airport || form.bespoke || !form.destination) return;
     if (form.price) return; // don't override a pre-filled price
     const suggested = getSuggestedPrice(form.airport);
     if (suggested !== null) setForm((f) => ({ ...f, price: String(suggested) }));
-  }, [form.airport, form.destination]);
+  }, [form.airport, form.destination, form.bespoke]);
 
   function validate() {
     const e = {};
     if (!form.customer.trim()) e.customer = "Customer name is required";
     if (!form.phone.trim()) e.phone = "Phone number is required";
     if (!form.airport) e.airport = "Airport is required";
-    if (!form.destination) e.destination = "Destination is required";
-    if (form.destination === "Custom address…" && !form.customAddress.trim())
-      e.customAddress = "Please enter the address";
+    if (form.bespoke) {
+      if (!form.customAddress.trim()) e.customAddress = "Please enter the address";
+    } else if (!form.destination) {
+      e.destination = "Destination is required";
+    }
     if (!form.date) e.date = "Date is required";
     if (!form.time) e.time = "Pickup time is required";
     if (form.returnJourney) {
@@ -303,15 +322,25 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues })
                   <Field label="Airport" icon={Plane} error={errors.airport}>
                     <Select value={form.airport} onChange={set("airport")} options={AIRPORTS} placeholder="Select airport" />
                   </Field>
-                  <Field label="Destination" icon={MapPin} error={errors.destination}>
-                    <Select value={form.destination} onChange={set("destination")} options={DESTINATIONS} placeholder="Select destination" />
-                  </Field>
+                  {form.bespoke ? (
+                    <Field label="Bespoke Address" icon={MapPin} error={errors.customAddress}>
+                      <Input value={form.customAddress} onChange={set("customAddress")} placeholder="Enter full address" />
+                    </Field>
+                  ) : (
+                    <Field label="Destination" icon={MapPin} error={errors.destination}>
+                      <Select value={form.destination} onChange={set("destination")} options={DESTINATIONS} placeholder="Select destination" />
+                    </Field>
+                  )}
                 </div>
-                {form.destination === "Custom address…" && (
-                  <Field label="Custom Address" error={errors.customAddress}>
-                    <Input value={form.customAddress} onChange={set("customAddress")} placeholder="Enter full address" />
-                  </Field>
-                )}
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={form.bespoke}
+                    onChange={(e) => set("bespoke")(e.target.checked)}
+                    className="h-4 w-4 accent-amber-500"
+                  />
+                  Bespoke / custom address (not a listed destination)
+                </label>
               </div>
             </div>
 

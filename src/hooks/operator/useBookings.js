@@ -189,8 +189,8 @@ export function useBookings() {
       validateBookingPayload(form);
 
       const dest =
-        form.destination === "Custom address…"
-          ? form.customAddress.trim()
+        form.bespoke || form.destination === "Custom address…"
+          ? (form.customAddress || "").trim()
           : form.destination;
 
       if (!isConfigured) throw new Error("Database not configured. Please add Supabase credentials.");

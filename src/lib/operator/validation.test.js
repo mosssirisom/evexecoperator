@@ -92,6 +92,21 @@ describe("validateBookingPayload", () => {
     ).not.toThrow();
   });
 
+  it("throws when bespoke is ticked but no address is given", () => {
+    const err = getValidationError(() =>
+      validateBookingPayload(validForm({ bespoke: true, destination: "", customAddress: "" }))
+    );
+    expect(err.field).toBe("customAddress");
+  });
+
+  it("passes bespoke address with no listed destination", () => {
+    expect(() =>
+      validateBookingPayload(
+        validForm({ bespoke: true, destination: "", customAddress: "42 Fake Street" })
+      )
+    ).not.toThrow();
+  });
+
   it("throws when date is missing", () => {
     const err = getValidationError(() => validateBookingPayload(validForm({ date: "" })));
     expect(err.field).toBe("date");
