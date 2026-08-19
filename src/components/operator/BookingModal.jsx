@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { X, Plane, MapPin, Clock, User, Car, PoundSterling, ChevronDown } from "lucide-react";
+import { X, Plane, MapPin, Clock, User, Car, PoundSterling, ChevronDown, ArrowLeftRight } from "lucide-react";
 import { useDrivers } from "@/hooks/operator/useDrivers";
 
 const AIRPORTS = [
@@ -91,6 +91,10 @@ const empty = {
   flight: "",
   date: "",
   time: "",
+  returnJourney: false,
+  returnDate: "",
+  returnTime: "",
+  returnFlight: "",
   driver: "",
   price: "",
   notes: "",
@@ -182,6 +186,10 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues })
       e.customAddress = "Please enter the address";
     if (!form.date) e.date = "Date is required";
     if (!form.time) e.time = "Pickup time is required";
+    if (form.returnJourney) {
+      if (!form.returnDate) e.returnDate = "Return date is required";
+      if (!form.returnTime) e.returnTime = "Return time is required";
+    }
     return e;
   }
 
@@ -320,6 +328,43 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues })
                   <Input value={form.time} onChange={set("time")} type="time" />
                 </Field>
               </div>
+            </div>
+
+            {/* Return journey */}
+            <div>
+              <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                <span className="flex items-center gap-2 text-sm font-medium text-white">
+                  <ArrowLeftRight className="h-4 w-4 text-amber-400" />
+                  Add return journey
+                </span>
+                <input
+                  type="checkbox"
+                  checked={form.returnJourney}
+                  onChange={(e) => set("returnJourney")(e.target.checked)}
+                  className="h-5 w-5 accent-amber-500"
+                />
+              </label>
+
+              {form.returnJourney && (
+                <div className="mt-4 grid gap-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field label="Return Date" error={errors.returnDate}>
+                      <Input value={form.returnDate} onChange={set("returnDate")} type="date" />
+                    </Field>
+                    <Field label="Return Pickup Time" icon={Clock} error={errors.returnTime}>
+                      <Input value={form.returnTime} onChange={set("returnTime")} type="time" />
+                    </Field>
+                  </div>
+                  <Field label="Return Flight Number (optional)" icon={Plane}>
+                    <Input value={form.returnFlight} onChange={set("returnFlight")} placeholder="EK018" />
+                  </Field>
+                  {form.airport && (form.destination || form.customAddress) && (
+                    <p className="text-xs text-slate-500">
+                      Return runs {form.destination === "Custom address…" ? form.customAddress || "your address" : form.destination} → {form.airport}, booked as its own job on the board.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Driver + Price */}

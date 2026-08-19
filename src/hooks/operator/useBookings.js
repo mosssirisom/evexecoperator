@@ -203,42 +203,49 @@ export function useBookings() {
             .single()
         : { data: null };
 
-      let ref;
-      let succeeded = false;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        ref = generateBookingRef();
-        const { error: insertErr } = await supabase.from("bookings").insert({
-          ref,
-          customer_name:      sanitizeText(form.customer, 120),
-          customer_phone:     sanitizeText(form.phone, 30),
-          customer_email:     form.email?.trim() || null,
-          flight_number:      form.flight?.trim() || null,
-          direction:          form.direction,
-          airport:            form.airport,
-          dropoff_address:    dest,
-          travel_date:        form.date || null,
-          travel_time:        form.time || null,
-          driver_id:          driverRow?.id ?? null,
-          assigned_driver_id: driverRow?.id ?? null,
-          quoted_price:       form.price ? Number(form.price) : null,
-          status:             driverRow ? "Dispatched" : "Unassigned",
-          payment_status:     "Unpaid",
-          notes:              form.notes?.trim() || null,
-          // Tag as an operator booking so the DB trigger sends the customer the
-          // confirmation, 24h reminder and status-update SMS (website bookings
-          // get theirs from the public site, so they're gated out).
-          source:             "operator",
-        });
+      // Insert one booking row, retrying on a ref collision (23505). Returns the ref.
+      const insertLeg = async (fields) => {
+        let ref;
+        let succeeded = false;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          ref = generateBookingRef();
+          const { error: insertErr } = await supabase.from("bookings").insert({ ref, ...fields });
+          if (!insertErr) { succeeded = true; break; }
+          if (insertErr.code !== "23505") throw new Error(insertErr.message);
+        }
+        if (!succeeded) throw new Error("Failed to generate a unique booking reference after 3 attempts. Please try again.");
+        return ref;
+      };
 
-        if (!insertErr) { succeeded = true; break; }
-        if (insertErr.code !== "23505") throw new Error(insertErr.message);
-      }
-      if (!succeeded) throw new Error("Failed to generate a unique booking reference after 3 attempts. Please try again.");
+      // Shared customer/meta for both legs. `source: "operator"` tags the booking
+      // so the DB trigger sends the customer the confirmation, 24h reminder and
+      // status-update SMS (website bookings get theirs from the public site).
+      const shared = {
+        customer_name:  sanitizeText(form.customer, 120),
+        customer_phone: sanitizeText(form.phone, 30),
+        customer_email: form.email?.trim() || null,
+        quoted_price:   form.price ? Number(form.price) : null,
+        payment_status: "Unpaid",
+        source:         "operator",
+      };
+
+      // Outbound leg.
+      const ref = await insertLeg({
+        ...shared,
+        flight_number:      form.flight?.trim() || null,
+        direction:          form.direction,
+        airport:            form.airport,
+        dropoff_address:    dest,
+        travel_date:        form.date || null,
+        travel_time:        form.time || null,
+        driver_id:          driverRow?.id ?? null,
+        assigned_driver_id: driverRow?.id ?? null,
+        status:             driverRow ? "Dispatched" : "Unassigned",
+        notes:              form.notes?.trim() || null,
+      });
 
       // Suppress the new-booking alert for a booking this operator just made.
       markBookingCreated(ref);
-
-      const createdStatus = driverRow ? "Dispatched" : "Unassigned";
       dispatchJobToDriverApp({
         bookingRef: ref,
         customer: form.customer,
@@ -247,11 +254,43 @@ export function useBookings() {
         pickupTime: form.date && form.time ? `${form.date}T${form.time}` : null,
         price: form.price ? `£${form.price}` : "TBC",
         driver: driverRow?.name ?? null,
-        status: createdStatus,
+        status: driverRow ? "Dispatched" : "Unassigned",
       }).catch(() => {});
 
+      // Optional return leg — the reverse trip on the return date/time, created as
+      // its own dispatchable job (left unassigned for the operator to allocate).
+      let returnRef = null;
+      if (form.returnJourney && form.returnDate && form.returnTime) {
+        const flip = (d) =>
+          d === "Airport → Destination" ? "Destination → Airport" : "Airport → Destination";
+        returnRef = await insertLeg({
+          ...shared,
+          flight_number:      form.returnFlight?.trim() || null,
+          direction:          flip(form.direction),
+          airport:            form.airport,
+          dropoff_address:    dest,
+          travel_date:        form.returnDate,
+          travel_time:        form.returnTime,
+          driver_id:          null,
+          assigned_driver_id: null,
+          status:             "Unassigned",
+          notes:              `Return leg of ${ref}`,
+        });
+        markBookingCreated(returnRef);
+        dispatchJobToDriverApp({
+          bookingRef: returnRef,
+          customer: form.customer,
+          route: `${dest} → ${form.airport}`,
+          flight: form.returnFlight,
+          pickupTime: `${form.returnDate}T${form.returnTime}`,
+          price: form.price ? `£${form.price}` : "TBC",
+          driver: null,
+          status: "Unassigned",
+        }).catch(() => {});
+      }
+
       await fetchBookings();
-      return { ref };
+      return { ref, returnRef };
     },
     [fetchBookings]
   );

@@ -592,7 +592,12 @@ function DispatchPageContent() {
 
   const handleCreateBooking = useCallback(async (form) => {
     const result = await createBooking(form);
-    toast({ message: `Booking ${result.ref} created`, type: "success" });
+    toast({
+      message: result.returnRef
+        ? `Booking ${result.ref} + return ${result.returnRef} created`
+        : `Booking ${result.ref} created`,
+      type: "success",
+    });
     return result;
   }, [createBooking, toast]);
 

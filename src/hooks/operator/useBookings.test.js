@@ -162,6 +162,39 @@ describe("useBookings — createBooking", () => {
     expect(ref).toMatch(/^EVX-[A-Z0-9]+$/);
   });
 
+  it("does not create a return leg when returnJourney is off", async () => {
+    const { result } = renderHook(() => useBookings());
+    let out;
+    await act(async () => {
+      out = await result.current.createBooking(validForm());
+    });
+    expect(mockChain.insert).toHaveBeenCalledTimes(1);
+    expect(out.returnRef).toBeNull();
+  });
+
+  it("creates a second flipped return leg when returnJourney is on", async () => {
+    const { result } = renderHook(() => useBookings());
+    let out;
+    await act(async () => {
+      out = await result.current.createBooking(
+        validForm({ returnJourney: true, returnDate: tomorrow(), returnTime: "18:30", returnFlight: "EK018" })
+      );
+    });
+
+    expect(mockChain.insert).toHaveBeenCalledTimes(2);
+    // Outbound keeps its direction; the return flips it and is left unassigned.
+    expect(mockChain.insert).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      direction: "Airport → Destination", travel_time: "10:00", status: "Unassigned",
+    }));
+    expect(mockChain.insert).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      direction: "Destination → Airport", travel_date: expect.any(String), travel_time: "18:30",
+      flight_number: "EK018", status: "Unassigned",
+    }));
+    expect(out.ref).toMatch(/^EVX-/);
+    expect(out.returnRef).toMatch(/^EVX-/);
+    expect(out.returnRef).not.toBe(out.ref);
+  });
+
   it("throws ValidationError for missing customer name", async () => {
     const { result } = renderHook(() => useBookings());
 
