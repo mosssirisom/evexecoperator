@@ -299,11 +299,13 @@ function BookingEditForm({ booking, onSave, onCancel }) {
     () => ({
       customer: booking.customer ?? "",
       phone: booking.phone ?? "",
+      email: booking.email && booking.email !== "—" ? booking.email : "",
       passengers: booking.passengers != null ? String(booking.passengers) : "",
       luggage: booking.luggage ?? "",
       travelDate: booking.travelDate ?? "",
       time: booking.time && booking.time !== "—" ? booking.time : "",
       pickupLocation: booking.pickupLocation ?? "",
+      airport: booking.airport && booking.airport !== "—" ? booking.airport : "",
       dropoffAddress: booking.dropoffAddress ?? booking.destination ?? "",
       flight: booking.flight && booking.flight !== "—" ? booking.flight : "",
       price: booking.price && booking.price !== "TBC" ? booking.price.replace(/[^0-9.]/g, "") : "",
@@ -342,9 +344,14 @@ function BookingEditForm({ booking, onSave, onCancel }) {
       <EditField label="Customer" icon={User}>
         <input className={editInputCls} value={form.customer} onChange={set("customer")} placeholder="Customer name" />
       </EditField>
-      <EditField label="Phone" icon={Phone}>
-        <input className={editInputCls} value={form.phone} onChange={set("phone")} inputMode="tel" placeholder="Phone number" />
-      </EditField>
+      <div className="grid grid-cols-2 gap-3">
+        <EditField label="Phone" icon={Phone}>
+          <input className={editInputCls} value={form.phone} onChange={set("phone")} inputMode="tel" placeholder="Phone number" />
+        </EditField>
+        <EditField label="Email" icon={Mail}>
+          <input className={editInputCls} value={form.email} onChange={set("email")} inputMode="email" placeholder="name@email.com" />
+        </EditField>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <EditField label="Passengers" icon={Users}>
@@ -365,7 +372,10 @@ function BookingEditForm({ booking, onSave, onCancel }) {
       </div>
 
       <EditField label="Pickup location" icon={MapPin}>
-        <input className={editInputCls} value={form.pickupLocation} onChange={set("pickupLocation")} placeholder="Pickup address / airport" />
+        <input className={editInputCls} value={form.pickupLocation} onChange={set("pickupLocation")} placeholder="Pickup address" />
+      </EditField>
+      <EditField label="Airport" icon={Plane}>
+        <input className={editInputCls} value={form.airport} onChange={set("airport")} placeholder="e.g. Manchester T2" />
       </EditField>
       <EditField label="Drop-off address" icon={MapPin}>
         <input className={editInputCls} value={form.dropoffAddress} onChange={set("dropoffAddress")} placeholder="Destination address" />
