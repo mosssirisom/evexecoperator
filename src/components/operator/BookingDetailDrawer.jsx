@@ -254,6 +254,34 @@ function PaymentMethodPicker({ value, onSelect }) {
   );
 }
 
+// One-tap "the fare has been paid" action — the smart shortcut operators use to
+// say a booking was settled in advance. Toggles straight to Paid (or back to
+// Unpaid), which in turn drops the fare from the driver's 24h reminder.
+function MarkFarePaidButton({ paid, onSet }) {
+  const [pending, setPending] = useState(false);
+  const handle = async () => {
+    if (pending) return;
+    setPending(true);
+    try { await onSet?.(paid ? "Unpaid" : "Paid"); } finally { setPending(false); }
+  };
+  return (
+    <button
+      type="button"
+      onClick={handle}
+      disabled={pending}
+      title={paid ? "Fare paid in advance — tap to undo" : "Mark the fare as paid in advance"}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+        paid
+          ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-200 hover:bg-emerald-400/25"
+          : "border-emerald-400/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+      }`}
+    >
+      {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+      {paid ? "Fare paid ✓" : "Mark fare paid"}
+    </button>
+  );
+}
+
 function PaymentBadge({ paymentStatus, onUpdate }) {
   const [pending, setPending] = useState(false);
   const current = PAYMENT_STATES.find((s) => s.value === paymentStatus) ?? PAYMENT_STATES[0];
@@ -675,12 +703,20 @@ export default function BookingDetailDrawer({
                   <CreditCard className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-600" />
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Payment</p>
-                    <div className="mt-1.5">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
                       <PaymentBadge
                         paymentStatus={booking.paymentStatus ?? "Unpaid"}
                         onUpdate={(ps) => onUpdatePaymentStatus?.(booking.id, ps)}
                       />
+                      <MarkFarePaidButton
+                        paid={(booking.paymentStatus ?? "Unpaid") === "Paid"}
+                        onSet={(ps) => onUpdatePaymentStatus?.(booking.id, ps)}
+                      />
                     </div>
+                    <p className="mt-1.5 text-[10px] leading-snug text-slate-500">
+                      Marked paid = the fare was paid in advance, so the driver's 24-hour
+                      reminder won't show a fare to collect.
+                    </p>
                     {onUpdatePaymentMethod && (
                       <div className="mt-3">
                         <p className="mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-600">Method</p>
