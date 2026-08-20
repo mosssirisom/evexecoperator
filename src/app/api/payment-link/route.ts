@@ -14,6 +14,13 @@ import { createClient } from "@supabase/supabase-js";
 //   NEXT_PUBLIC_SUPABASE_URL     — already configured for the client
 // Optional:
 //   NEXT_PUBLIC_SITE_URL         — base for Stripe success/cancel redirects
+//
+// Note: passing customer_email below lets Stripe pre-fill the checkout page
+// and — if "Successful payments" email receipts are turned on in the Stripe
+// Dashboard (Settings → Customer emails) — send its own official receipt.
+// That's a manual one-time Stripe Dashboard setting, not something this code
+// can toggle. Our own branded "payment received" email/SMS (added alongside
+// this) is separate and always sends regardless of that Stripe setting.
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,7 +75,7 @@ export async function POST(req: Request) {
 
   const { data: booking, error: bErr } = await admin
     .from("bookings")
-    .select("id, ref, price, quoted_price, customer_name, customer_phone")
+    .select("id, ref, price, quoted_price, customer_name, customer_phone, customer_email")
     .eq("ref", ref)
     .single();
 
@@ -95,6 +102,8 @@ export async function POST(req: Request) {
   );
   form.set("client_reference_id", booking.ref);
   form.set("metadata[booking_ref]", booking.ref);
+  const customerEmail = (booking.customer_email ?? "").trim();
+  if (customerEmail) form.set("customer_email", customerEmail);
   form.set("success_url", `${SITE_URL}/payment-complete?ref=${encodeURIComponent(booking.ref)}`);
   form.set("cancel_url", `${SITE_URL}/payment-cancelled?ref=${encodeURIComponent(booking.ref)}`);
 
