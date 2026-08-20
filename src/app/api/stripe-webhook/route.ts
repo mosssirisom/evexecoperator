@@ -9,6 +9,8 @@ import { verifyStripeSignature } from "@/lib/stripeSignature";
 //   STRIPE_WEBHOOK_SECRET        — whsec_… from the Stripe webhook endpoint
 //   SUPABASE_SERVICE_ROLE_KEY    — service role key (server only)
 //   NEXT_PUBLIC_SUPABASE_URL     — already configured for the client
+// Optional (operator alert on payment — see below):
+//   WEBSITE_API_URL, OPERATOR_ACTION_SECRET
 //
 // Stripe must be pointed at:  https://<site>/api/stripe-webhook
 // subscribed to at least the `checkout.session.completed` event.
@@ -19,6 +21,22 @@ export const dynamic = "force-dynamic";
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+async function notifyOperatorPaymentConfirmed(bookingId: string) {
+  const websiteUrl = process.env.WEBSITE_API_URL || process.env.NEXT_PUBLIC_WEBSITE_URL;
+  const secret = process.env.OPERATOR_ACTION_SECRET;
+  if (!websiteUrl || !secret) return; // not configured — payment is still recorded either way
+
+  try {
+    await fetch(`${websiteUrl}/api/notifications/payment-confirmed`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-operator-secret": secret },
+      body: JSON.stringify({ booking_id: bookingId }),
+    });
+  } catch {
+    // Never let a notification failure affect the webhook's response to Stripe.
+  }
+}
 
 export async function POST(req: Request) {
   if (!WEBHOOK_SECRET || !SUPABASE_URL || !SERVICE_ROLE_KEY) {
@@ -62,14 +80,25 @@ export async function POST(req: Request) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const { error } = await admin
+  const { data, error } = await admin
     .from("bookings")
     .update({ payment_status: "Paid" })
-    .eq("ref", ref);
+    .eq("ref", ref)
+    .select("id")
+    .single();
 
   if (error) {
     // 500 → Stripe will retry, which is what we want on a transient DB error.
     return new Response(`update failed: ${error.message}`, { status: 500 });
+  }
+
+  // The database update above was previously the ONLY effect of a payment
+  // succeeding — nobody was ever told. Alert the operator now (SMS+email),
+  // via the same evexec bridge used for booking confirmations. Never let a
+  // failure here turn into a 500 (would make Stripe retry indefinitely for
+  // a payment that already succeeded and was already recorded).
+  if (data?.id) {
+    await notifyOperatorPaymentConfirmed(data.id).catch(() => {});
   }
 
   return new Response("ok", { status: 200 });
