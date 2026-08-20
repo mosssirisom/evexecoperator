@@ -229,10 +229,22 @@ describe("validateStatusTransition", () => {
     );
   });
 
-  it("throws on invalid backward transition (En Route → Dispatched)", () => {
-    expect(() => validateStatusTransition("En Route", "Dispatched")).toThrowError(
+  it("allows a one-step reverse (operator correction: En Route → Dispatched)", () => {
+    expect(() => validateStatusTransition("En Route", "Dispatched")).not.toThrow();
+  });
+
+  it("allows reversing a completed job back a step (Completed → Passenger On Board)", () => {
+    expect(() => validateStatusTransition("Completed", "Passenger On Board")).not.toThrow();
+  });
+
+  it("still throws on a multi-step skip-back (En Route → Unassigned)", () => {
+    expect(() => validateStatusTransition("En Route", "Unassigned")).toThrowError(
       ValidationError
     );
+  });
+
+  it("defers to the DB for a driver-only source state (Arrived → En Route)", () => {
+    expect(() => validateStatusTransition("Arrived", "En Route")).not.toThrow();
   });
 
   it("throws on skip-ahead transition (Dispatched → Completed)", () => {

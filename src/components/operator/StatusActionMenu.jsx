@@ -1,17 +1,13 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { ChevronDown, CheckCircle2, Loader2, MapPin, XCircle } from "lucide-react";
+import { ChevronDown, Loader2, XCircle, RotateCcw } from "lucide-react";
 import { bookingStatusColor } from "@/lib/operator/statusColor";
+import { reverseTarget, reverseLabel } from "@/lib/operator/statusFlow";
 
-const STATUSES = [
-  { value: "Dispatched", icon: Loader2, spin: true, color: "text-amber-300" },
-  { value: "En Route", icon: MapPin, spin: false, color: "text-blue-300" },
-  { value: "Passenger On Board", icon: CheckCircle2, spin: false, color: "text-emerald-300" },
-  { value: "Completed", icon: CheckCircle2, spin: false, color: "text-slate-400" },
-  { value: "Cancelled", icon: XCircle, spin: false, color: "text-red-400" },
-];
-
+// Operators no longer advance a job's status — the driver does that live in the
+// driver app. This control only lets the operator REVERSE a job one step to
+// correct a mistake, or cancel it.
 export default function StatusActionMenu({ bookingId, currentStatus, onUpdate, dropUp = false }) {
   const [open, setOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState(null);
@@ -30,28 +26,15 @@ export default function StatusActionMenu({ bookingId, currentStatus, onUpdate, d
   }, []);
 
   const isUpdating = pendingStatus !== null;
+  const reverse = reverseTarget(currentStatus);
+  const canCancel = currentStatus !== "Cancelled";
 
-  const handleSelect = async (value) => {
-    if (value === currentStatus) return;
-    if (value === "Cancelled") {
-      setConfirmCancel(true);
-      return;
-    }
+  const applyStatus = async (value) => {
     setOpen(false);
+    setConfirmCancel(false);
     setPendingStatus(value);
     try {
       await onUpdate?.(bookingId, value);
-    } finally {
-      setPendingStatus(null);
-    }
-  };
-
-  const handleConfirmCancel = async () => {
-    setOpen(false);
-    setConfirmCancel(false);
-    setPendingStatus("Cancelled");
-    try {
-      await onUpdate?.(bookingId, "Cancelled");
     } finally {
       setPendingStatus(null);
     }
@@ -62,17 +45,12 @@ export default function StatusActionMenu({ bookingId, currentStatus, onUpdate, d
       <button
         onClick={() => { if (!isUpdating) setOpen(!open); }}
         disabled={isUpdating}
-        aria-haspopup="listbox"
+        aria-haspopup="menu"
         aria-expanded={open}
         className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition hover:opacity-80 disabled:cursor-wait ${bookingStatusColor(currentStatus)}`}
       >
         {isUpdating ? (
-          <>
-            <Loader2 className="h-3 w-3 animate-spin" />
-            {pendingStatus === "Unassigned / Missed Call Recovery"
-              ? "Updating…"
-              : `${pendingStatus}…`}
-          </>
+          <><Loader2 className="h-3 w-3 animate-spin" />Updating…</>
         ) : (
           <>
             {currentStatus === "Unassigned / Missed Call Recovery" ? "Missed Call" : currentStatus}
@@ -83,19 +61,18 @@ export default function StatusActionMenu({ bookingId, currentStatus, onUpdate, d
 
       {open && !isUpdating && (
         <div
-          role="listbox"
-          aria-label="Change booking status"
-          className={`absolute z-50 w-52 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl ${
+          role="menu"
+          className={`absolute z-50 w-56 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl ${
             dropUp ? "bottom-full left-0 mb-2" : "left-0 top-full mt-1"
           }`}
         >
           {confirmCancel ? (
             <div className="px-4 py-3">
               <p className="text-xs font-medium text-white">Cancel this booking?</p>
-              <p className="mt-0.5 text-[10px] text-slate-500">This action cannot be undone.</p>
+              <p className="mt-0.5 text-[10px] text-slate-500">The customer will be texted that it's cancelled.</p>
               <div className="mt-3 flex gap-2">
                 <button
-                  onClick={handleConfirmCancel}
+                  onClick={() => applyStatus("Cancelled")}
                   className="flex-1 rounded-xl bg-red-500/20 px-3 py-2.5 text-xs font-medium text-red-300 transition hover:bg-red-500/30"
                 >
                   Yes, Cancel
@@ -109,27 +86,37 @@ export default function StatusActionMenu({ bookingId, currentStatus, onUpdate, d
               </div>
             </div>
           ) : (
-            STATUSES.map((s) => {
-              const Icon = s.icon;
-              return (
+            <>
+              <p className="px-4 pb-1 pt-2 text-[10px] uppercase tracking-[0.2em] text-slate-600">
+                Correct status
+              </p>
+              <p className="px-4 pb-2 text-[10px] leading-snug text-slate-600">
+                Drivers advance the job in the driver app. You can only step it back or cancel.
+              </p>
+              {reverse && (
                 <button
-                  key={s.value}
-                  role="option"
-                  aria-selected={s.value === currentStatus}
-                  onClick={() => handleSelect(s.value)}
-                  className={`flex w-full items-center gap-2.5 px-4 py-3 text-xs transition hover:bg-white/5 ${
-                    s.value === currentStatus ? "opacity-50 cursor-default" : ""
-                  } ${s.color}`}
-                  disabled={s.value === currentStatus}
+                  role="menuitem"
+                  onClick={() => applyStatus(reverse)}
+                  className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-slate-200 transition hover:bg-white/5"
                 >
-                  <Icon className={`h-3.5 w-3.5 ${s.spin ? "animate-spin" : ""}`} />
-                  {s.value}
-                  {s.value === currentStatus && (
-                    <span className="ml-auto text-slate-600">current</span>
-                  )}
+                  <RotateCcw className="h-3.5 w-3.5 text-amber-300" />
+                  {reverseLabel(currentStatus)}
                 </button>
-              );
-            })
+              )}
+              {canCancel && (
+                <button
+                  role="menuitem"
+                  onClick={() => setConfirmCancel(true)}
+                  className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-red-300 transition hover:bg-white/5"
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                  Cancel job
+                </button>
+              )}
+              {!reverse && !canCancel && (
+                <p className="px-4 py-3 text-xs text-slate-500">Nothing to change.</p>
+              )}
+            </>
           )}
         </div>
       )}

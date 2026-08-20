@@ -43,7 +43,9 @@ export function validateStatusTransition(from, to) {
 
   const allowed = STATUS_TRANSITIONS[from];
   if (allowed === undefined) {
-    throw new ValidationError(`Unknown source status: "${from}"`);
+    // Driver-app-only source states (e.g. "Arrived") aren't in the operator's
+    // map — defer to the database guard rather than blocking a correction here.
+    return;
   }
   if (!allowed.includes(to)) {
     const allowedStr = allowed.length

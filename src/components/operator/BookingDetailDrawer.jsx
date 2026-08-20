@@ -4,16 +4,11 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import {
   X, Phone, Mail, Plane, MapPin, Clock, Car, PoundSterling,
   User, AlertTriangle, FileText, ChevronDown, Check, Edit3, Loader2, RefreshCw,
-  CreditCard, Trash2, ShieldCheck, Send, Users, Briefcase, Calendar,
+  CreditCard, Trash2, ShieldCheck, Send, Users, Briefcase, Calendar, RotateCcw, XCircle,
 } from "lucide-react";
 import { bookingStatusColor } from "@/lib/operator/statusColor";
+import { reverseTarget, reverseLabel } from "@/lib/operator/statusFlow";
 import ETACountdown from "./ETACountdown";
-
-const STATUSES = [
-  "Unassigned", "Dispatched", "En Route",
-  "Passenger On Board", "Completed", "Cancelled",
-  "Unassigned / Missed Call Recovery",
-];
 
 function Row({ icon: Icon, label, value, muted }) {
   if (!value) return null;
@@ -56,13 +51,15 @@ function StatusPicker({ currentStatus, onUpdate }) {
   };
 
   const isUpdating = pending !== null;
+  const reverse = reverseTarget(currentStatus);
+  const canCancel = currentStatus !== "Cancelled";
 
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={() => !isUpdating && setOpen(!open)}
         disabled={isUpdating}
-        aria-haspopup="listbox"
+        aria-haspopup="menu"
         aria-expanded={open}
         className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition hover:opacity-80 disabled:opacity-60 disabled:cursor-not-allowed ${bookingStatusColor(pending ?? currentStatus)}`}
       >
@@ -74,13 +71,14 @@ function StatusPicker({ currentStatus, onUpdate }) {
       </button>
       {open && !isUpdating && (
         <div
-          role="listbox"
-          aria-label="Change booking status"
-          className="absolute left-0 top-full z-[60] mt-1 w-60 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl"
+          role="menu"
+          aria-label="Correct booking status"
+          className="absolute left-0 top-full z-[60] mt-1 w-64 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl"
         >
           {confirmCancel ? (
             <div className="px-4 py-3 space-y-2">
               <p className="text-xs text-slate-300">Cancel this booking?</p>
+              <p className="text-[10px] text-slate-500">The customer will be texted that it's cancelled.</p>
               <div className="flex gap-2">
                 <button
                   onClick={handleConfirmCancel}
@@ -97,21 +95,35 @@ function StatusPicker({ currentStatus, onUpdate }) {
               </div>
             </div>
           ) : (
-            STATUSES.map((s) => (
-              <button
-                key={s}
-                role="option"
-                aria-selected={s === currentStatus}
-                onClick={() => handleSelect(s)}
-                className={`flex w-full items-center gap-2.5 px-4 py-3 text-xs transition hover:bg-white/5 ${
-                  s === currentStatus ? "opacity-40 cursor-default" : "text-slate-300"
-                }`}
-                disabled={s === currentStatus}
-              >
-                {s === currentStatus && <Check className="h-3 w-3" />}
-                {s}
-              </button>
-            ))
+            <>
+              <p className="px-4 pb-1 pt-2 text-[10px] uppercase tracking-[0.2em] text-slate-600">Correct status</p>
+              <p className="px-4 pb-2 text-[10px] leading-snug text-slate-600">
+                The driver advances the job in the driver app. Here you can only reverse a step or cancel.
+              </p>
+              {reverse && (
+                <button
+                  role="menuitem"
+                  onClick={() => handleSelect(reverse)}
+                  className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-slate-200 transition hover:bg-white/5"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 text-amber-300" />
+                  {reverseLabel(currentStatus)}
+                </button>
+              )}
+              {canCancel && (
+                <button
+                  role="menuitem"
+                  onClick={() => setConfirmCancel(true)}
+                  className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-red-300 transition hover:bg-white/5"
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                  Cancel job
+                </button>
+              )}
+              {!reverse && !canCancel && (
+                <p className="px-4 py-3 text-xs text-slate-500">Nothing to change.</p>
+              )}
+            </>
           )}
         </div>
       )}

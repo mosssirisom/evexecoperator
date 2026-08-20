@@ -261,15 +261,19 @@ export interface Database {
   };
 }
 
+// Forward edges are the driver's live progression; the extra trailing edges are
+// the operator's one-step REVERSE (correction) plus reinstating a cancelled job.
+// Mirrors the database guard (enforce_booking_status_transition).
 export const STATUS_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
   "Unassigned": ["Dispatched", "Cancelled", "Unassigned / Missed Call Recovery"],
-  "Unassigned / Missed Call Recovery": ["Dispatched", "Cancelled"],
-  "Dispatched": ["En Route", "Cancelled"],
-  "En Route": ["Passenger On Board", "Cancelled"],
-  "Passenger On Board": ["Completed", "Cancelled"],
-  // Operators may cancel/void a job even after it was marked complete.
-  "Completed": ["Cancelled"],
-  "Cancelled": [],
+  "Unassigned / Missed Call Recovery": ["Dispatched", "Cancelled", "Unassigned"],
+  "Dispatched": ["En Route", "Cancelled", "Unassigned"],
+  "En Route": ["Passenger On Board", "Cancelled", "Dispatched"],
+  "Passenger On Board": ["Completed", "Cancelled", "En Route"],
+  // Operators may cancel/void a completed job, or reverse it back a step.
+  "Completed": ["Cancelled", "Passenger On Board"],
+  // Reinstate a cancelled job.
+  "Cancelled": ["Unassigned"],
 };
 
 export const STATUS_NEXT_PRIMARY: Record<BookingStatus, BookingStatus | null> = {
