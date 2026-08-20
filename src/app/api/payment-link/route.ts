@@ -68,7 +68,7 @@ export async function POST(req: Request) {
 
   const { data: booking, error: bErr } = await admin
     .from("bookings")
-    .select("id, ref, price, quoted_price, customer_name, customer_phone")
+    .select("id, ref, price, quoted_price, customer_name, customer_phone, customer_email")
     .eq("ref", ref)
     .single();
 
@@ -95,6 +95,10 @@ export async function POST(req: Request) {
   );
   form.set("client_reference_id", booking.ref);
   form.set("metadata[booking_ref]", booking.ref);
+  // Pre-fill the Stripe checkout email; if "Successful payment" receipts are
+  // enabled in the Stripe Dashboard, Stripe also emails its own receipt.
+  const customerEmail = (booking.customer_email ?? "").trim();
+  if (customerEmail) form.set("customer_email", customerEmail);
   form.set("success_url", `${SITE_URL}/payment-complete?ref=${encodeURIComponent(booking.ref)}`);
   form.set("cancel_url", `${SITE_URL}/payment-cancelled?ref=${encodeURIComponent(booking.ref)}`);
 
