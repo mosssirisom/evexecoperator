@@ -203,29 +203,34 @@ export function useBookings() {
         : { data: null };
 
       let ref;
+      let bookingId = null;
       let succeeded = false;
       for (let attempt = 0; attempt < 3; attempt++) {
         ref = generateBookingRef();
-        const { error: insertErr } = await supabase.from("bookings").insert({
-          ref,
-          customer_name:      sanitizeText(form.customer, 120),
-          customer_phone:     sanitizeText(form.phone, 30),
-          customer_email:     form.email?.trim() || null,
-          flight_number:      form.flight?.trim() || null,
-          direction:          form.direction,
-          airport:            form.airport,
-          dropoff_address:    dest,
-          travel_date:        form.date || null,
-          travel_time:        form.time || null,
-          driver_id:          driverRow?.id ?? null,
-          assigned_driver_id: driverRow?.id ?? null,
-          quoted_price:       form.price ? Number(form.price) : null,
-          status:             driverRow ? "Dispatched" : "Unassigned",
-          payment_status:     "Unpaid",
-          notes:              form.notes?.trim() || null,
-        });
+        const { data: insertedRow, error: insertErr } = await supabase
+          .from("bookings")
+          .insert({
+            ref,
+            customer_name:      sanitizeText(form.customer, 120),
+            customer_phone:     sanitizeText(form.phone, 30),
+            customer_email:     form.email?.trim() || null,
+            flight_number:      form.flight?.trim() || null,
+            direction:          form.direction,
+            airport:            form.airport,
+            dropoff_address:    dest,
+            travel_date:        form.date || null,
+            travel_time:        form.time || null,
+            driver_id:          driverRow?.id ?? null,
+            assigned_driver_id: driverRow?.id ?? null,
+            quoted_price:       form.price ? Number(form.price) : null,
+            status:             driverRow ? "Dispatched" : "Unassigned",
+            payment_status:     "Unpaid",
+            notes:              form.notes?.trim() || null,
+          })
+          .select("id")
+          .single();
 
-        if (!insertErr) { succeeded = true; break; }
+        if (!insertErr) { succeeded = true; bookingId = insertedRow?.id ?? null; break; }
         if (insertErr.code !== "23505") throw new Error(insertErr.message);
       }
       if (!succeeded) throw new Error("Failed to generate a unique booking reference after 3 attempts. Please try again.");
@@ -241,6 +246,18 @@ export function useBookings() {
         driver: driverRow?.full_name ?? null,
         status: createdStatus,
       }).catch(() => {});
+
+      // Give the customer the exact same SMS+email+push confirmation a
+      // website booking gets once payment is chosen (sendConfirmations on
+      // evexec), rather than a separate SMS-only "is booked" text.
+      // Fire-and-forget, same pattern as dispatchJobToDriverApp above.
+      if (bookingId) {
+        fetch("/api/notify-confirmation", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ bookingId }),
+        }).catch(() => {});
+      }
 
       await fetchBookings();
       return { ref };
