@@ -331,7 +331,7 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign }) {
       } ${isCancelled ? "opacity-50" : ""}`}
     >
       {/* Left accent stripe */}
-      <div className={`absolute left-2 top-2 bottom-2 w-0.5 rounded-full ${cardAccent(booking)}`} />
+      <div className={`absolute left-1.5 top-1.5 bottom-1.5 w-0.5 rounded-full ${cardAccent(booking)}`} />
 
       {/* Full-card tap target — opens the detail drawer */}
       <button
@@ -341,7 +341,7 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign }) {
         aria-label={`View details for ${booking.customer}`}
       />
 
-      <div className="relative z-10 py-2 pl-4 pr-3">
+      <div className="relative z-10 py-1.5 pl-3.5 pr-3">
         {/* Row 1 — passenger + price */}
         <div className="pointer-events-none flex items-baseline gap-2">
           {booking.priority && (
@@ -365,7 +365,7 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign }) {
         </div>
 
         {/* Row 3 — time · driver (tap to assign) · status */}
-        <div className="mt-1 flex items-center gap-1.5 text-[11px]">
+        <div className="mt-0.5 flex items-center gap-1.5 text-[11px]">
           <span className="pointer-events-none flex flex-shrink-0 items-center gap-1 text-slate-400">
             <Clock className="h-3 w-3 text-slate-600" />
             {booking.time}
@@ -695,7 +695,7 @@ function DispatchPageContent() {
         />
       )}
 
-      <div className="grid gap-3 p-3 sm:gap-6 sm:p-6 lg:p-10">
+      <div className="grid gap-2 p-2 sm:gap-6 sm:p-6 lg:p-10">
         {error && (
           <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
             Failed to load transfers: {error}
@@ -735,7 +735,7 @@ function DispatchPageContent() {
           <div className="flex items-center gap-1 rounded-2xl border border-white/10 p-1">
             <button
               onClick={() => setView("board")}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium transition sm:px-4 ${
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition sm:px-4 sm:py-2.5 ${
                 view === "board"
                   ? "bg-amber-400/10 text-amber-300"
                   : "text-slate-500 hover:text-slate-300"
@@ -751,7 +751,7 @@ function DispatchPageContent() {
             </button>
             <button
               onClick={() => setView("schedule")}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium transition sm:px-4 ${
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition sm:px-4 sm:py-2.5 ${
                 view === "schedule"
                   ? "bg-amber-400/10 text-amber-300"
                   : "text-slate-500 hover:text-slate-300"
@@ -801,8 +801,8 @@ function DispatchPageContent() {
           </div>
         ) : (
           /* ── Board view ─────────────────────────────────────────────────── */
-          <div className="card p-3 sm:p-6">
-            <div className="mb-3 flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between sm:mb-4 sm:gap-3">
+          <div className="p-0 sm:p-6">
+            <div className="mb-2 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between sm:mb-4 sm:gap-3">
               {/* Heading — hidden on mobile to save vertical space */}
               <div className="hidden sm:block">
                 <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Dispatch Board</p>
@@ -883,7 +883,7 @@ function DispatchPageContent() {
 
             {/* Mobile + tablet card layout — grouped by date, extra bottom padding
                 so the floating "New Booking" button never covers the last card */}
-            <div className="grid gap-3 pb-24 lg:hidden lg:pb-0">
+            <div className="grid gap-2 pb-24 lg:hidden lg:pb-0">
               {loading && transfers.length === 0
                 ? [1, 2, 3].map((i) => (
                     <div key={i} className="animate-pulse rounded-xl border border-white/5 bg-white/[0.02] p-3">
@@ -892,8 +892,8 @@ function DispatchPageContent() {
                     </div>
                   ))
                 : groupByDate(filtered).map((g) => (
-                    <div key={g.key ?? "no-date"} className="grid gap-1.5">
-                      <p className="px-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-400/80">
+                    <div key={g.key ?? "no-date"} className="grid gap-1">
+                      <p className="px-0.5 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-400/80">
                         {g.label}
                         <span className="ml-1.5 text-slate-600">· {g.items.length}</span>
                       </p>
