@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useRef, useState, useCallback } from "react";
 import {
   FileText, Plus, X, Printer, Trash2, Check, Send, CircleDollarSign, Clock,
   MapPin, Plane, Users, Briefcase, Car, CalendarClock,
-  Calendar, CreditCard, Gem, Phone, Mail, Globe,
+  Calendar, CreditCard, Gem, Phone, Mail, Globe, Loader2,
 } from "lucide-react";
 import { useInvoices, computeTotals } from "@/hooks/operator/useInvoices";
 import { useBookings } from "@/hooks/operator/useBookings";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { EV_EXEC_LOGO } from "@/lib/operator/brandLogo";
+import { supabase } from "@/lib/supabase";
 
 const VAT_RATES = [
   { label: "No VAT", value: 0 },
@@ -346,11 +347,71 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
 }
 
 /* ─── Printable invoice — EV Exec navy & gold template ──────────────────── */
-function InvoicePreview({ invoice, onClose, onStatus, onDelete }) {
+function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
   const inv = invoice;
   const jLines = journeyLines(inv.journey);
   const terms = (inv.notes && inv.notes.trim()) || DEFAULT_TERMS;
   const exact = { WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" };
+  const sheetRef = useRef(null);
+  const [sending, setSending] = useState(false);
+  const toast = useOperatorToast();
+
+  // Render the on-screen invoice to a PDF in the browser, then post it to the
+  // API route which emails it to the customer via Resend.
+  const emailToCustomer = useCallback(async () => {
+    if (!inv.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inv.email)) {
+      toast({ message: "This invoice has no valid customer email. Add one via the booking, or resend after editing.", type: "error" });
+      return;
+    }
+    if (!sheetRef.current) return;
+    setSending(true);
+    try {
+      const [{ default: html2canvas }, jsPDFmod] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+      const jsPDF = jsPDFmod.jsPDF || jsPDFmod.default;
+      const canvas = await html2canvas(sheetRef.current, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false });
+      const imgData = canvas.toDataURL("image/jpeg", 0.92);
+
+      const pdf = new jsPDF({ unit: "pt", format: "a4" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      // Slice across pages if the invoice is taller than one A4 page.
+      let remaining = imgH;
+      let position = 0;
+      pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH);
+      remaining -= pageH;
+      while (remaining > 0) {
+        position -= pageH;
+        pdf.addPage();
+        pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH);
+        remaining -= pageH;
+      }
+      const pdfBase64 = pdf.output("datauristring").split(",")[1];
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/send-invoice", {
+        method: "POST",
+        headers: { "content-type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
+        body: JSON.stringify({
+          invoiceId: inv.id, to: inv.email, customerName: inv.customer,
+          number: inv.number, total: money(inv.total), pdfBase64,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Failed to send the invoice.");
+
+      toast({ message: `Invoice emailed to ${inv.email}`, type: "success" });
+      if (inv.status !== "Paid") onEmailed?.(inv.id);
+    } catch (e) {
+      toast({ message: e?.message ?? "Failed to email the invoice.", type: "error" });
+    } finally {
+      setSending(false);
+    }
+  }, [inv, toast, onEmailed]);
 
   return (
     <div className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm">
@@ -369,12 +430,16 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete }) {
               <button onClick={() => onStatus(inv.id, "Void")} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-medium text-slate-400 hover:text-white">Void</button>
             )}
             <button onClick={() => onDelete(inv)} className="inline-flex items-center gap-1.5 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300 hover:bg-red-500/20"><Trash2 className="h-3.5 w-3.5" />Delete</button>
+            <button onClick={emailToCustomer} disabled={sending} className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-300 hover:bg-emerald-400/20 disabled:opacity-60">
+              {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+              {sending ? "Sending…" : "Email to Customer"}
+            </button>
             <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-xs font-semibold text-black hover:bg-amber-400"><Printer className="h-3.5 w-3.5" />Print / Save PDF</button>
           </div>
         </div>
 
         {/* The invoice sheet */}
-        <div className="invoice-print overflow-hidden rounded-2xl bg-white text-slate-900 shadow-2xl" style={exact}>
+        <div ref={sheetRef} className="invoice-print overflow-hidden rounded-2xl bg-white text-slate-900 shadow-2xl" style={exact}>
           {/* ── Header band ── */}
           <div className="relative px-8 pt-8 pb-14 sm:px-10" style={{ backgroundColor: NAVY, ...exact }}>
             <div className="flex items-start justify-between gap-4">
@@ -669,7 +734,16 @@ export default function InvoicesPage() {
 
       <InvoiceModal open={modalOpen} onClose={() => setModalOpen(false)} onCreate={handleCreate} bookings={bookings} />
       {preview && (
-        <InvoicePreview invoice={preview} onClose={() => setPreview(null)} onStatus={handleStatus} onDelete={handleDelete} />
+        <InvoicePreview
+          invoice={preview}
+          onClose={() => setPreview(null)}
+          onStatus={handleStatus}
+          onDelete={handleDelete}
+          onEmailed={(id) => {
+            updateStatus(id, "Sent").catch(() => {});
+            setPreview((p) => (p?.id === id ? { ...p, status: "Sent" } : p));
+          }}
+        />
       )}
     </>
   );
