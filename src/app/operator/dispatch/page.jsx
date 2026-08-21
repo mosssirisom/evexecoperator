@@ -702,20 +702,30 @@ function DispatchPageContent() {
           </div>
         )}
 
-        {/* Stats strip */}
-        <div className="grid grid-cols-3 gap-1.5 sm:gap-4">
+        {/* Stats — one slim row on mobile so the booking list starts higher;
+            full stat cards on desktop */}
+        <div className="flex items-center justify-around gap-2 rounded-2xl border border-white/5 bg-white/[0.02] px-3 py-2 sm:hidden">
           {[
             { label: "Active", value: stats.active, color: "text-amber-300", dot: "bg-amber-400" },
             { label: "Completed", value: stats.completed, color: "text-emerald-300", dot: "bg-emerald-400" },
             { label: "Attention", value: stats.pending, color: "text-red-300", dot: "bg-red-400" },
           ].map((s) => (
-            <div key={s.label} className="card flex flex-col items-center gap-0.5 p-2.5 text-center sm:flex-row sm:gap-5 sm:p-5 sm:text-left">
-              <div className="flex items-center gap-1 sm:hidden">
-                <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${s.dot}`} />
-                <p className="text-[9px] uppercase tracking-widest text-slate-500">{s.label}</p>
-              </div>
-              <p className={`text-2xl font-bold sm:text-4xl ${s.color}`}>{s.value}</p>
-              <p className="hidden text-sm text-slate-400 sm:block">{s.label}</p>
+            <div key={s.label} className="flex items-center gap-1.5">
+              <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${s.dot}`} />
+              <span className={`text-base font-bold leading-none ${s.color}`}>{s.value}</span>
+              <span className="text-[11px] text-slate-500">{s.label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="hidden grid-cols-3 gap-4 sm:grid">
+          {[
+            { label: "Active", value: stats.active, color: "text-amber-300" },
+            { label: "Completed", value: stats.completed, color: "text-emerald-300" },
+            { label: "Attention", value: stats.pending, color: "text-red-300" },
+          ].map((s) => (
+            <div key={s.label} className="card flex items-center gap-5 p-5">
+              <p className={`text-4xl font-bold ${s.color}`}>{s.value}</p>
+              <p className="text-sm text-slate-400">{s.label}</p>
             </div>
           ))}
         </div>
