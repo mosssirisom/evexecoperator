@@ -831,6 +831,16 @@ export default function BookingDetailDrawer({
         {!editMode && (
         <div className="flex-shrink-0 border-t border-white/5 px-5 py-4 sm:px-6">
           <div className="flex flex-col gap-2">
+            {/* Edit job — primary action, mirrors the Calendar's edit button */}
+            {onUpdateBooking && (
+              <button
+                onClick={() => setEditMode(true)}
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
+              >
+                <Edit3 className="h-4 w-4" />
+                Edit Job
+              </button>
+            )}
             {/* Return journey */}
             {booking.airport && booking.destination && (
               <button
