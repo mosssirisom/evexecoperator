@@ -19,7 +19,7 @@ import DispatchButton from "@/components/operator/DispatchButton";
 import BookingDetailDrawer from "@/components/operator/BookingDetailDrawer";
 import ETACountdown from "@/components/operator/ETACountdown";
 import {
-  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2, Phone, ChevronDown, Check, Car, Plane,
+  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2, ChevronDown, Check, Car, Plane,
 } from "lucide-react";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { useBookings } from "@/hooks/operator/useBookings";
@@ -178,89 +178,47 @@ function ScheduleRow({ booking, onSelect }) {
   );
 }
 
-// ── Mobile status bottom-sheet picker ────────────────────────────────────────
-const SHEET_STATUSES = [
-  { value: "Dispatched",           color: "text-amber-300"   },
-  { value: "En Route",             color: "text-blue-300"    },
-  { value: "Passenger On Board",   color: "text-emerald-300" },
-  { value: "Completed",            color: "text-slate-300"   },
-  { value: "Cancelled",            color: "text-red-400"     },
-];
-
-function MobileStatusSheet({ booking, onUpdate, onClose }) {
-  const [pending, setPending] = useState(null);
-  const [confirmCancel, setConfirmCancel] = useState(false);
-
-  const handleSelect = async (value) => {
-    if (value === booking.status) { onClose(); return; }
-    if (value === "Cancelled") { setConfirmCancel(true); return; }
-    setPending(value);
-    try { await onUpdate(booking.id, value); onClose(); }
-    catch { setPending(null); }
-  };
-
-  const handleConfirmCancel = async () => {
-    setConfirmCancel(false);
-    setPending("Cancelled");
-    try { await onUpdate(booking.id, "Cancelled"); onClose(); }
-    catch { setPending(null); }
-  };
-
-  return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-end sm:hidden">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full rounded-t-[28px] border-t border-white/10 bg-[#070D1F]">
-        <div className="flex justify-center pb-1 pt-3">
-          <div className="h-1 w-12 rounded-full bg-white/20" />
-        </div>
-        <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-amber-400">Update Status</p>
-            <p className="mt-0.5 text-sm font-semibold text-white">{booking.customer}</p>
-          </div>
-          <button onClick={onClose} className="text-slate-500 transition hover:text-white">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="max-h-72 overflow-y-auto px-3 py-2">
-          {confirmCancel ? (
-            <div className="px-2 py-4">
-              <p className="text-sm font-medium text-white">Cancel this booking?</p>
-              <p className="mt-1 text-xs text-slate-500">This cannot be undone.</p>
-              <div className="mt-4 flex gap-2">
-                <button onClick={handleConfirmCancel} className="flex-1 rounded-2xl bg-red-500/20 px-3 py-3 text-sm font-medium text-red-300 transition hover:bg-red-500/30">
-                  Yes, Cancel
-                </button>
-                <button onClick={() => setConfirmCancel(false)} className="flex-1 rounded-2xl border border-white/10 px-3 py-3 text-sm text-slate-400 transition hover:text-white">
-                  Keep Job
-                </button>
-              </div>
-            </div>
-          ) : (
-            SHEET_STATUSES.map((s) => {
-              const isCurrent = s.value === booking.status;
-              return (
-                <button
-                  key={s.value}
-                  onClick={() => handleSelect(s.value)}
-                  disabled={!!pending}
-                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm transition ${
-                    isCurrent ? "bg-amber-400/10 text-amber-300" : `${s.color} hover:bg-white/5`
-                  }`}
-                >
-                  <span className="flex-1 text-left">{s.value}</span>
-                  {isCurrent && <Check className="h-4 w-4 flex-shrink-0" />}
-                  {s.value === pending && <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin" />}
-                </button>
-              );
-            })
-          )}
-        </div>
-        <div className="h-8" />
-      </div>
-    </div>,
-    document.body
-  );
+// ── Date grouping helpers ─────────────────────────────────────────────────────
+// Groups the transfer list into date buckets (TODAY / TOMORROW / …) so the
+// mobile list stays scannable. Sorts each bucket by pickup time.
+function ymd(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function dateKeyOf(b) {
+  if (b.travelDate) return b.travelDate;
+  if (b.pickupTime) { const d = new Date(b.pickupTime); if (!isNaN(d)) return ymd(d); }
+  return null;
+}
+function groupLabel(key) {
+  if (!key) return "NO DATE";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const t = new Date(`${key}T00:00:00`);
+  const diff = Math.round((t - today) / 86400000);
+  if (diff === 0) return "TODAY";
+  if (diff === 1) return "TOMORROW";
+  if (diff === -1) return "YESTERDAY";
+  return t.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }).toUpperCase();
+}
+function timeVal(b) {
+  if (b.pickupTime) { const d = new Date(b.pickupTime); if (!isNaN(d)) return d.getTime(); }
+  if (b.time && b.time !== "—") return Number(b.time.replace(":", "")) || Infinity;
+  return Infinity;
+}
+function groupByDate(list) {
+  const map = new Map();
+  for (const b of list) {
+    const k = dateKeyOf(b);
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(b);
+  }
+  const groups = [...map.entries()].map(([key, items]) => ({
+    key,
+    label: groupLabel(key),
+    items: items.sort((a, b) => timeVal(a) - timeVal(b)),
+  }));
+  groups.sort((a, b) => (a.key === null ? 1 : b.key === null ? -1 : a.key < b.key ? -1 : 1));
+  return groups;
 }
 
 // ── Mobile driver bottom-sheet picker ────────────────────────────────────────
@@ -353,9 +311,8 @@ function cardAccent(booking) {
   return "bg-slate-600/50";
 }
 
-function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign }) {
+function BookingCard({ booking, onSelect, drivers = [], onAssign }) {
   const [driverSheetOpen, setDriverSheetOpen] = useState(false);
-  const [statusSheetOpen, setStatusSheetOpen] = useState(false);
   const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
   const isCancelled = booking.status === "Cancelled";
   const statusLabel =
@@ -365,7 +322,7 @@ function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign
 
   return (
     <div
-      className={`relative overflow-visible rounded-2xl border transition ${
+      className={`relative overflow-visible rounded-xl border transition ${
         booking.priority
           ? "border-red-500/20 bg-red-500/[0.04]"
           : isActive
@@ -374,89 +331,64 @@ function BookingCard({ booking, onSelect, onStatusUpdate, drivers = [], onAssign
       } ${isCancelled ? "opacity-50" : ""}`}
     >
       {/* Left accent stripe */}
-      <div className={`absolute left-2.5 top-3 bottom-3 w-0.5 rounded-full ${cardAccent(booking)}`} />
+      <div className={`absolute left-2 top-2 bottom-2 w-0.5 rounded-full ${cardAccent(booking)}`} />
 
-      {/* Full-card tap target */}
+      {/* Full-card tap target — opens the detail drawer */}
       <button
         type="button"
         onClick={() => onSelect(booking)}
-        className="absolute inset-0 z-0 rounded-2xl"
+        className="absolute inset-0 z-0 rounded-xl"
         aria-label={`View details for ${booking.customer}`}
       />
 
-      <div className="relative z-10 pl-5 pr-3 pt-3 pb-2.5">
-        {/* Top row */}
-        <div className="pointer-events-none flex items-start gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              {booking.priority && <AlertTriangle className="h-3 w-3 flex-shrink-0 text-red-400" />}
-              <p className="truncate text-sm font-semibold text-white">{booking.customer}</p>
-            </div>
-            <p className="mt-0.5 truncate text-xs text-slate-500">{booking.route}</p>
-            {booking.flight && booking.flight !== "—" && (
-              <p className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-600">
-                <Plane className="h-2.5 w-2.5" /> {booking.flight}
-              </p>
-            )}
-          </div>
-          <div className="flex flex-shrink-0 flex-col items-end text-right">
-            <p className="text-sm font-bold text-amber-300">{booking.price}</p>
-            <p className="text-[11px] text-slate-400">{booking.time}</p>
-            {booking.pickupTime && (
-              <ETACountdown pickupTime={booking.pickupTime} className="text-[10px]" />
-            )}
-            {(booking.paymentMethod || booking.paymentStatus !== "Paid") && (
-              <span
-                className={`mt-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
-                  booking.paymentStatus === "Paid"
-                    ? "bg-emerald-400/10 text-emerald-400/90"
-                    : booking.paymentStatus === "Invoiced"
-                    ? "bg-amber-400/10 text-amber-300/90"
-                    : "bg-red-400/10 text-red-300/90"
-                }`}
-              >
-                {booking.paymentMethod || booking.paymentStatus}
-              </span>
-            )}
-          </div>
+      <div className="relative z-10 py-2 pl-4 pr-3">
+        {/* Row 1 — passenger + price */}
+        <div className="pointer-events-none flex items-baseline gap-2">
+          {booking.priority && (
+            <AlertTriangle className="h-3 w-3 flex-shrink-0 self-center text-red-400" />
+          )}
+          <p className="min-w-0 flex-1 truncate text-sm font-semibold text-white">
+            {booking.customer}
+          </p>
+          <p className="flex-shrink-0 text-sm font-bold text-amber-300">{booking.price}</p>
         </div>
 
-        {/* Bottom action bar: status pill (tappable) | driver | phone */}
-        <div className="mt-2 flex items-center gap-1.5 border-t border-white/5 pt-2">
-          <button
-            onClick={(e) => { e.stopPropagation(); setStatusSheetOpen(true); }}
-            className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium transition active:opacity-70 ${bookingStatusColor(booking.status)}`}
-          >
-            {statusLabel}
-          </button>
+        {/* Row 2 — route, flight kept secondary */}
+        <div className="pointer-events-none mt-0.5 flex items-center gap-1.5">
+          <p className="min-w-0 flex-1 truncate text-xs text-slate-400">{booking.route}</p>
+          {booking.flight && booking.flight !== "—" && (
+            <span className="flex flex-shrink-0 items-center gap-0.5 text-[10px] text-slate-600">
+              <Plane className="h-2.5 w-2.5" />
+              {booking.flight}
+            </span>
+          )}
+        </div>
+
+        {/* Row 3 — time · driver (tap to assign) · status */}
+        <div className="mt-1 flex items-center gap-1.5 text-[11px]">
+          <span className="pointer-events-none flex flex-shrink-0 items-center gap-1 text-slate-400">
+            <Clock className="h-3 w-3 text-slate-600" />
+            {booking.time}
+          </span>
+          <span className="pointer-events-none text-slate-700">·</span>
           <button
             onClick={(e) => { e.stopPropagation(); setDriverSheetOpen(true); }}
-            className={`min-w-0 flex-1 truncate text-left text-[11px] transition active:opacity-70 ${
-              booking.driverId ? "text-slate-400" : "font-medium text-amber-400/80"
+            className={`min-w-0 flex-1 truncate text-left transition active:opacity-70 ${
+              booking.driverId ? "text-slate-300" : "font-medium text-amber-400/80"
             }`}
           >
             {booking.driver || "Unassigned"}
           </button>
-          {booking.phone && (
-            <a
-              href={`tel:${booking.phone}`}
-              onClick={(e) => e.stopPropagation()}
-              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl border border-emerald-400/25 bg-emerald-400/10 text-emerald-300 transition active:bg-emerald-400/20"
-              aria-label={`Call ${booking.customer}`}
-            >
-              <Phone className="h-3 w-3" />
-            </a>
-          )}
+          <span
+            className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${bookingStatusColor(
+              booking.status
+            )}`}
+          >
+            {statusLabel}
+          </span>
         </div>
       </div>
 
-      {statusSheetOpen && (
-        <MobileStatusSheet
-          booking={booking}
-          onUpdate={onStatusUpdate}
-          onClose={() => setStatusSheetOpen(false)}
-        />
-      )}
       {driverSheetOpen && (
         <MobileDriverSheet
           booking={booking}
@@ -488,6 +420,7 @@ function DispatchPageContent() {
   const [modalOpen, setModalOpen] = useState(false);
   const [returnPrefill, setReturnPrefill] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef(null);
 
   const toast = useOperatorToast();
@@ -868,8 +801,8 @@ function DispatchPageContent() {
 
               {/* Search + filter row */}
               <div className="flex flex-col gap-2 sm:gap-3">
-                {/* Search input */}
-                <div className="relative">
+                {/* Search input — always shown on desktop; toggled on mobile */}
+                <div className={`relative ${searchOpen ? "block" : "hidden"} sm:block`}>
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" />
                   <input
                     ref={searchRef}
@@ -888,10 +821,10 @@ function DispatchPageContent() {
                   )}
                 </div>
 
-                {/* Status filter chips — horizontally scrollable */}
+                {/* Status filter chips — horizontally scrollable — plus mobile search toggle */}
                 <div className="flex items-center gap-1.5">
                   <Filter className="h-3 w-3 flex-shrink-0 text-slate-600 sm:h-3.5 sm:w-3.5 sm:text-slate-500" />
-                  <div className="flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-1.5">
+                  <div className="flex flex-1 gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:gap-1.5">
                     {STATUS_FILTERS.map((f) => (
                       <button
                         key={f}
@@ -915,28 +848,55 @@ function DispatchPageContent() {
                       <X className="h-3.5 w-3.5" />
                     </button>
                   )}
+                  {/* Mobile-only search toggle button */}
+                  <button
+                    onClick={() => {
+                      setSearchOpen((v) => {
+                        const next = !v;
+                        if (!next) setSearch("");
+                        else setTimeout(() => searchRef.current?.focus(), 0);
+                        return next;
+                      });
+                    }}
+                    aria-label={searchOpen ? "Close search" : "Search"}
+                    className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border transition active:bg-white/5 sm:hidden ${
+                      searchOpen || search
+                        ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
+                        : "border-white/10 text-slate-400"
+                    }`}
+                  >
+                    {searchOpen ? <X className="h-3.5 w-3.5" /> : <Search className="h-3.5 w-3.5" />}
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Mobile + tablet card layout */}
-            <div className="grid gap-2 lg:hidden">
+            {/* Mobile + tablet card layout — grouped by date, extra bottom padding
+                so the floating "New Booking" button never covers the last card */}
+            <div className="grid gap-3 pb-24 lg:hidden lg:pb-0">
               {loading && transfers.length === 0
                 ? [1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                    <div key={i} className="animate-pulse rounded-xl border border-white/5 bg-white/[0.02] p-3">
                       <div className="h-4 w-1/3 rounded-full bg-white/[0.04]" />
                       <div className="mt-3 h-3 w-2/3 rounded-full bg-white/[0.03]" />
                     </div>
                   ))
-                : filtered.map((t) => (
-                    <BookingCard
-                      key={t.id}
-                      booking={t}
-                      onSelect={setSelectedBooking}
-                      onStatusUpdate={handleStatusUpdate}
-                      drivers={drivers}
-                      onAssign={handleAssignDriver}
-                    />
+                : groupByDate(filtered).map((g) => (
+                    <div key={g.key ?? "no-date"} className="grid gap-1.5">
+                      <p className="px-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-400/80">
+                        {g.label}
+                        <span className="ml-1.5 text-slate-600">· {g.items.length}</span>
+                      </p>
+                      {g.items.map((t) => (
+                        <BookingCard
+                          key={t.id}
+                          booking={t}
+                          onSelect={setSelectedBooking}
+                          drivers={drivers}
+                          onAssign={handleAssignDriver}
+                        />
+                      ))}
+                    </div>
                   ))}
               {!loading && filtered.length === 0 && (
                 <p className="py-8 text-center text-sm text-slate-600">
