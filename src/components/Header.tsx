@@ -10,8 +10,6 @@ interface Props {
 }
 
 const ECOSYSTEM_LINKS = [
-  { label: "EV Exec",         href: "https://evexec.co.uk",              abbr: "evexec.co.uk", internal: false },
-  { label: "Driver App",      href: "https://evexecdriverapp.vercel.app", abbr: "Driver App",   internal: false },
   { label: "Operator Portal", href: "/operator/dispatch",                 abbr: "Operator",     internal: true  },
 ];
 
