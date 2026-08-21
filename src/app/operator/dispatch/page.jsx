@@ -19,7 +19,7 @@ import DispatchButton from "@/components/operator/DispatchButton";
 import BookingDetailDrawer from "@/components/operator/BookingDetailDrawer";
 import ETACountdown from "@/components/operator/ETACountdown";
 import {
-  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2, ChevronDown, Check, Car, Plane,
+  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2, ChevronDown, Check, Car, Plane, Plus,
 } from "lucide-react";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { useBookings } from "@/hooks/operator/useBookings";
@@ -421,7 +421,21 @@ function DispatchPageContent() {
   const [returnPrefill, setReturnPrefill] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [stickyTop, setStickyTop] = useState(0);
   const searchRef = useRef(null);
+
+  // Pin the filter bar directly beneath the (variable-height) app header while
+  // scrolling the feed. Measure the header live so it tracks any size change.
+  useEffect(() => {
+    const header = document.querySelector("header");
+    if (!header) return;
+    const update = () => setStickyTop(header.getBoundingClientRect().height);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(header);
+    window.addEventListener("resize", update);
+    return () => { ro.disconnect(); window.removeEventListener("resize", update); };
+  }, []);
 
   const toast = useOperatorToast();
   const {
@@ -802,7 +816,12 @@ function DispatchPageContent() {
         ) : (
           /* ── Board view ─────────────────────────────────────────────────── */
           <div className="min-w-0 p-0 sm:p-6">
-            <div className="mb-2 flex min-w-0 flex-col gap-2 lg:flex-row lg:items-center lg:justify-between sm:mb-4 sm:gap-3">
+            {/* Header block is sticky on mobile so the filter row stays pinned
+                below the app header while the feed scrolls; static on desktop. */}
+            <div
+              style={{ top: stickyTop }}
+              className="sticky z-30 mb-2 flex min-w-0 flex-col gap-2 bg-[#0B132B]/95 py-2 backdrop-blur-md lg:static lg:mb-4 lg:flex-row lg:items-center lg:justify-between lg:gap-3 lg:bg-transparent lg:py-0 lg:backdrop-blur-none"
+            >
               {/* Heading — hidden on mobile to save vertical space */}
               <div className="hidden sm:block">
                 <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Dispatch Board</p>
@@ -1024,12 +1043,14 @@ function DispatchPageContent() {
         )}
       </div>
 
-      {/* Mobile floating "+ New Booking" button */}
+      {/* Mobile floating New Booking button — compact round FAB so it covers
+          as little of the list as possible */}
       <button
         onClick={() => setModalOpen(true)}
-        className="fixed bottom-[5.5rem] right-4 z-40 flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-3 text-sm font-bold text-black shadow-xl shadow-amber-500/25 transition active:scale-95 sm:hidden"
+        aria-label="New Booking"
+        className="fixed bottom-[5.5rem] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 text-black shadow-xl shadow-amber-500/30 transition active:scale-95 sm:hidden"
       >
-        + New Booking
+        <Plus className="h-6 w-6" strokeWidth={2.5} />
       </button>
     </>
   );
