@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Search, Bell, X, LogOut, Plus, CalendarPlus, PhoneMissed } from "lucide-react";
 import Sidebar from "./Sidebar";
 import LiveClock from "./LiveClock";
 import RealtimeDot from "./RealtimeDot";
 import ErrorBoundary from "./ErrorBoundary";
-import BookingModal from "./BookingModal";
+import BookingModal, { customersFromBookings } from "./BookingModal";
 import { useOperatorToast } from "./Toast";
 import { useMissedCalls } from "@/hooks/operator/useMissedCalls";
 import { useNewBookingAlerts } from "@/hooks/operator/useNewBookingAlerts";
@@ -154,7 +154,8 @@ export default function Layout({ children, onSignOut }) {
     [searchTerm, router]
   );
   const { calls, resolve, resolveAll } = useMissedCalls();
-  const { createBooking } = useBookings();
+  const { createBooking, bookings } = useBookings();
+  const customers = useMemo(() => customersFromBookings(bookings), [bookings]);
   const toast = useOperatorToast();
 
   // Real-time new-booking alerts: toast + chime on arrival, and a running list
@@ -347,6 +348,7 @@ export default function Layout({ children, onSignOut }) {
         open={newBookingOpen}
         onClose={() => setNewBookingOpen(false)}
         onSubmit={handleCreateBooking}
+        customers={customers}
       />
     </div>
   );

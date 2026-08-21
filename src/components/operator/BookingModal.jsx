@@ -1,8 +1,87 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { X, Plane, MapPin, Clock, User, Car, PoundSterling, ChevronDown, ArrowLeftRight } from "lucide-react";
+import { X, Plane, MapPin, Clock, User, Car, PoundSterling, ChevronDown, ArrowLeftRight, Search } from "lucide-react";
 import { useDrivers } from "@/hooks/operator/useDrivers";
+
+// Builds a de-duplicated list of past customers from the bookings feed, so a
+// manual booking can reuse a saved customer's details instead of retyping them.
+// Keyed by phone (falling back to name); later records backfill a missing email.
+export function customersFromBookings(bookings = []) {
+  const clean = (v) => (v && v !== "—" ? String(v).trim() : "");
+  const map = new Map();
+  for (const b of bookings) {
+    const name = clean(b.customer);
+    const phone = clean(b.phone);
+    const email = clean(b.email);
+    if (!name && !phone) continue;
+    const key = phone || name.toLowerCase();
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, { name, phone, email });
+    } else {
+      if (!existing.email && email) existing.email = email;
+      if (!existing.phone && phone) existing.phone = phone;
+    }
+  }
+  return [...map.values()].filter((c) => c.name).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Type-ahead picker for reusing an existing customer's details.
+function CustomerPicker({ customers, onPick }) {
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("pointerdown", h);
+    return () => document.removeEventListener("pointerdown", h);
+  }, []);
+
+  const results = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    const list = t
+      ? customers.filter((c) =>
+          c.name.toLowerCase().includes(t) ||
+          c.phone.toLowerCase().includes(t) ||
+          c.email.toLowerCase().includes(t))
+      : customers;
+    return list.slice(0, 8);
+  }, [q, customers]);
+
+  if (!customers.length) return null;
+
+  return (
+    <div ref={ref} className="relative mb-4">
+      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+      <input
+        value={q}
+        onChange={(e) => { setQ(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        placeholder="Use an existing customer — search name, phone or email"
+        className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-3 pl-11 pr-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-amber-400/40 transition"
+      />
+      {open && results.length > 0 && (
+        <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-60 overflow-y-auto rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl">
+          {results.map((c, i) => (
+            <button
+              type="button"
+              key={`${c.phone || c.name}-${i}`}
+              onClick={() => { onPick(c); setOpen(false); setQ(""); }}
+              className="flex w-full flex-col items-start px-4 py-2.5 text-left transition hover:bg-white/5"
+            >
+              <span className="text-sm font-medium text-white">{c.name}</span>
+              {(c.phone || c.email) && (
+                <span className="text-xs text-slate-500">{[c.phone, c.email].filter(Boolean).join("  ·  ")}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const AIRPORTS = [
   "Manchester Airport (MAN)",
@@ -107,7 +186,7 @@ const empty = {
   notes: "",
 };
 
-export default function BookingModal({ open, onClose, onSubmit, initialValues }) {
+export default function BookingModal({ open, onClose, onSubmit, initialValues, customers = [] }) {
   const { drivers } = useDrivers();
   const vehicles = useMemo(
     () => drivers.map((d) => ({ id: d.id, label: `${d.name} — ${d.vehicle}` })),
@@ -293,6 +372,10 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues })
               <p className="mb-4 text-xs uppercase tracking-[0.2em] text-slate-600">
                 Customer Details
               </p>
+              <CustomerPicker
+                customers={customers}
+                onPick={(c) => setForm((f) => ({ ...f, customer: c.name, phone: c.phone || "", email: c.email || "" }))}
+              />
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Full Name" icon={User} error={errors.customer}>
                   <Input value={form.customer} onChange={set("customer")} placeholder="James Whitmore" />

@@ -13,7 +13,7 @@ function useDebounce(value, delay) {
   }, [value, delay]);
   return debounced;
 }
-import BookingModal from "@/components/operator/BookingModal";
+import BookingModal, { customersFromBookings } from "@/components/operator/BookingModal";
 import StatusActionMenu from "@/components/operator/StatusActionMenu";
 import DispatchButton from "@/components/operator/DispatchButton";
 import BookingDetailDrawer from "@/components/operator/BookingDetailDrawer";
@@ -682,6 +682,8 @@ function DispatchPageContent() {
     return transfers.find((t) => t.id === selectedBooking.id) ?? selectedBooking;
   }, [selectedBooking, transfers]);
 
+  const customers = useMemo(() => customersFromBookings(transfers), [transfers]);
+
   return (
     <>
       <BookingModal
@@ -689,6 +691,7 @@ function DispatchPageContent() {
         onClose={() => { setModalOpen(false); setReturnPrefill(null); }}
         onSubmit={handleCreateBooking}
         initialValues={returnPrefill}
+        customers={customers}
       />
 
       {liveSelectedBooking && (
