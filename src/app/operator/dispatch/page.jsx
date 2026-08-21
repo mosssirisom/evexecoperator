@@ -322,7 +322,7 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign }) {
 
   return (
     <div
-      className={`relative overflow-visible rounded-xl border transition ${
+      className={`relative min-w-0 overflow-visible rounded-xl border transition ${
         booking.priority
           ? "border-red-500/20 bg-red-500/[0.04]"
           : isActive
@@ -801,8 +801,8 @@ function DispatchPageContent() {
           </div>
         ) : (
           /* ── Board view ─────────────────────────────────────────────────── */
-          <div className="p-0 sm:p-6">
-            <div className="mb-2 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between sm:mb-4 sm:gap-3">
+          <div className="min-w-0 p-0 sm:p-6">
+            <div className="mb-2 flex min-w-0 flex-col gap-2 lg:flex-row lg:items-center lg:justify-between sm:mb-4 sm:gap-3">
               {/* Heading — hidden on mobile to save vertical space */}
               <div className="hidden sm:block">
                 <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Dispatch Board</p>
@@ -810,7 +810,7 @@ function DispatchPageContent() {
               </div>
 
               {/* Search + filter row */}
-              <div className="flex flex-col gap-2 sm:gap-3">
+              <div className="flex min-w-0 flex-col gap-2 sm:gap-3">
                 {/* Search input — always shown on desktop; toggled on mobile */}
                 <div className={`relative ${searchOpen ? "block" : "hidden"} sm:block`}>
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" />
@@ -832,9 +832,9 @@ function DispatchPageContent() {
                 </div>
 
                 {/* Status filter chips — horizontally scrollable — plus mobile search toggle */}
-                <div className="flex items-center gap-1.5">
+                <div className="flex min-w-0 items-center gap-1.5">
                   <Filter className="h-3 w-3 flex-shrink-0 text-slate-600 sm:h-3.5 sm:w-3.5 sm:text-slate-500" />
-                  <div className="flex flex-1 gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:gap-1.5">
+                  <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:gap-1.5">
                     {STATUS_FILTERS.map((f) => (
                       <button
                         key={f}
@@ -883,7 +883,7 @@ function DispatchPageContent() {
 
             {/* Mobile + tablet card layout — grouped by date, extra bottom padding
                 so the floating "New Booking" button never covers the last card */}
-            <div className="grid gap-2 pb-24 lg:hidden lg:pb-0">
+            <div className="grid min-w-0 gap-2 pb-24 lg:hidden lg:pb-0">
               {loading && transfers.length === 0
                 ? [1, 2, 3].map((i) => (
                     <div key={i} className="animate-pulse rounded-xl border border-white/5 bg-white/[0.02] p-3">
@@ -892,7 +892,7 @@ function DispatchPageContent() {
                     </div>
                   ))
                 : groupByDate(filtered).map((g) => (
-                    <div key={g.key ?? "no-date"} className="grid gap-1">
+                    <div key={g.key ?? "no-date"} className="grid min-w-0 gap-1">
                       <p className="px-0.5 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-400/80">
                         {g.label}
                         <span className="ml-1.5 text-slate-600">· {g.items.length}</span>
