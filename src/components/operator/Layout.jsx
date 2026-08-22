@@ -200,8 +200,8 @@ export default function Layout({ children, onSignOut }) {
   return (
     <div className="min-h-screen bg-[#0B132B] text-white">
       <Sidebar />
-      <main className="ml-0 min-h-screen pb-20 sm:ml-24 sm:pb-0 bg-[radial-gradient(circle_at_top_right,rgba(212,175,55,0.10),transparent_30%),linear-gradient(180deg,#0B132B_0%,#050814_100%)]">
-        <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0B132B]/80 px-4 py-4 sm:px-10 sm:py-6 backdrop-blur-xl">
+      <main className="ml-0 min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))] sm:ml-24 sm:pb-0 bg-[radial-gradient(circle_at_top_right,rgba(212,175,55,0.10),transparent_30%),linear-gradient(180deg,#0B132B_0%,#050814_100%)]">
+        <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0B132B]/80 px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] sm:px-10 sm:pb-6 sm:pt-6 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
 
             {/* Page title — hidden when mobile search is open */}

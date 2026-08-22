@@ -24,7 +24,7 @@ export default function Header({ onNewBooking, onSignOut }: Props) {
         borderBottom: "1px solid rgba(255,255,255,0.06)",
       }}
     >
-      <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+      <div className="max-w-3xl mx-auto px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] flex items-center justify-between gap-4">
 
         {/* ── Logo + wordmark ── */}
         <div className="flex items-center gap-4 min-w-0">

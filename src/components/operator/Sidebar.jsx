@@ -92,7 +92,7 @@ export default function Sidebar() {
       </aside>
 
       {/* Mobile: fixed bottom tab bar */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-white/5 bg-[#050B17]/95 px-1 py-1 backdrop-blur-xl">
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-white/5 bg-[#050B17]/95 px-1 pt-1 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] backdrop-blur-xl">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
