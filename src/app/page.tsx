@@ -83,6 +83,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   const [currentMonth, setMonth] = useState<Date>(new Date());
   const [selectedDate, setDate] = useState<Date | null>(new Date());
   const dailyRef = useRef<HTMLDivElement>(null);
+  const [jobsSheetOpen, setJobsSheetOpen] = useState(false);
 
   // Tapping a day in the calendar selects it; scroll its job list into view so
   // the jobs are reachable straight away (they render below the month grid).
@@ -90,6 +91,13 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
     setDate(d);
     setMonth(new Date(d.getFullYear(), d.getMonth(), 1));
     setTimeout(() => dailyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  };
+
+  // Tapping a day that has jobs opens them directly in a sheet.
+  const openJobsForDay = (d: Date) => {
+    setDate(d);
+    setMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+    setJobsSheetOpen(true);
   };
   const [activeTab, setTab] = useState<Tab>("calendar");
   const [showAddModal, setAdd] = useState(false);
@@ -279,7 +287,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
           <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
             {activeTab === "calendar" && (
               <>
-                <CalendarView currentMonth={currentMonth} bookings={bookings} selectedDate={selectedDate} onDateSelect={selectDay} onMonthChange={setMonth} />
+                <CalendarView currentMonth={currentMonth} bookings={bookings} selectedDate={selectedDate} onDateSelect={selectDay} onMonthChange={setMonth} onOpenJobs={openJobsForDay} />
                 <StatsBar stats={monthStats} />
                 {selectedDate && (
                   <div ref={dailyRef} className="scroll-mt-4">
@@ -328,6 +336,34 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
             )}
           </div>
         </main>
+      )}
+
+      {/* Tap-a-day jobs sheet — opens the selected day's jobs directly from the calendar */}
+      {jobsSheetOpen && selectedDate && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setJobsSheetOpen(false)} aria-hidden="true" />
+          <div className="relative z-10 flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-navy-900 shadow-2xl sm:max-w-lg sm:rounded-3xl">
+            <div className="flex flex-shrink-0 justify-center pb-1 pt-3 sm:hidden"><div className="h-1 w-12 rounded-full bg-white/20" /></div>
+            <div className="flex flex-shrink-0 items-center justify-between border-b border-white/8 px-5 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gold">Jobs</p>
+              <button onClick={() => setJobsSheetOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 text-slate-400 hover:text-white"><X size={16} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <DailyView
+                date={selectedDate}
+                bookings={dayBookings}
+                drivers={drivers}
+                notifications={notifications}
+                unavailableDriverIds={unavailableDriverIds(format(selectedDate, "yyyy-MM-dd"))}
+                driverLocations={driverLocations}
+                jobProofs={jobProofs}
+                onStatusChange={handleStatusChange}
+                onDriverAssign={handleDriverAssign}
+                onDangerAction={openDangerFlow}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {showAddModal && <AddBookingModal drivers={drivers} defaultDate={selectedDate ?? new Date()} prefill={quotePrefill?.prefill} onSave={handleAddBooking} onClose={() => { setAdd(false); setQuotePrefill(null); }} />}

@@ -16,6 +16,7 @@ interface Props {
   selectedDate: Date | null;
   onDateSelect: (date: Date) => void;
   onMonthChange: (date: Date) => void;
+  onOpenJobs?: (date: Date) => void;
 }
 
 type ViewMode = "month" | "week";
@@ -45,6 +46,7 @@ export default function CalendarView({
   selectedDate,
   onDateSelect,
   onMonthChange,
+  onOpenJobs,
 }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>("month");
 
@@ -218,7 +220,7 @@ export default function CalendarView({
               return (
                 <button
                   key={dateKey}
-                  onClick={() => onDateSelect(day)}
+                  onClick={() => { onDateSelect(day); if (active.length > 0) onOpenJobs?.(day); }}
                   className={`
                     relative flex flex-col items-center justify-start
                     py-2 px-1 rounded-xl transition-all
@@ -294,7 +296,7 @@ export default function CalendarView({
             return (
               <button
                 key={dateKey}
-                onClick={() => onDateSelect(day)}
+                onClick={() => { onDateSelect(day); if (active.length > 0) onOpenJobs?.(day); }}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all ${
                   isSelected
                     ? "bg-gold border-gold text-navy-900 shadow-gold-md"
