@@ -26,6 +26,7 @@ interface Props {
   onStatusChange: (ref: string, status: BookingStatus) => void;
   onDriverAssign:  (ref: string, driverId: string | null) => void;
   onDangerAction?: (booking: DbBooking) => void;
+  onViewReturn?: (booking: DbBooking) => void;
   driverLocation?: DbDriverLocation;
   proofs?: DbJobProof[];
 }
@@ -56,7 +57,7 @@ function displayDate(value: string | null | undefined) {
   return new Date(value).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 }
 
-export default function BookingCard({ booking, drivers, notification, unavailableDriverIds, onStatusChange, onDriverAssign, onDangerAction, driverLocation, proofs }: Props) {
+export default function BookingCard({ booking, drivers, notification, unavailableDriverIds, onStatusChange, onDriverAssign, onDangerAction, onViewReturn, driverLocation, proofs }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
 
@@ -107,16 +108,34 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
           <InfoPill icon={<Briefcase size={12} />} label="Bags" value={booking.luggage || "—"} />
         </div>
 
-        {booking.return_journey && (
-          <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/5 p-3 space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-300"><RotateCcw size={12} /> Return journey</div>
-            {booking.return_date && <DetailRow label="Return date" value={`${displayDate(booking.return_date) ?? booking.return_date}${booking.return_time ? ` · ${booking.return_time.slice(0, 5)}` : ""}`} />}
-            {booking.return_pickup && <DetailRow label="Return pick up" value={booking.return_pickup} />}
-            {booking.return_destination && <DetailRow label="Return drop" value={booking.return_destination} />}
-            {booking.return_airport && <DetailRow label="Return airport" value={booking.return_airport} />}
-            {booking.return_flight && <DetailRow label="Return flight" value={booking.return_flight} />}
-          </div>
-        )}
+        {booking.return_journey && (() => {
+          const clickable = !!(onViewReturn && booking.return_date);
+          const inner = (
+            <>
+              <div className="flex items-center justify-between gap-1.5 text-xs font-bold text-emerald-300">
+                <span className="flex items-center gap-1.5"><RotateCcw size={12} /> Return journey</span>
+                {clickable && <span className="text-[10px] font-semibold text-emerald-300/80">View on calendar →</span>}
+              </div>
+              {booking.return_date && <DetailRow label="Return date" value={`${displayDate(booking.return_date) ?? booking.return_date}${booking.return_time ? ` · ${booking.return_time.slice(0, 5)}` : ""}`} />}
+              {booking.return_pickup && <DetailRow label="Return pick up" value={booking.return_pickup} />}
+              {booking.return_destination && <DetailRow label="Return drop" value={booking.return_destination} />}
+              {booking.return_airport && <DetailRow label="Return airport" value={booking.return_airport} />}
+              {booking.return_flight && <DetailRow label="Return flight" value={booking.return_flight} />}
+            </>
+          );
+          return clickable ? (
+            <button
+              type="button"
+              onClick={() => onViewReturn!(booking)}
+              title="View the return job on the calendar"
+              className="w-full space-y-2 rounded-xl border border-emerald-400/15 bg-emerald-400/5 p-3 text-left transition hover:border-emerald-400/40 hover:bg-emerald-400/10 active:scale-[0.99]"
+            >
+              {inner}
+            </button>
+          ) : (
+            <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/5 p-3 space-y-2">{inner}</div>
+          );
+        })()}
 
         <div className="flex items-center justify-between">
           <span className="text-xs text-slate-500">{booking.payment_status ?? "Unpaid"}</span>

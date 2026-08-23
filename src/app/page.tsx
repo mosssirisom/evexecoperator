@@ -91,7 +91,16 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
     setMonth(new Date(d.getFullYear(), d.getMonth(), 1));
     setTimeout(() => dailyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   };
+
   const [activeTab, setTab] = useState<Tab>("calendar");
+
+  // The return leg is booked as its own job on the return date — jump the
+  // calendar to that date so the return job's card is shown.
+  const viewReturn = (b: DbBooking) => {
+    if (!b.return_date) return;
+    const d = parseISO(b.return_date);
+    if (!isNaN(d.getTime())) { setTab("calendar"); selectDay(d); }
+  };
   const [showAddModal, setAdd] = useState(false);
   const [quotePrefill, setQuotePrefill] = useState<{ prefill: BookingPrefill; quoteId: string } | null>(null);
   const [transferQuery, setTransferQuery] = useState("");
@@ -294,6 +303,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                     onStatusChange={handleStatusChange}
                     onDriverAssign={handleDriverAssign}
                     onDangerAction={openDangerFlow}
+                    onViewReturn={viewReturn}
                   />
                   </div>
                 )}

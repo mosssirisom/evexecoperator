@@ -19,6 +19,7 @@ interface Props {
   onStatusChange: (ref: string, status: BookingStatus) => void;
   onDriverAssign: (ref: string, driverId: string | null) => void;
   onDangerAction?: (booking: DbBooking) => void;
+  onViewReturn?: (booking: DbBooking) => void;
 }
 
 export default function DailyView({
@@ -32,6 +33,7 @@ export default function DailyView({
   onStatusChange,
   onDriverAssign,
   onDangerAction,
+  onViewReturn,
 }: Props) {
   const sorted = [...bookings].sort((a, b) =>
     (a.travel_time ?? "").localeCompare(b.travel_time ?? "")
@@ -68,6 +70,7 @@ export default function DailyView({
             onStatusChange={onStatusChange}
             onDriverAssign={onDriverAssign}
             onDangerAction={onDangerAction}
+            onViewReturn={onViewReturn}
           />
         ))
       )}
