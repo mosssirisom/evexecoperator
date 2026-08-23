@@ -16,9 +16,14 @@ import {
   Globe,
   BookOpen,
   UserCircle,
+  Mail,
+  MessageCircle,
+  Smartphone,
+  BellRing,
 } from "lucide-react";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { isConfigured } from "@/lib/supabase";
+import { useNotificationCenter } from "@/hooks/operator/useNotificationCenter";
 import { PORTALS } from "@/lib/operator/portals";
 
 const SECTIONS = [
@@ -105,6 +110,118 @@ function BusinessSettings({ state, set }) {
               {area}
             </span>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const NOTIF_TYPE_LABELS = {
+  received: "Customer confirmation",
+  reminder_24h: "Customer 24h reminder",
+  status_update: "Customer live update",
+  driver_allocated: "Driver — new job",
+  driver_reminder_24h: "Driver 24h reminder",
+};
+
+function channelChipCls(ch) {
+  return {
+    email: "border-blue-400/30 bg-blue-400/10 text-blue-300",
+    sms: "border-violet-400/30 bg-violet-400/10 text-violet-300",
+    whatsapp: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+    push: "border-amber-400/30 bg-amber-400/10 text-amber-300",
+  }[ch] || "border-white/10 text-slate-400";
+}
+
+function deliveryState(row) {
+  if (row.has_error) return { label: "Failed", cls: "text-red-300" };
+  if (row.status === "sent") return { label: "Delivered", cls: "text-emerald-300" };
+  if (row.delivery_status === "retrying") return { label: "Retrying", cls: "text-amber-300" };
+  return { label: "Queued", cls: "text-slate-500" };
+}
+
+function notifWhen(x) {
+  if (!x) return "";
+  const d = new Date(x);
+  if (isNaN(d)) return "";
+  return d.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+// Central notification control — channel priority, the "SMS only when necessary"
+// switch, and a live delivery log (channel used + whether delivered).
+function NotificationCenter() {
+  const { settings, activity, loading, saving, error, update } = useNotificationCenter();
+
+  const channels = [
+    { key: "push", n: 1, icon: BellRing, label: "Push / in-app", connected: false },
+    { key: "email", n: 2, icon: Mail, label: "Email", connected: true, enabled: settings.email_enabled, toggle: "email_enabled" },
+    { key: "whatsapp", n: 3, icon: MessageCircle, label: "WhatsApp", connected: false },
+    { key: "sms", n: 4, icon: Smartphone, label: "SMS", connected: true, enabled: settings.sms_enabled, toggle: "sms_enabled" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.04] p-4 text-xs leading-relaxed text-slate-300">
+        <p className="mb-1 font-semibold text-amber-300">How messages are sent</p>
+        Confirmations and 24-hour reminders go out on the highest-priority channel available for that
+        person — <strong>email first</strong>, falling back to SMS only when there's no email. Time-critical
+        alerts (a driver's new job, and “driver on the way / arrived”) always use SMS. Every message is sent on a
+        single channel, so no one is texted and emailed the same thing.
+      </div>
+
+      <div>
+        <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-slate-500">Channel priority</p>
+        <div className="space-y-2">
+          {channels.map((c) => (
+            <div key={c.key} className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3">
+              <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white/5 text-xs font-bold text-slate-400">{c.n}</span>
+              <c.icon className="h-4 w-4 flex-shrink-0 text-slate-400" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-white">{c.label}</p>
+                {!c.connected && <p className="text-[11px] text-slate-600">Not connected yet</p>}
+              </div>
+              {c.connected ? (
+                <Toggle value={!!c.enabled} onChange={(v) => update({ [c.toggle]: v })} />
+              ) : (
+                <span className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-medium text-slate-500">Coming soon</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <ToggleRow
+        label="Use SMS only when necessary"
+        description="Prefer email for confirmations & reminders; keep SMS for time-critical alerts. Cuts Twilio spend."
+        value={!!settings.sms_only_when_necessary}
+        onChange={(v) => update({ sms_only_when_necessary: v })}
+      />
+
+      {saving && <p className="text-[11px] text-slate-500">Saving…</p>}
+      {error && <p className="text-[11px] text-red-300">{error}</p>}
+
+      <div>
+        <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-slate-500">Recent notifications</p>
+        <div className="divide-y divide-white/5 rounded-2xl border border-white/5 bg-white/[0.02]">
+          {loading ? (
+            <p className="px-4 py-6 text-center text-xs text-slate-600">Loading…</p>
+          ) : activity.length === 0 ? (
+            <p className="px-4 py-6 text-center text-xs text-slate-600">No notifications sent yet.</p>
+          ) : (
+            activity.map((row) => {
+              const d = deliveryState(row);
+              return (
+                <div key={row.id} className="flex items-center gap-2 px-4 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium text-slate-200">{NOTIF_TYPE_LABELS[row.type] || row.type}</p>
+                    <p className="text-[10px] text-slate-600">{notifWhen(row.sent_at || row.created_at)}</p>
+                  </div>
+                  <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize ${channelChipCls(row.channel)}`}>{row.channel}</span>
+                  <span className={`w-16 flex-shrink-0 text-right text-[11px] font-medium ${d.cls}`}>{d.label}</span>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>
@@ -450,7 +567,15 @@ export default function Settings() {
 
   const sectionContent = {
     business: <BusinessSettings state={settings.business} set={set("business")} />,
-    notifications: <NotificationSettings state={settings.notifications} set={set("notifications")} />,
+    notifications: (
+      <div className="space-y-8">
+        <NotificationCenter />
+        <div>
+          <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-slate-500">Alert preferences</p>
+          <NotificationSettings state={settings.notifications} set={set("notifications")} />
+        </div>
+      </div>
+    ),
     fleet: <FleetSettings state={settings.fleet} set={set("fleet")} />,
     integrations: <IntegrationSettings toast={toast} />,
     security: <SecuritySettings state={settings.security} set={set("security")} />,
