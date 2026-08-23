@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { format, parseISO, isSameDay, isSameMonth } from "date-fns";
 import {
   AlertTriangle,
@@ -82,6 +82,15 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
 
   const [currentMonth, setMonth] = useState<Date>(new Date());
   const [selectedDate, setDate] = useState<Date | null>(new Date());
+  const dailyRef = useRef<HTMLDivElement>(null);
+
+  // Tapping a day in the calendar selects it; scroll its job list into view so
+  // the jobs are reachable straight away (they render below the month grid).
+  const selectDay = (d: Date) => {
+    setDate(d);
+    setMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+    setTimeout(() => dailyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  };
   const [activeTab, setTab] = useState<Tab>("calendar");
   const [showAddModal, setAdd] = useState(false);
   const [quotePrefill, setQuotePrefill] = useState<{ prefill: BookingPrefill; quoteId: string } | null>(null);
@@ -270,9 +279,10 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
           <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
             {activeTab === "calendar" && (
               <>
-                <CalendarView currentMonth={currentMonth} bookings={bookings} selectedDate={selectedDate} onDateSelect={(d) => { setDate(d); setMonth(new Date(d.getFullYear(), d.getMonth(), 1)); }} onMonthChange={setMonth} />
+                <CalendarView currentMonth={currentMonth} bookings={bookings} selectedDate={selectedDate} onDateSelect={selectDay} onMonthChange={setMonth} />
                 <StatsBar stats={monthStats} />
                 {selectedDate && (
+                  <div ref={dailyRef} className="scroll-mt-4">
                   <DailyView
                     date={selectedDate}
                     bookings={dayBookings}
@@ -285,6 +295,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                     onDriverAssign={handleDriverAssign}
                     onDangerAction={openDangerFlow}
                   />
+                  </div>
                 )}
                 <button onClick={() => setTab("transfers")} className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl border border-gold/20 bg-navy-800 text-sm font-semibold text-gold hover:bg-gold/10 hover:border-gold/40 active:scale-[0.99] transition-all shadow-card">
                   <CalendarDays size={15} />View Upcoming Transfers
