@@ -1,19 +1,99 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Plus, ExternalLink, Menu, X, LogOut } from "lucide-react";
+import { Plus, ExternalLink, Menu, X, LogOut, Bell, CalendarPlus } from "lucide-react";
+
+interface AlertItem {
+  id: string;
+  ref: string;
+  customer: string;
+  route: string;
+  time: string | null;
+  date: string | null;
+  source: string;
+  createdAt: string;
+}
 
 interface Props {
   onNewBooking: () => void;
   onSignOut: () => void;
+  newBookings?: AlertItem[];
+  onOpenBooking?: (b: AlertItem) => void;
+  onClearAlerts?: () => void;
+}
+
+// Header notification bell — surfaces jobs coming in from the website.
+function NotificationBell({ items, onOpen, onClear }: { items: AlertItem[]; onOpen?: (b: AlertItem) => void; onClear?: () => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const h = (e: PointerEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("pointerdown", h);
+    return () => document.removeEventListener("pointerdown", h);
+  }, []);
+  const count = items.length;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label={count > 0 ? `Notifications — ${count} new` : "Notifications"}
+        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-slate-300 transition-colors hover:bg-white/5 hover:text-gold"
+      >
+        <Bell size={17} />
+        {count > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+            {count > 9 ? "9+" : count}
+          </span>
+        )}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-white/10 bg-navy-800 shadow-2xl">
+          <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">New jobs</p>
+            {count > 0 && (
+              <button onClick={() => { onClear?.(); setOpen(false); }} className="text-[10px] text-slate-400 transition hover:text-gold">
+                Mark all read
+              </button>
+            )}
+          </div>
+          <div className="max-h-80 overflow-y-auto">
+            {count === 0 ? (
+              <p className="py-6 text-center text-sm text-slate-600">No new jobs right now</p>
+            ) : (
+              items.map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() => { onOpen?.(b); setOpen(false); }}
+                  className="flex w-full items-start gap-3 border-b border-white/5 px-4 py-3 text-left last:border-0 transition hover:bg-navy-700"
+                >
+                  <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-400/10">
+                    <CalendarPlus size={14} className="text-emerald-300" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-slate-100">{b.customer}</span>
+                    <span className="block truncate text-xs text-slate-500">{b.route}</span>
+                    <span className="mt-0.5 block text-[10px] text-slate-600">
+                      {b.source === "website" ? "Website booking" : "New booking"}
+                      {b.time ? ` · ${b.time}` : ""}{b.date ? ` · ${b.date}` : ""} · {b.ref}
+                    </span>
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const ECOSYSTEM_LINKS = [
   { label: "Operator Portal", href: "/operator/dispatch",                 abbr: "Operator",     internal: true  },
 ];
 
-export default function Header({ onNewBooking, onSignOut }: Props) {
+export default function Header({ onNewBooking, onSignOut, newBookings = [], onOpenBooking, onClearAlerts }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -72,6 +152,9 @@ export default function Header({ onNewBooking, onSignOut }: Props) {
               )
             )}
           </div>
+
+          {/* Notification bell — jobs coming in from the website */}
+          <NotificationBell items={newBookings} onOpen={onOpenBooking} onClear={onClearAlerts} />
 
           {/* + New booking */}
           <button

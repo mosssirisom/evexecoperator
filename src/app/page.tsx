@@ -32,6 +32,8 @@ import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
 import { CLASH_BUFFER_MINUTES, timeToMinutes, quoteToPrefill } from "@/lib/bookingUtils";
 import { bookingsToCsv, downloadCsv } from "@/lib/csv";
+import { useNewBookingAlerts } from "@/hooks/operator/useNewBookingAlerts";
+import { playNewBookingChime } from "@/lib/operator/notificationSound";
 
 import Header from "@/components/Header";
 import CalendarView from "@/components/CalendarView";
@@ -100,6 +102,22 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
     if (!b.return_date) return;
     const d = parseISO(b.return_date);
     if (!isNaN(d.getTime())) { setTab("calendar"); selectDay(d); }
+  };
+
+  // Live alerts for jobs coming in from the website — chime + toast on arrival,
+  // and a running list surfaced in the header bell.
+  const { newBookings, clear: clearNewBookings, dismiss: dismissNewBooking } = useNewBookingAlerts({
+    onNew: (b: { customer: string; route: string }) => {
+      showToast(`New booking — ${b.customer}${b.route && b.route !== "New booking" ? ` (${b.route})` : ""}`, "success");
+      playNewBookingChime();
+    },
+  });
+  const openBookingAlert = (b: { id: string; date?: string | null }) => {
+    dismissNewBooking(b.id);
+    if (b.date) {
+      const d = parseISO(b.date);
+      if (!isNaN(d.getTime())) { setTab("calendar"); selectDay(d); }
+    }
   };
   const [showAddModal, setAdd] = useState(false);
   const [quotePrefill, setQuotePrefill] = useState<{ prefill: BookingPrefill; quoteId: string } | null>(null);
@@ -257,7 +275,13 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   return (
     <div className="min-h-screen bg-navy-900 flex flex-col">
       <div className="relative z-30 bg-navy-900 border-b border-white/5">
-        <Header onNewBooking={() => setAdd(true)} onSignOut={onSignOut} />
+        <Header
+          onNewBooking={() => setAdd(true)}
+          onSignOut={onSignOut}
+          newBookings={newBookings}
+          onOpenBooking={openBookingAlert}
+          onClearAlerts={clearNewBookings}
+        />
         <div className="flex items-center gap-1.5 px-4 py-1.5 border-b border-white/5">
           {error ? (
             <><WifiOff size={10} className="text-red-400" /><span className="text-[10px] text-red-400">Offline — showing cached data</span></>
