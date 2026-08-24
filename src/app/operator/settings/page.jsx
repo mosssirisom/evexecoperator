@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Building2,
   Bell,
@@ -24,6 +24,7 @@ import {
 import { useOperatorToast } from "@/components/operator/Toast";
 import { isConfigured } from "@/lib/supabase";
 import { useNotificationCenter } from "@/hooks/operator/useNotificationCenter";
+import { isPushSupported, getPushEnabled, enableOperatorPush, disableOperatorPush } from "@/lib/operator/push";
 import { PORTALS } from "@/lib/operator/portals";
 
 const SECTIONS = [
@@ -147,6 +148,60 @@ function notifWhen(x) {
   return d.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
+// Enable/disable Web Push on the current device (operator gets pinged when a
+// website booking comes in, even with the app closed).
+function PushDeviceRow() {
+  const [supported, setSupported] = useState(true);
+  const [enabled, setEnabled] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    setSupported(isPushSupported());
+    getPushEnabled().then(setEnabled).catch(() => {});
+  }, []);
+
+  const toggle = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      if (enabled) { await disableOperatorPush(); setEnabled(false); }
+      else { await enableOperatorPush(); setEnabled(true); }
+    } catch (e) {
+      setErr(e?.message ?? "Something went wrong.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+      <div className="flex items-center gap-3">
+        <BellRing className="h-4 w-4 flex-shrink-0 text-amber-300" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-white">Push notifications on this device</p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">
+            {supported
+              ? "Get an alert on this device when a booking comes in from the website — even with the app closed."
+              : "This browser can't do push. On iPhone, add the app to your Home Screen first, then open it and try again."}
+          </p>
+        </div>
+        <button
+          onClick={toggle}
+          disabled={busy || !supported}
+          className={`flex-shrink-0 rounded-xl px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${
+            enabled ? "border border-white/10 text-slate-300 hover:text-white" : "bg-amber-500 text-black hover:bg-amber-400"
+          }`}
+        >
+          {busy ? "…" : enabled ? "Turn off" : "Enable"}
+        </button>
+      </div>
+      {err && <p className="mt-2 text-[11px] text-red-300">{err}</p>}
+      {enabled && !err && <p className="mt-2 text-[11px] text-emerald-300">This device is set up for push alerts.</p>}
+    </div>
+  );
+}
+
 // Central notification control — channel priority, the "SMS only when necessary"
 // switch, and a live delivery log (channel used + whether delivered).
 function NotificationCenter() {
@@ -161,6 +216,8 @@ function NotificationCenter() {
 
   return (
     <div className="space-y-6">
+      <PushDeviceRow />
+
       <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.04] p-4 text-xs leading-relaxed text-slate-300">
         <p className="mb-1 font-semibold text-amber-300">How messages are sent</p>
         Confirmations and 24-hour reminders go out on the highest-priority channel available for that
