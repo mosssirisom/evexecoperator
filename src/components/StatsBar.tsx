@@ -32,14 +32,14 @@ export default function StatsBar({ stats }: Props) {
   ];
 
   return (
-    <div className="grid grid-cols-4 divide-x divide-white/8 bg-navy-800 rounded-2xl border border-white/8 shadow-card">
+    <div className="grid grid-cols-4 divide-x divide-white/8 bg-white rounded-2xl border border-slate-200 shadow-card">
       {items.map(({ icon: Icon, value, label }) => (
         <div
           key={label}
           className="flex flex-col items-center justify-center py-4 px-2 gap-1.5"
         >
-          <Icon size={16} className="text-gold/70" />
-          <span className="text-sm font-bold text-slate-100">{value}</span>
+          <Icon size={16} className="text-amber-600/80" />
+          <span className="text-sm font-bold text-slate-800">{value}</span>
           <span className="text-[10px] text-slate-500 text-center leading-tight whitespace-pre">
             {label}
           </span>

@@ -39,7 +39,7 @@ function NotificationBell({ items, onOpen, onClear }: { items: AlertItem[]; onOp
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label={count > 0 ? `Notifications — ${count} new` : "Notifications"}
-        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-slate-300 transition-colors hover:bg-white/5 hover:text-gold"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition-colors hover:bg-slate-100 hover:text-amber-600"
       >
         <Bell size={17} />
         {count > 0 && (
@@ -49,11 +49,11 @@ function NotificationBell({ items, onOpen, onClear }: { items: AlertItem[]; onOp
         )}
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-white/10 bg-navy-800 shadow-2xl">
-          <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">New jobs</p>
+        <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-slate-200 bg-white shadow-2xl">
+          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600">New jobs</p>
             {count > 0 && (
-              <button onClick={() => { onClear?.(); setOpen(false); }} className="text-[10px] text-slate-400 transition hover:text-gold">
+              <button onClick={() => { onClear?.(); setOpen(false); }} className="text-[10px] text-slate-500 transition hover:text-amber-600">
                 Mark all read
               </button>
             )}
@@ -66,13 +66,13 @@ function NotificationBell({ items, onOpen, onClear }: { items: AlertItem[]; onOp
                 <button
                   key={b.id}
                   onClick={() => { onOpen?.(b); setOpen(false); }}
-                  className="flex w-full items-start gap-3 border-b border-white/5 px-4 py-3 text-left last:border-0 transition hover:bg-navy-700"
+                  className="flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left last:border-0 transition hover:bg-slate-100"
                 >
                   <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-400/10">
-                    <CalendarPlus size={14} className="text-emerald-300" />
+                    <CalendarPlus size={14} className="text-emerald-600" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-slate-100">{b.customer}</span>
+                    <span className="block truncate text-sm font-medium text-slate-800">{b.customer}</span>
                     <span className="block truncate text-xs text-slate-500">{b.route}</span>
                     <span className="mt-0.5 block text-[10px] text-slate-600">
                       {b.source === "website" ? "Website booking" : "New booking"}
@@ -111,13 +111,13 @@ export default function Header({ onNewBooking, onSignOut, newBookings = [], onOp
           {/* Text */}
           <div className="min-w-0">
             <h1
-              className="text-white leading-none font-black tracking-tight truncate"
+              className="text-[#0F1B33] leading-none font-black tracking-tight truncate"
               style={{ fontSize: "clamp(1.6rem, 5vw, 2.4rem)", letterSpacing: "-0.01em" }}
             >
               EV EXEC
             </h1>
             <p
-              className="text-slate-400 font-medium uppercase mt-1 tracking-widest truncate"
+              className="text-slate-500 font-medium uppercase mt-1 tracking-widest truncate"
               style={{ fontSize: "clamp(0.55rem, 1.5vw, 0.7rem)", letterSpacing: "0.22em" }}
             >
               Premium Airport Transfers
@@ -134,7 +134,7 @@ export default function Header({ onNewBooking, onSignOut, newBookings = [], onOp
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-slate-500 hover:text-gold hover:bg-white/5 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-slate-500 hover:text-amber-600 hover:bg-slate-100 transition-colors"
                 >
                   {link.abbr}
                 </Link>
@@ -144,7 +144,7 @@ export default function Header({ onNewBooking, onSignOut, newBookings = [], onOp
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-slate-500 hover:text-gold hover:bg-white/5 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-slate-500 hover:text-amber-600 hover:bg-slate-100 transition-colors"
                 >
                   {link.abbr}
                   <ExternalLink size={9} />
@@ -172,7 +172,7 @@ export default function Header({ onNewBooking, onSignOut, newBookings = [], onOp
           {/* Sign out — desktop */}
           <button
             onClick={onSignOut}
-            className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-slate-500 hover:text-red-400 hover:bg-white/5 transition-colors"
+            className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-slate-500 hover:text-red-600 hover:bg-slate-100 transition-colors"
             aria-label="Sign out"
           >
             <LogOut size={12} />
@@ -182,7 +182,7 @@ export default function Header({ onNewBooking, onSignOut, newBookings = [], onOp
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMenuOpen((o) => !o)}
-            className="md:hidden p-2 text-slate-400 hover:text-slate-200"
+            className="md:hidden p-2 text-slate-500 hover:text-slate-700"
           >
             {menuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
@@ -191,14 +191,14 @@ export default function Header({ onNewBooking, onSignOut, newBookings = [], onOp
 
       {/* Mobile dropdown */}
       {menuOpen && (
-        <div className="absolute top-full right-4 z-50 w-48 rounded-xl border border-white/10 bg-navy-800 shadow-card overflow-hidden slide-up md:hidden">
+        <div className="absolute top-full right-4 z-50 w-48 rounded-xl border border-slate-200 bg-white shadow-card overflow-hidden slide-up md:hidden">
           {ECOSYSTEM_LINKS.map((link) =>
             link.internal ? (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
-                className="flex items-center justify-between px-4 py-3 text-sm text-slate-300 hover:bg-navy-700 hover:text-gold transition-colors"
+                className="flex items-center justify-between px-4 py-3 text-sm text-slate-600 hover:bg-slate-100 hover:text-amber-600 transition-colors"
               >
                 {link.label}
               </Link>
@@ -209,7 +209,7 @@ export default function Header({ onNewBooking, onSignOut, newBookings = [], onOp
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setMenuOpen(false)}
-                className="flex items-center justify-between px-4 py-3 text-sm text-slate-300 hover:bg-navy-700 hover:text-gold transition-colors"
+                className="flex items-center justify-between px-4 py-3 text-sm text-slate-600 hover:bg-slate-100 hover:text-amber-600 transition-colors"
               >
                 {link.label}
                 <ExternalLink size={12} />
@@ -221,7 +221,7 @@ export default function Header({ onNewBooking, onSignOut, newBookings = [], onOp
               setMenuOpen(false);
               onSignOut();
             }}
-            className="flex items-center justify-between w-full px-4 py-3 text-sm text-slate-300 hover:bg-navy-700 hover:text-red-400 transition-colors border-t border-white/5"
+            className="flex items-center justify-between w-full px-4 py-3 text-sm text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors border-t border-slate-100"
           >
             Sign out
             <LogOut size={12} />

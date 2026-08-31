@@ -114,17 +114,17 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
 
       <form
         onSubmit={handleSubmit}
-        className="relative w-full max-w-md bg-navy-800 rounded-2xl border border-white/10 shadow-card overflow-y-auto max-h-[90vh] slide-up"
+        className="relative w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-card overflow-y-auto max-h-[90vh] slide-up"
       >
-        <div className="sticky top-0 bg-navy-800 border-b border-white/8 px-5 py-4 flex items-center justify-between z-10">
-          <h2 className="text-base font-bold text-slate-100">New Transfer</h2>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-navy-700">
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-5 py-4 flex items-center justify-between z-10">
+          <h2 className="text-base font-bold text-slate-800">New Transfer</h2>
+          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100">
             <X size={16} />
           </button>
         </div>
 
         {prefill && (
-          <div className="mx-5 mt-4 px-3 py-2 rounded-lg bg-gold/10 border border-gold/20 text-xs text-gold">
+          <div className="mx-5 mt-4 px-3 py-2 rounded-lg bg-gold/10 border border-gold/20 text-xs text-amber-600">
             Pre-filled from quote request — review before creating
           </div>
         )}
@@ -211,7 +211,7 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
               onChange={(e) => set("priority", e.target.checked)}
               className="w-4 h-4 accent-gold rounded"
             />
-            <span className="text-xs text-slate-400">Mark as priority</span>
+            <span className="text-xs text-slate-500">Mark as priority</span>
           </label>
 
           <div>
@@ -226,8 +226,8 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
           </div>
         </div>
 
-        <div className="sticky bottom-0 bg-navy-800 border-t border-white/8 px-5 py-4 flex gap-3">
-          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/15 text-sm text-slate-300 hover:bg-navy-700 transition-colors">
+        <div className="sticky bottom-0 bg-white border-t border-slate-200 px-5 py-4 flex gap-3">
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-100 transition-colors">
             Cancel
           </button>
           <button
@@ -244,7 +244,7 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
 }
 
 const inputCls =
-  "w-full bg-navy-700 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-gold/40 transition-colors";
+  "w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-gold/40 transition-colors";
 
 function Input({ placeholder, value, onChange, type = "text", required, min }: {
   placeholder?: string; value: string | number; onChange: (v: string) => void; type?: string; required?: boolean; min?: number;
@@ -264,8 +264,8 @@ function Input({ placeholder, value, onChange, type = "text", required, min }: {
 
 function SectionLabel({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   return (
-    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wide">
-      <Icon size={11} className="text-gold/70" />
+    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+      <Icon size={11} className="text-amber-600/80" />
       {label}
     </div>
   );

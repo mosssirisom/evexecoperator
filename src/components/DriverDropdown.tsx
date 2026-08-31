@@ -33,11 +33,11 @@ export default function DriverDropdown({
     <>
       <button
         onClick={() => choose(null)}
-        className="w-full text-left px-4 py-3 text-sm text-slate-400 hover:bg-navy-700 hover:text-slate-200 transition-colors"
+        className="w-full text-left px-4 py-3 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
       >
         Unassigned
       </button>
-      <div className="h-px bg-white/5 mx-3" />
+      <div className="h-px bg-white mx-3" />
       {drivers.map((driver) => {
         const unavailable = unavailableDriverIds?.has(driver.id) ?? false;
         return (
@@ -45,13 +45,13 @@ export default function DriverDropdown({
             key={driver.id}
             onClick={() => choose(driver.id)}
             className={`w-full text-left px-4 py-3 transition-colors ${
-              driver.id === selectedDriverId ? "bg-gold/10 text-gold" : "text-slate-200 hover:bg-navy-700"
+              driver.id === selectedDriverId ? "bg-gold/10 text-amber-600" : "text-slate-700 hover:bg-slate-100"
             }`}
           >
             <div className="flex items-center gap-1.5">
               <span className="font-medium text-sm">{driver.name}</span>
               {unavailable && (
-                <span className="text-[10px] font-bold text-red-400 bg-red-900/30 px-1.5 py-0.5 rounded-full">
+                <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-full">
                   Off this day
                 </span>
               )}
@@ -72,15 +72,15 @@ export default function DriverDropdown({
         disabled={disabled}
         className={`
           flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm
-          border border-white/10 transition-all
+          border border-slate-200 transition-all
           ${disabled
-            ? "opacity-50 cursor-not-allowed bg-navy-800"
-            : "bg-navy-700 hover:bg-navy-600 hover:border-gold/30 cursor-pointer"
+            ? "opacity-50 cursor-not-allowed bg-white"
+            : "bg-slate-100 hover:bg-slate-200 hover:border-gold/30 cursor-pointer"
           }
         `}
       >
-        <User size={13} className="text-gold/70 shrink-0" />
-        <span className={selected ? "text-slate-200" : "text-slate-500"}>
+        <User size={13} className="text-amber-600/80 shrink-0" />
+        <span className={selected ? "text-slate-700" : "text-slate-500"}>
           {selected ? selected.name : "Unassigned"}
         </span>
         <ChevronDown
@@ -98,12 +98,12 @@ export default function DriverDropdown({
           />
 
           {/* Mobile: bottom sheet with a scrollable list — swipe stays in the list */}
-          <div className="fixed inset-x-0 bottom-0 z-50 flex max-h-[75vh] flex-col rounded-t-3xl border-t border-white/10 bg-navy-800 shadow-2xl sm:hidden">
-            <div className="flex flex-shrink-0 items-center justify-between border-b border-white/5 px-4 py-3">
-              <p className="text-sm font-semibold text-white">Assign driver</p>
+          <div className="fixed inset-x-0 bottom-0 z-50 flex max-h-[75vh] flex-col rounded-t-3xl border-t border-slate-200 bg-white shadow-2xl sm:hidden">
+            <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3">
+              <p className="text-sm font-semibold text-[#0F1B33]">Assign driver</p>
               <button
                 onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 text-slate-400"
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 text-slate-500"
               >
                 <X size={15} />
               </button>
@@ -114,7 +114,7 @@ export default function DriverDropdown({
           </div>
 
           {/* Desktop: popover, capped height so long lists scroll inside it */}
-          <div className="absolute top-full left-0 z-50 mt-1 hidden max-h-72 w-56 overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-navy-800 shadow-card slide-up sm:block [touch-action:pan-y]">
+          <div className="absolute top-full left-0 z-50 mt-1 hidden max-h-72 w-56 overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white shadow-card slide-up sm:block [touch-action:pan-y]">
             {options}
           </div>
         </>

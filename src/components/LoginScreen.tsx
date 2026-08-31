@@ -10,7 +10,7 @@ interface Props {
 }
 
 const inputCls =
-  "w-full bg-navy-700 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-gold/40 transition-colors";
+  "w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-gold/40 transition-colors";
 
 export default function LoginScreen({ onSignIn }: Props) {
   const [email, setEmail] = useState("");
@@ -31,7 +31,7 @@ export default function LoginScreen({ onSignIn }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-navy-950 flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-[#E9EBF2] flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -42,19 +42,19 @@ export default function LoginScreen({ onSignIn }: Props) {
             style={{ maxWidth: "260px", objectFit: "contain" }}
           />
           <p
-            className="text-slate-400 font-medium uppercase mt-1 tracking-widest"
+            className="text-slate-500 font-medium uppercase mt-1 tracking-widest"
             style={{ fontSize: "clamp(0.6rem, 1.5vw, 0.7rem)", letterSpacing: "0.22em" }}
           >
             Operator Portal
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="rounded-2xl border border-white/10 bg-navy-800 shadow-card p-6 space-y-4">
-          <h2 className="text-white text-xl font-bold">Sign in</h2>
+        <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white shadow-card p-6 space-y-4">
+          <h2 className="text-[#0F1B33] text-xl font-bold">Sign in</h2>
 
           <div className="space-y-1.5">
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wide">
-              <Mail size={11} className="text-gold/70" />
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              <Mail size={11} className="text-amber-600/80" />
               Email
             </label>
             <input
@@ -69,8 +69,8 @@ export default function LoginScreen({ onSignIn }: Props) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wide">
-              <Lock size={11} className="text-gold/70" />
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              <Lock size={11} className="text-amber-600/80" />
               Password
             </label>
             <div className="relative">
@@ -86,20 +86,20 @@ export default function LoginScreen({ onSignIn }: Props) {
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600 transition-colors"
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
             <div className="flex justify-end">
-              <button type="button" className="text-xs text-amber-400 hover:text-amber-300 transition-colors">
+              <button type="button" className="text-xs text-amber-600 hover:text-amber-600 transition-colors">
                 Forgot password?
               </button>
             </div>
           </div>
 
           {error && (
-            <p className="text-xs text-red-400 bg-red-900/20 border border-red-500/20 rounded-lg px-3 py-2">
+            <p className="text-xs text-red-600 bg-red-100 border border-red-500/20 rounded-lg px-3 py-2">
               {error}
             </p>
           )}

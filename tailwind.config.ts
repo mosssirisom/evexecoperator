@@ -37,7 +37,7 @@ const config: Config = {
       boxShadow: {
         "gold-sm": "0 0 12px rgba(201,165,80,0.15)",
         "gold-md": "0 0 24px rgba(201,165,80,0.25)",
-        "card":    "0 4px 24px rgba(0,0,0,0.4)",
+        "card":    "0 4px 20px rgba(15,27,51,0.08)",
       },
       backgroundImage: {
         "gold-gradient": "linear-gradient(135deg, #C9A550 0%, #E8C97A 50%, #C9A550 100%)",

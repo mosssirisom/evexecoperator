@@ -50,15 +50,15 @@ export default function InboxTab({
       {/* Quote Requests */}
       <section className="space-y-2">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-            <Inbox size={16} className="text-gold/70" />
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <Inbox size={16} className="text-amber-600/80" />
             Quote Requests
           </h2>
           <span className="text-xs text-slate-500">{newQuotes.length} new</span>
         </div>
 
         {newQuotes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 rounded-2xl border border-dashed border-white/10 text-slate-600">
+          <div className="flex flex-col items-center justify-center py-8 rounded-2xl border border-dashed border-slate-200 text-slate-600">
             <Inbox size={24} className="mb-2 text-slate-700" />
             <p className="text-sm">No new quote requests</p>
           </div>
@@ -77,20 +77,20 @@ export default function InboxTab({
       {/* Missed Calls */}
       <section className="space-y-2">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-            <PhoneMissed size={16} className="text-gold/70" />
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <PhoneMissed size={16} className="text-amber-600/80" />
             Missed Calls
           </h2>
           <button
             onClick={() => setShowResolved((s) => !s)}
-            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-xs text-slate-500 hover:text-slate-600 transition-colors"
           >
             {showResolved ? "Hide resolved" : "Show resolved"}
           </button>
         </div>
 
         {visibleCalls.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 rounded-2xl border border-dashed border-white/10 text-slate-600">
+          <div className="flex flex-col items-center justify-center py-8 rounded-2xl border border-dashed border-slate-200 text-slate-600">
             <PhoneMissed size={24} className="mb-2 text-slate-700" />
             <p className="text-sm">{showResolved ? "No missed calls" : "No unresolved missed calls"}</p>
           </div>
@@ -108,20 +108,20 @@ export default function InboxTab({
       {/* Contact Messages */}
       <section className="space-y-2">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-            <Mail size={16} className="text-gold/70" />
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <Mail size={16} className="text-amber-600/80" />
             Messages
           </h2>
           <button
             onClick={() => setShowRead((s) => !s)}
-            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-xs text-slate-500 hover:text-slate-600 transition-colors"
           >
             {showRead ? "Hide read" : "Show read"}
           </button>
         </div>
 
         {visibleMessages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 rounded-2xl border border-dashed border-white/10 text-slate-600">
+          <div className="flex flex-col items-center justify-center py-8 rounded-2xl border border-dashed border-slate-200 text-slate-600">
             <Mail size={24} className="mb-2 text-slate-700" />
             <p className="text-sm">{showRead ? "No messages" : "No new messages"}</p>
           </div>
@@ -160,14 +160,14 @@ function QuoteRequestCard({
     : null;
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-navy-800 shadow-card overflow-hidden">
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-card overflow-hidden">
       <div className="px-4 pt-3 pb-4 space-y-2.5">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="font-semibold text-slate-100 text-sm leading-tight">{quote.customer_name}</p>
+            <p className="font-semibold text-slate-800 text-sm leading-tight">{quote.customer_name}</p>
             <div className="flex items-start gap-1.5 mt-1">
-              <MapPin size={12} className="text-gold/60 mt-0.5 shrink-0" />
-              <p className="text-xs text-slate-400 leading-relaxed">{route}</p>
+              <MapPin size={12} className="text-amber-600/70 mt-0.5 shrink-0" />
+              <p className="text-xs text-slate-500 leading-relaxed">{route}</p>
             </div>
           </div>
           {created && <span className="text-[10px] text-slate-600 shrink-0 whitespace-nowrap">{created}</span>}
@@ -176,33 +176,33 @@ function QuoteRequestCard({
         {/* Date / time / passengers */}
         <div className="flex items-center gap-3 flex-wrap">
           {dateLabel && (
-            <span className="flex items-center gap-1 text-xs text-slate-400">
-              <Calendar size={11} className="text-gold/60" /> {dateLabel}
+            <span className="flex items-center gap-1 text-xs text-slate-500">
+              <Calendar size={11} className="text-amber-600/70" /> {dateLabel}
             </span>
           )}
           {timeLabel && (
-            <span className="flex items-center gap-1 text-xs text-slate-400">
-              <Clock size={11} className="text-gold/60" /> {timeLabel}
+            <span className="flex items-center gap-1 text-xs text-slate-500">
+              <Clock size={11} className="text-amber-600/70" /> {timeLabel}
             </span>
           )}
           {quote.passengers != null && (
-            <span className="flex items-center gap-1 text-xs text-slate-400">
-              <Users size={11} className="text-gold/60" /> {quote.passengers}
+            <span className="flex items-center gap-1 text-xs text-slate-500">
+              <Users size={11} className="text-amber-600/70" /> {quote.passengers}
             </span>
           )}
         </div>
 
         {/* Flight info */}
         {quote.flight_number && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-900/20 border border-white/5">
-            <Plane size={12} className="text-blue-400 shrink-0 -rotate-45" />
-            <span className="text-xs font-bold text-blue-300 tracking-wide">{quote.flight_number}</span>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-100 border border-slate-100">
+            <Plane size={12} className="text-blue-600 shrink-0 -rotate-45" />
+            <span className="text-xs font-bold text-blue-600 tracking-wide">{quote.flight_number}</span>
           </div>
         )}
 
         {/* Return trip */}
         {quote.return_required && (
-          <div className="flex items-center gap-1.5 text-xs text-purple-300 bg-purple-900/20 px-3 py-1.5 rounded-lg">
+          <div className="flex items-center gap-1.5 text-xs text-purple-600 bg-purple-100 px-3 py-1.5 rounded-lg">
             <ArrowLeftRight size={11} className="shrink-0" />
             Return{quote.return_date ? ` on ${format(parseISO(quote.return_date), "d MMM")}` : ""}
             {quote.return_time ? ` at ${quote.return_time.slice(0, 5)}` : ""}
@@ -211,8 +211,8 @@ function QuoteRequestCard({
 
         {/* Phone */}
         <div className="flex items-center gap-1.5">
-          <Phone size={11} className="text-gold/60 shrink-0" />
-          <span className="text-xs text-slate-400">{quote.phone}</span>
+          <Phone size={11} className="text-amber-600/70 shrink-0" />
+          <span className="text-xs text-slate-500">{quote.phone}</span>
           {quote.contact_method && (
             <span className="text-[10px] text-slate-600 ml-1">via {quote.contact_method}</span>
           )}
@@ -221,8 +221,8 @@ function QuoteRequestCard({
         {/* Notes */}
         {quote.notes && (
           <div className="flex items-start gap-1.5">
-            <MessageSquare size={11} className="text-gold/60 shrink-0 mt-0.5" />
-            <span className="text-xs text-slate-400 italic">{quote.notes}</span>
+            <MessageSquare size={11} className="text-amber-600/70 shrink-0 mt-0.5" />
+            <span className="text-xs text-slate-500 italic">{quote.notes}</span>
           </div>
         )}
 
@@ -230,13 +230,13 @@ function QuoteRequestCard({
         <div className="flex gap-2 pt-1">
           <button
             onClick={onDismiss}
-            className="flex-1 py-2 rounded-xl text-xs font-semibold bg-navy-700 text-slate-400 border border-white/10 hover:bg-navy-600 hover:text-slate-200 active:scale-[0.98] transition-all"
+            className="flex-1 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200 hover:text-slate-700 active:scale-[0.98] transition-all"
           >
             Dismiss
           </button>
           <button
             onClick={onConvert}
-            className="flex-1 py-2 rounded-xl text-xs font-semibold bg-gold/10 text-gold border border-gold/25 hover:bg-gold/20 hover:border-gold/40 active:scale-[0.98] transition-all"
+            className="flex-1 py-2 rounded-xl text-xs font-semibold bg-gold/10 text-amber-600 border border-gold/25 hover:bg-gold/20 hover:border-gold/40 active:scale-[0.98] transition-all"
           >
             Create Booking
           </button>
@@ -259,17 +259,17 @@ function MissedCallCard({
 
   return (
     <div
-      className={`rounded-2xl border bg-navy-800 shadow-card overflow-hidden px-4 py-3 ${
-        call.resolved ? "border-white/8 opacity-60" : "border-orange-500/20"
+      className={`rounded-2xl border bg-white shadow-card overflow-hidden px-4 py-3 ${
+        call.resolved ? "border-slate-200 opacity-60" : "border-orange-500/20"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <Phone size={12} className="text-orange-400 shrink-0" />
-            <p className="font-semibold text-slate-100 text-sm">{call.caller ?? "Unknown number"}</p>
+            <Phone size={12} className="text-orange-600 shrink-0" />
+            <p className="font-semibold text-slate-800 text-sm">{call.caller ?? "Unknown number"}</p>
           </div>
-          {call.notes && <p className="text-xs text-slate-400 italic mt-1">{call.notes}</p>}
+          {call.notes && <p className="text-xs text-slate-500 italic mt-1">{call.notes}</p>}
           <div className="flex items-center gap-3 mt-1.5">
             {call.attempts != null && (
               <span className="text-[10px] text-slate-500">
@@ -283,8 +283,8 @@ function MissedCallCard({
           onClick={onToggleResolved}
           className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-[0.98] ${
             call.resolved
-              ? "bg-navy-700 text-slate-400 border border-white/10 hover:bg-navy-600"
-              : "bg-orange-900/30 text-orange-300 border border-orange-500/25 hover:bg-orange-900/50"
+              ? "bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200"
+              : "bg-orange-100 text-orange-600 border border-orange-500/25 hover:bg-orange-100"
           }`}
         >
           {call.resolved ? <RotateCcw size={11} /> : <CheckCircle2 size={11} />}
@@ -309,36 +309,36 @@ function ContactMessageCard({
 
   return (
     <div
-      className={`rounded-2xl border bg-navy-800 shadow-card overflow-hidden px-4 py-3 ${
-        isRead ? "border-white/8 opacity-60" : "border-blue-500/20"
+      className={`rounded-2xl border bg-white shadow-card overflow-hidden px-4 py-3 ${
+        isRead ? "border-slate-200 opacity-60" : "border-blue-500/20"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-semibold text-slate-100 text-sm">{message.name}</p>
+            <p className="font-semibold text-slate-800 text-sm">{message.name}</p>
             {created && <span className="text-[10px] text-slate-600 shrink-0 whitespace-nowrap">{created}</span>}
           </div>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
             {message.phone && (
-              <span className="flex items-center gap-1 text-xs text-slate-400">
-                <Phone size={11} className="text-gold/60" /> {message.phone}
+              <span className="flex items-center gap-1 text-xs text-slate-500">
+                <Phone size={11} className="text-amber-600/70" /> {message.phone}
               </span>
             )}
             {message.email && (
-              <span className="flex items-center gap-1 text-xs text-slate-400">
-                <Mail size={11} className="text-gold/60" /> {message.email}
+              <span className="flex items-center gap-1 text-xs text-slate-500">
+                <Mail size={11} className="text-amber-600/70" /> {message.email}
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-400 italic mt-1.5 leading-relaxed">{message.message}</p>
+          <p className="text-xs text-slate-500 italic mt-1.5 leading-relaxed">{message.message}</p>
         </div>
         <button
           onClick={onToggleRead}
           className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-[0.98] ${
             isRead
-              ? "bg-navy-700 text-slate-400 border border-white/10 hover:bg-navy-600"
-              : "bg-blue-900/30 text-blue-300 border border-blue-500/25 hover:bg-blue-900/50"
+              ? "bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200"
+              : "bg-blue-100 text-blue-600 border border-blue-500/25 hover:bg-blue-100"
           }`}
         >
           {isRead ? <RotateCcw size={11} /> : <CheckCircle2 size={11} />}

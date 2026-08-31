@@ -19,7 +19,7 @@ export default function AuditLogTab({ entries }: Props) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-lg font-bold text-slate-100">Activity Log</h2>
+        <h2 className="text-lg font-bold text-slate-800">Activity Log</h2>
         <span className="text-xs text-slate-500">{entries.length} recent</span>
       </div>
 
@@ -43,11 +43,11 @@ function AuditLogEntryCard({ entry }: { entry: DbAuditLogEntry }) {
     : null;
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-navy-800 px-4 py-3 shadow-card">
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-card">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <Icon size={12} className="text-gold/70 shrink-0" />
-          <p className="text-sm font-semibold text-slate-200 truncate">{config.label}</p>
+          <Icon size={12} className="text-amber-600/80 shrink-0" />
+          <p className="text-sm font-semibold text-slate-700 truncate">{config.label}</p>
         </div>
         {when && <span className="text-[10px] text-slate-600 shrink-0 whitespace-nowrap">{when}</span>}
       </div>
@@ -58,7 +58,7 @@ function AuditLogEntryCard({ entry }: { entry: DbAuditLogEntry }) {
         <ValueLabel field={entry.field} value={entry.new_value} />
       </div>
 
-      <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
+      <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
         <span className="text-xs text-slate-500 font-mono">{entry.booking_ref}</span>
         {entry.changed_by_email && (
           <span className="text-[10px] text-slate-600 truncate ml-2">{entry.changed_by_email}</span>
@@ -72,5 +72,5 @@ function ValueLabel({ field, value }: { field: string; value: string | null }) {
   if (field === "status" && value) {
     return <StatusBadge status={value as BookingStatus} compact />;
   }
-  return <span className="text-xs text-slate-300">{value ?? "Unassigned"}</span>;
+  return <span className="text-xs text-slate-600">{value ?? "Unassigned"}</span>;
 }

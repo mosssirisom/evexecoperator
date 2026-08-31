@@ -4,10 +4,10 @@ import { CheckCircle2, AlertTriangle, XCircle, Info, X } from "lucide-react";
 import type { ToastItem } from "@/hooks/useToast";
 
 const STYLES = {
-  success: { icon: CheckCircle2, classes: "border-emerald-500/30 bg-emerald-950/90 text-emerald-200" },
-  error:   { icon: XCircle,      classes: "border-red-500/30 bg-red-950/90 text-red-200" },
-  warning: { icon: AlertTriangle,classes: "border-amber-500/30 bg-amber-950/90 text-amber-200" },
-  info:    { icon: Info,         classes: "border-gold/25 bg-navy-800/95 text-slate-200" },
+  success: { icon: CheckCircle2, classes: "border-emerald-500/30 bg-emerald-100 text-emerald-700" },
+  error:   { icon: XCircle,      classes: "border-red-500/30 bg-red-100 text-red-700" },
+  warning: { icon: AlertTriangle,classes: "border-amber-500/30 bg-amber-100 text-amber-700" },
+  info:    { icon: Info,         classes: "border-gold/25 bg-white/95 text-slate-700" },
 } as const;
 
 interface Props {

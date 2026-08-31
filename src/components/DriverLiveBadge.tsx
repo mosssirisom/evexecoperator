@@ -44,7 +44,7 @@ export default function DriverLiveBadge({
         href={mapsUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 rounded-full bg-emerald-900/40 px-2 py-0.5 text-[10px] font-semibold text-emerald-400 transition hover:bg-emerald-900/70"
+        className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 transition hover:bg-emerald-100"
         title={`Live location · ${agoLabel(location.updated_at, now)} · tap to locate`}
       >
         <span className="relative flex h-1.5 w-1.5">
@@ -61,7 +61,7 @@ export default function DriverLiveBadge({
       href={mapsUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-500 transition hover:text-slate-300"
+      className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 transition hover:text-slate-600"
       title={`Last position ${agoLabel(location.updated_at, now)} · tap to locate`}
     >
       <MapPin size={9} />

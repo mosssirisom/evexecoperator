@@ -57,7 +57,7 @@ export default function Page() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-navy-900 flex items-center justify-center text-slate-600 text-sm gap-2">
+      <div className="min-h-screen bg-[#E9EBF2] flex items-center justify-center text-slate-600 text-sm gap-2">
         <span className="w-4 h-4 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
         Loading…
       </div>
@@ -273,8 +273,8 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-navy-900 flex flex-col">
-      <div className="relative z-30 bg-navy-900 border-b border-white/5">
+    <div className="min-h-screen bg-[#E9EBF2] flex flex-col">
+      <div className="relative z-30 bg-[#E9EBF2]/85 backdrop-blur-xl border-b border-slate-200">
         <Header
           onNewBooking={() => setAdd(true)}
           onSignOut={onSignOut}
@@ -282,11 +282,11 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
           onOpenBooking={openBookingAlert}
           onClearAlerts={clearNewBookings}
         />
-        <div className="flex items-center gap-1.5 px-4 py-1.5 border-b border-white/5">
+        <div className="flex items-center gap-1.5 px-4 py-1.5 border-b border-slate-100">
           {error ? (
-            <><WifiOff size={10} className="text-red-400" /><span className="text-[10px] text-red-400">Offline — showing cached data</span></>
+            <><WifiOff size={10} className="text-red-600" /><span className="text-[10px] text-red-600">Offline — showing cached data</span></>
           ) : (
-            <><Wifi size={10} className="text-emerald-400" /><span className="text-[10px] text-emerald-500">Live sync · evexec.co.uk</span></>
+            <><Wifi size={10} className="text-emerald-600" /><span className="text-[10px] text-emerald-500">Live sync · evexec.co.uk</span></>
           )}
         </div>
         <nav className="flex overflow-x-auto px-4 gap-1 py-2">
@@ -297,7 +297,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
             { id: "fleet", label: "Fleet", icon: Users },
             { id: "activity", label: "Activity", icon: History },
           ] as const).map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => setTab(id)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${activeTab === id ? "bg-gold/15 text-gold border border-gold/25" : "text-slate-500 hover:text-slate-300"}`}>
+            <button key={id} onClick={() => setTab(id)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${activeTab === id ? "bg-gold/15 text-amber-600 border border-gold/25" : "text-slate-500 hover:text-slate-600"}`}>
               <Icon size={12} />{label}
               {id === "inbox" && inboxCount > 0 && <span className="flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-orange-500 text-[10px] font-bold text-white">{inboxCount}</span>}
             </button>
@@ -331,7 +331,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                   />
                   </div>
                 )}
-                <button onClick={() => setTab("transfers")} className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl border border-gold/20 bg-navy-800 text-sm font-semibold text-gold hover:bg-gold/10 hover:border-gold/40 active:scale-[0.99] transition-all shadow-card">
+                <button onClick={() => setTab("transfers")} className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl border border-gold/20 bg-white text-sm font-semibold text-amber-600 hover:bg-gold/10 hover:border-gold/40 active:scale-[0.99] transition-all shadow-card">
                   <CalendarDays size={15} />View Upcoming Transfers
                 </button>
               </>
@@ -339,17 +339,17 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
 
             {activeTab === "transfers" && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between"><h2 className="text-lg font-bold text-slate-100">Upcoming Transfers</h2><span className="text-xs text-slate-500">{filteredTransfers.length} of {upcomingBookings.length}</span></div>
+                <div className="flex items-center justify-between"><h2 className="text-lg font-bold text-slate-800">Upcoming Transfers</h2><span className="text-xs text-slate-500">{filteredTransfers.length} of {upcomingBookings.length}</span></div>
                 <div className="flex gap-2">
-                  <div className="relative flex-1"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" /><input type="text" value={transferQuery} onChange={(e) => setTransferQuery(e.target.value)} placeholder="Search name, phone, ref, flight…" className="w-full bg-navy-800 border border-white/8 rounded-xl pl-8 pr-8 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-gold/40 transition-colors" />{transferQuery && <button type="button" onClick={() => setTransferQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"><X size={14} /></button>}</div>
-                  <select value={transferStatusFilter} onChange={(e) => setTransferStatusFilter(e.target.value as BookingStatus | "all")} className="bg-navy-800 border border-white/8 rounded-xl px-2.5 py-2 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-gold/40 transition-colors shrink-0"><option value="all">All statuses</option>{ALL_BOOKING_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</select>
-                  <button type="button" onClick={() => downloadCsv(`transfers-${format(new Date(), "yyyy-MM-dd")}.csv`, bookingsToCsv(filteredTransfers))} disabled={filteredTransfers.length === 0} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/8 bg-navy-800 text-xs font-semibold text-slate-300 hover:text-gold hover:border-gold/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"><Download size={13} />Export</button>
+                  <div className="relative flex-1"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" /><input type="text" value={transferQuery} onChange={(e) => setTransferQuery(e.target.value)} placeholder="Search name, phone, ref, flight…" className="w-full bg-white border border-slate-200 rounded-xl pl-8 pr-8 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-gold/40 transition-colors" />{transferQuery && <button type="button" onClick={() => setTransferQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600"><X size={14} /></button>}</div>
+                  <select value={transferStatusFilter} onChange={(e) => setTransferStatusFilter(e.target.value as BookingStatus | "all")} className="bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs text-slate-600 focus:outline-none focus:ring-1 focus:ring-gold/40 transition-colors shrink-0"><option value="all">All statuses</option>{ALL_BOOKING_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</select>
+                  <button type="button" onClick={() => downloadCsv(`transfers-${format(new Date(), "yyyy-MM-dd")}.csv`, bookingsToCsv(filteredTransfers))} disabled={filteredTransfers.length === 0} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-600 hover:text-amber-600 hover:border-gold/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"><Download size={13} />Export</button>
                 </div>
                 {filteredTransfers.length === 0 ? <div className="flex flex-col items-center py-12 text-slate-600"><LayoutList size={32} className="mb-2 text-slate-700" /><p className="text-sm">{upcomingBookings.length === 0 ? "No upcoming transfers" : "No transfers match your search"}</p></div> : filteredTransfers.map((b) => (
-                  <div key={b.ref} className="rounded-2xl border border-white/8 bg-navy-800 px-4 py-3 flex items-center gap-3 shadow-card">
-                    <div className="text-center min-w-[44px]"><div className="text-base font-bold text-slate-100">{b.travel_time?.slice(0, 5) ?? "—"}</div><div className="text-[10px] text-slate-600">{b.travel_date?.slice(5) ?? ""}</div></div>
-                    <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-slate-200 truncate">{b.customer_name}</p><p className="text-xs text-slate-500 truncate">{(b.airport ?? "").split(",")[0]} → {(b.dropoff_address ?? "").split(",")[0]}</p>{b.flight_number && <p className="text-[10px] text-blue-400 font-mono mt-0.5">{b.flight_number}</p>}</div>
-                    <div className="flex flex-col items-end gap-1.5 shrink-0"><span className="text-xs font-bold text-gold">{b.quoted_price != null ? `£${b.quoted_price}` : "TBC"}</span><StatusBadge status={b.status} compact /><button type="button" onClick={() => openDangerFlow(b)} className="mt-1 flex items-center gap-1 rounded-lg border border-red-400/20 bg-red-500/10 px-2 py-1 text-[10px] font-semibold text-red-300 hover:bg-red-500/20"><Trash2 size={11} />Remove</button></div>
+                  <div key={b.ref} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 flex items-center gap-3 shadow-card">
+                    <div className="text-center min-w-[44px]"><div className="text-base font-bold text-slate-800">{b.travel_time?.slice(0, 5) ?? "—"}</div><div className="text-[10px] text-slate-600">{b.travel_date?.slice(5) ?? ""}</div></div>
+                    <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-slate-700 truncate">{b.customer_name}</p><p className="text-xs text-slate-500 truncate">{(b.airport ?? "").split(",")[0]} → {(b.dropoff_address ?? "").split(",")[0]}</p>{b.flight_number && <p className="text-[10px] text-blue-600 font-mono mt-0.5">{b.flight_number}</p>}</div>
+                    <div className="flex flex-col items-end gap-1.5 shrink-0"><span className="text-xs font-bold text-amber-600">{b.quoted_price != null ? `£${b.quoted_price}` : "TBC"}</span><StatusBadge status={b.status} compact /><button type="button" onClick={() => openDangerFlow(b)} className="mt-1 flex items-center gap-1 rounded-lg border border-red-400/20 bg-red-500/10 px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-500/20"><Trash2 size={11} />Remove</button></div>
                   </div>
                 ))}
               </div>
@@ -358,7 +358,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
             {activeTab === "inbox" && <InboxTab quoteRequests={quoteRequests} missedCalls={missedCalls} contactMessages={contactMessages} onDismissQuote={handleDismissQuote} onConvertQuote={handleConvertQuote} onToggleMissedCall={handleToggleMissedCall} onToggleContactMessage={handleToggleContactMessage} />}
             {activeTab === "activity" && <AuditLogTab entries={auditLogEntries} />}
             {activeTab === "fleet" && (
-              <div className="space-y-3"><h2 className="text-lg font-bold text-slate-100">Fleet</h2>{drivers.map((d) => { const active = bookings.filter((b) => b.driver_id === d.id && !["Completed", "Cancelled"].includes(b.status)).length; const completed = bookings.filter((b) => b.driver_id === d.id && b.status === "Completed").length; const revenue = bookings.filter((b) => b.driver_id === d.id && b.status === "Completed").reduce((s, b) => s + (b.quoted_price ?? 0), 0); const today = format(new Date(), "yyyy-MM-dd"); const offToday = unavailableDriverIds(today).has(d.id); const upcomingDaysOff = unavailableDates.filter((u) => u.driver_id === d.id && u.date >= today).length; return <div key={d.id} className="rounded-2xl border border-white/8 bg-navy-800 px-4 py-4 shadow-card"><div className="flex items-start gap-3"><div className="w-10 h-10 rounded-full bg-navy-700 border border-gold/20 flex items-center justify-center text-sm font-bold text-gold shrink-0">{d.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}</div><div className="flex-1 min-w-0"><p className="font-semibold text-slate-100 text-sm">{d.name}</p><p className="text-xs text-slate-500 mt-0.5">{d.vehicle ?? "—"}</p>{d.plate && <p className="text-xs text-slate-600 font-mono mt-0.5">{d.plate}</p>}</div><div className="flex flex-col items-end gap-1 shrink-0"><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${d.status === "active" || d.status === "Available" ? "bg-emerald-900/40 text-emerald-400" : "bg-slate-800 text-slate-500"}`}>{d.status ?? "—"}</span><DriverLiveBadge location={driverLocations[d.id]} />{offToday && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-900/40 text-red-400">Off today</span>}{active > 0 && <span className="text-xs text-gold font-medium">{active} active</span>}</div></div>{upcomingDaysOff > 0 && <p className="text-[10px] text-slate-500 mt-2">{upcomingDaysOff} upcoming day{upcomingDaysOff === 1 ? "" : "s"} off booked</p>}<div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/5"><div className="text-center"><div className="text-sm font-bold text-slate-200">{completed}</div><div className="text-[10px] text-slate-600 mt-0.5">Completed</div></div><div className="text-center"><div className="text-sm font-bold text-gold">£{revenue.toLocaleString()}</div><div className="text-[10px] text-slate-600 mt-0.5">Revenue</div></div></div></div>; })}<div className="rounded-2xl border border-white/8 bg-navy-800 px-4 py-4 space-y-2 shadow-card"><p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">EV Exec Ecosystem</p>{[{ label: "EV Exec Main Site", href: "https://evexec.co.uk" }, { label: "Driver App", href: "https://evexecdriverapp.vercel.app" }, { label: "Operator Portal", href: "https://evexecoperator.vercel.app" }].map((link) => <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-navy-700 hover:bg-navy-600 border border-white/5 hover:border-gold/20 transition-all group"><span className="text-sm text-slate-300 group-hover:text-gold transition-colors">{link.label}</span><ExternalLink size={13} className="text-slate-600 group-hover:text-gold/60 transition-colors" /></a>)}</div></div>
+              <div className="space-y-3"><h2 className="text-lg font-bold text-slate-800">Fleet</h2>{drivers.map((d) => { const active = bookings.filter((b) => b.driver_id === d.id && !["Completed", "Cancelled"].includes(b.status)).length; const completed = bookings.filter((b) => b.driver_id === d.id && b.status === "Completed").length; const revenue = bookings.filter((b) => b.driver_id === d.id && b.status === "Completed").reduce((s, b) => s + (b.quoted_price ?? 0), 0); const today = format(new Date(), "yyyy-MM-dd"); const offToday = unavailableDriverIds(today).has(d.id); const upcomingDaysOff = unavailableDates.filter((u) => u.driver_id === d.id && u.date >= today).length; return <div key={d.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-card"><div className="flex items-start gap-3"><div className="w-10 h-10 rounded-full bg-slate-100 border border-gold/20 flex items-center justify-center text-sm font-bold text-amber-600 shrink-0">{d.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}</div><div className="flex-1 min-w-0"><p className="font-semibold text-slate-800 text-sm">{d.name}</p><p className="text-xs text-slate-500 mt-0.5">{d.vehicle ?? "—"}</p>{d.plate && <p className="text-xs text-slate-600 font-mono mt-0.5">{d.plate}</p>}</div><div className="flex flex-col items-end gap-1 shrink-0"><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${d.status === "active" || d.status === "Available" ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>{d.status ?? "—"}</span><DriverLiveBadge location={driverLocations[d.id]} />{offToday && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-600">Off today</span>}{active > 0 && <span className="text-xs text-amber-600 font-medium">{active} active</span>}</div></div>{upcomingDaysOff > 0 && <p className="text-[10px] text-slate-500 mt-2">{upcomingDaysOff} upcoming day{upcomingDaysOff === 1 ? "" : "s"} off booked</p>}<div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-100"><div className="text-center"><div className="text-sm font-bold text-slate-700">{completed}</div><div className="text-[10px] text-slate-600 mt-0.5">Completed</div></div><div className="text-center"><div className="text-sm font-bold text-amber-600">£{revenue.toLocaleString()}</div><div className="text-[10px] text-slate-600 mt-0.5">Revenue</div></div></div></div>; })}<div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 space-y-2 shadow-card"><p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">EV Exec Ecosystem</p>{[{ label: "EV Exec Main Site", href: "https://evexec.co.uk" }, { label: "Driver App", href: "https://evexecdriverapp.vercel.app" }, { label: "Operator Portal", href: "https://evexecoperator.vercel.app" }].map((link) => <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-100 hover:border-gold/20 transition-all group"><span className="text-sm text-slate-600 group-hover:text-amber-600 transition-colors">{link.label}</span><ExternalLink size={13} className="text-slate-600 group-hover:text-amber-600/70 transition-colors" /></a>)}</div></div>
             )}
           </div>
         </main>
@@ -373,18 +373,18 @@ function Dashboard({ onSignOut }: { onSignOut: () => void }) {
 function PasswordConfirmModal({ booking, password, busy, onPasswordChange, onCancel, onConfirm }: { booking: DbBooking; password: string; busy: boolean; onPasswordChange: (value: string) => void; onCancel: () => void; onConfirm: () => void; }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-3xl border border-red-400/20 bg-navy-900 p-5 shadow-2xl">
+      <div className="w-full max-w-md rounded-3xl border border-red-400/20 bg-white p-5 shadow-2xl">
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-red-300"><ShieldCheck size={20} /></div>
-          <div><h2 className="text-lg font-bold text-white">Confirm job removal</h2><p className="mt-1 text-sm text-slate-400">For security, re-enter your operator password before removing this booking.</p></div>
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-red-600"><ShieldCheck size={20} /></div>
+          <div><h2 className="text-lg font-bold text-[#0F1B33]">Confirm job removal</h2><p className="mt-1 text-sm text-slate-500">For security, re-enter your operator password before removing this booking.</p></div>
         </div>
-        <div className="mt-4 rounded-2xl border border-white/8 bg-navy-800 p-3 text-sm"><p className="font-semibold text-slate-100">{booking.customer_name}</p><p className="mt-1 text-xs text-slate-500">{booking.ref} · {booking.travel_date ?? "No date"} {booking.travel_time?.slice(0, 5) ?? ""}</p></div>
-        <div className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-xs text-amber-200 flex gap-2"><AlertTriangle size={15} className="shrink-0" />This action permanently removes the job from the operator calendar and driver view.</div>
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 text-sm"><p className="font-semibold text-slate-800">{booking.customer_name}</p><p className="mt-1 text-xs text-slate-500">{booking.ref} · {booking.travel_date ?? "No date"} {booking.travel_time?.slice(0, 5) ?? ""}</p></div>
+        <div className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-xs text-amber-700 flex gap-2"><AlertTriangle size={15} className="shrink-0" />This action permanently removes the job from the operator calendar and driver view.</div>
         <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-slate-500">Operator password</label>
-        <input type="password" value={password} onChange={(e) => onPasswordChange(e.target.value)} autoFocus className="mt-2 w-full rounded-2xl border border-white/10 bg-navy-800 px-4 py-3 text-sm text-white outline-none focus:border-gold/50" placeholder="Enter password" />
+        <input type="password" value={password} onChange={(e) => onPasswordChange(e.target.value)} autoFocus className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#0F1B33] outline-none focus:border-gold/50" placeholder="Enter password" />
         <div className="mt-5 flex gap-3">
-          <button type="button" onClick={onCancel} disabled={busy} className="flex-1 rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 hover:border-white/20 disabled:opacity-50">Cancel</button>
-          <button type="button" onClick={onConfirm} disabled={busy || !password.trim()} className="flex-1 rounded-2xl border border-red-400/30 bg-red-500/15 px-4 py-3 text-sm font-semibold text-red-200 hover:bg-red-500/25 disabled:opacity-50">{busy ? "Verifying…" : "Remove job"}</button>
+          <button type="button" onClick={onCancel} disabled={busy} className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 hover:border-slate-300 disabled:opacity-50">Cancel</button>
+          <button type="button" onClick={onConfirm} disabled={busy || !password.trim()} className="flex-1 rounded-2xl border border-red-400/30 bg-red-500/15 px-4 py-3 text-sm font-semibold text-red-700 hover:bg-red-500/25 disabled:opacity-50">{busy ? "Verifying…" : "Remove job"}</button>
         </div>
       </div>
     </div>

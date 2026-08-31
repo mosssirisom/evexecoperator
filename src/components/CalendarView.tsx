@@ -121,19 +121,19 @@ export default function CalendarView({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-100">
+          <h2 className="text-2xl font-bold text-slate-800">
             {viewMode === "month" ? format(currentMonth, "MMMM yyyy") : weekLabel}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {viewMode === "month" ? "Monthly total" : "Weekly total"}{" "}
-            <span className="text-gold font-semibold">
+            <span className="text-amber-600 font-semibold">
               £{(viewMode === "month" ? monthTotal : weekTotal).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
             </span>
           </p>
         </div>
         <div className="flex items-center gap-1">
           {todayCount > 0 && (
-            <span className="hidden sm:inline-flex items-center gap-1 mr-1 px-2 py-1 rounded-full text-[10px] font-semibold text-gold bg-gold/10 border border-gold/20">
+            <span className="hidden sm:inline-flex items-center gap-1 mr-1 px-2 py-1 rounded-full text-[10px] font-semibold text-amber-600 bg-gold/10 border border-gold/20">
               {todayCount} today
             </span>
           )}
@@ -142,21 +142,21 @@ export default function CalendarView({
             disabled={onToday}
             className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
               onToday
-                ? "text-slate-600 border-white/5 cursor-default"
-                : "text-gold border-gold/25 hover:bg-gold/10"
+                ? "text-slate-600 border-slate-100 cursor-default"
+                : "text-amber-600 border-gold/25 hover:bg-gold/10"
             }`}
           >
             Today
           </button>
           <button
             onClick={goPrev}
-            className="p-2 rounded-lg hover:bg-navy-700 text-slate-400 hover:text-slate-200 transition-colors"
+            className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
           >
             <ChevronLeft size={16} />
           </button>
           <button
             onClick={goNext}
-            className="p-2 rounded-lg hover:bg-navy-700 text-slate-400 hover:text-slate-200 transition-colors"
+            className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
           >
             <ChevronRight size={16} />
           </button>
@@ -165,15 +165,15 @@ export default function CalendarView({
 
       {/* View toggle + legend */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-navy-800 border border-white/8">
+        <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-white border border-slate-200">
           {(["month", "week"] as const).map((mode) => (
             <button
               key={mode}
               onClick={() => setViewMode(mode)}
               className={`px-3 py-1 rounded-md text-[11px] font-semibold capitalize transition-colors ${
                 viewMode === mode
-                  ? "bg-gold/15 text-gold"
-                  : "text-slate-500 hover:text-slate-300"
+                  ? "bg-gold/15 text-amber-600"
+                  : "text-slate-500 hover:text-slate-600"
               }`}
             >
               {mode}
@@ -181,7 +181,7 @@ export default function CalendarView({
           ))}
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-slate-400">
+        <div className="flex items-center gap-3 text-xs text-slate-500">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             Confirmed
@@ -225,8 +225,8 @@ export default function CalendarView({
                     ${isSelected
                       ? "bg-gold text-navy-900 shadow-gold-md"
                       : isTodayDate
-                      ? "bg-navy-700 text-slate-100 ring-2 ring-gold/50"
-                      : "text-slate-400 hover:bg-navy-700 hover:text-slate-200"
+                      ? "bg-slate-100 text-slate-800 ring-2 ring-gold/50"
+                      : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
                     }
                   `}
                 >
@@ -245,14 +245,14 @@ export default function CalendarView({
                         <Plane
                           size={9}
                           className={
-                            isSelected ? "text-navy-800" : "text-gold/80"
+                            isSelected ? "text-navy-800" : "text-amber-600"
                           }
                         />
                       ) : (
                         <Car
                           size={9}
                           className={
-                            isSelected ? "text-navy-800" : "text-slate-400"
+                            isSelected ? "text-navy-800" : "text-slate-500"
                           }
                         />
                       )}
@@ -262,14 +262,14 @@ export default function CalendarView({
                         {confirmed > 0 && (
                           <span
                             className={`w-1 h-1 rounded-full ${
-                              isSelected ? "bg-navy-800" : "bg-emerald-500"
+                              isSelected ? "bg-white" : "bg-emerald-500"
                             }`}
                           />
                         )}
                         {pending > 0 && (
                           <span
                             className={`w-1 h-1 rounded-full ${
-                              isSelected ? "bg-navy-700" : "bg-gold"
+                              isSelected ? "bg-slate-100" : "bg-gold"
                             }`}
                           />
                         )}
@@ -299,8 +299,8 @@ export default function CalendarView({
                   isSelected
                     ? "bg-gold border-gold text-navy-900 shadow-gold-md"
                     : isTodayDate
-                    ? "bg-navy-700 border-gold/40 ring-2 ring-gold/50 text-slate-100"
-                    : "bg-navy-800 border-white/8 text-slate-300 hover:border-gold/20"
+                    ? "bg-slate-100 border-gold/40 ring-2 ring-gold/50 text-slate-800"
+                    : "bg-white border-slate-200 text-slate-600 hover:border-gold/20"
                 }`}
               >
                 {/* Date block */}
@@ -311,7 +311,7 @@ export default function CalendarView({
                     {format(day, "EEE")}
                   </span>
                   <span className={`text-lg font-bold leading-none mt-0.5 ${
-                    isSelected ? "text-navy-900" : "text-slate-100"
+                    isSelected ? "text-navy-900" : "text-slate-800"
                   }`}>
                     {format(day, "d")}
                   </span>
@@ -326,14 +326,14 @@ export default function CalendarView({
                   ) : (
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className={`flex items-center gap-1.5 text-xs font-semibold ${
-                        isSelected ? "text-navy-900" : "text-slate-200"
+                        isSelected ? "text-navy-900" : "text-slate-700"
                       }`}>
                         {hasAirport ? <Plane size={12} /> : <Car size={12} />}
                         {active.length} job{active.length !== 1 ? "s" : ""}
                       </span>
                       {confirmed > 0 && (
                         <span className={`flex items-center gap-1 text-[10px] font-medium ${
-                          isSelected ? "text-navy-900/70" : "text-emerald-400"
+                          isSelected ? "text-navy-900/70" : "text-emerald-600"
                         }`}>
                           <span className="w-1.5 h-1.5 rounded-full bg-current" />
                           {confirmed}
@@ -341,7 +341,7 @@ export default function CalendarView({
                       )}
                       {pending > 0 && (
                         <span className={`flex items-center gap-1 text-[10px] font-medium ${
-                          isSelected ? "text-navy-900/70" : "text-gold"
+                          isSelected ? "text-navy-900/70" : "text-amber-600"
                         }`}>
                           <span className="w-1.5 h-1.5 rounded-full bg-current" />
                           {pending}
@@ -353,7 +353,7 @@ export default function CalendarView({
 
                 {/* Revenue */}
                 {revenue > 0 && (
-                  <span className={`text-xs font-bold shrink-0 ${isSelected ? "text-navy-900" : "text-gold"}`}>
+                  <span className={`text-xs font-bold shrink-0 ${isSelected ? "text-navy-900" : "text-amber-600"}`}>
                     £{revenue.toLocaleString("en-GB")}
                   </span>
                 )}

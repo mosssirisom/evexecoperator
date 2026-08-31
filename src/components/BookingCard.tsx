@@ -69,17 +69,17 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
   const route = `${short(pickup)} → ${short(dropoff)}`;
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-navy-800 shadow-card overflow-hidden transition-all hover:border-gold/20">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-card overflow-hidden transition-all hover:border-gold/20">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
         <div className="flex items-center gap-2">
-          <Clock size={14} className="text-gold/70" />
-          <span className="text-xl font-bold text-slate-100 tracking-tight">{time}</span>
+          <Clock size={14} className="text-amber-600/80" />
+          <span className="text-xl font-bold text-slate-800 tracking-tight">{time}</span>
           {booking.priority && (
-            <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-400 bg-amber-900/30 px-1.5 py-0.5 rounded-full">
+            <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full">
               <Star size={8} fill="currentColor" /> Priority
             </span>
           )}
-          {notification && notification.failedCount > 0 && <AlertTriangle size={12} className="text-red-400" aria-label="Notification failed to send" />}
+          {notification && notification.failedCount > 0 && <AlertTriangle size={12} className="text-red-600" aria-label="Notification failed to send" />}
         </div>
         <div className="flex items-center gap-1.5">
           <JobOfferBadge booking={booking} />
@@ -89,14 +89,14 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
 
       <div className="px-4 pt-3 pb-4 space-y-3">
         <div>
-          <p className="font-semibold text-slate-100 text-sm leading-tight">{booking.customer_name}</p>
+          <p className="font-semibold text-slate-800 text-sm leading-tight">{booking.customer_name}</p>
           <div className="flex items-start gap-1.5 mt-1">
-            <MapPin size={12} className="text-gold/60 mt-0.5 shrink-0" />
-            <p className="text-xs text-slate-400 leading-relaxed">{route}</p>
+            <MapPin size={12} className="text-amber-600/70 mt-0.5 shrink-0" />
+            <p className="text-xs text-slate-500 leading-relaxed">{route}</p>
           </div>
         </div>
 
-        <div className="rounded-xl border border-white/6 bg-navy-900/60 p-3 space-y-2">
+        <div className="rounded-xl border border-slate-100 bg-slate-100 p-3 space-y-2">
           <DetailRow label="Pick up" value={pickup} strong />
           <DetailRow label="Drop off" value={dropoff} strong />
           {booking.airport && <DetailRow label="Airport" value={booking.airport} />}
@@ -112,9 +112,9 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
           const clickable = !!(onViewReturn && booking.return_date);
           const inner = (
             <>
-              <div className="flex items-center justify-between gap-1.5 text-xs font-bold text-emerald-300">
+              <div className="flex items-center justify-between gap-1.5 text-xs font-bold text-emerald-600">
                 <span className="flex items-center gap-1.5"><RotateCcw size={12} /> Return journey</span>
-                {clickable && <span className="text-[10px] font-semibold text-emerald-300/80">View on calendar →</span>}
+                {clickable && <span className="text-[10px] font-semibold text-emerald-600/80">View on calendar →</span>}
               </div>
               {booking.return_date && <DetailRow label="Return date" value={`${displayDate(booking.return_date) ?? booking.return_date}${booking.return_time ? ` · ${booking.return_time.slice(0, 5)}` : ""}`} />}
               {booking.return_pickup && <DetailRow label="Return pick up" value={booking.return_pickup} />}
@@ -139,7 +139,7 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
 
         <div className="flex items-center justify-between">
           <span className="text-xs text-slate-500">{booking.payment_status ?? "Unpaid"}</span>
-          <span className="text-sm font-semibold text-gold">{booking.quoted_price != null ? `£${Number(booking.quoted_price).toFixed(0)}` : "TBC"}</span>
+          <span className="text-sm font-semibold text-amber-600">{booking.quoted_price != null ? `£${Number(booking.quoted_price).toFixed(0)}` : "TBC"}</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -147,52 +147,52 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
           <DriverDropdown drivers={drivers} selectedDriverId={booking.driver_id} unavailableDriverIds={unavailableDriverIds} onAssign={(id) => onDriverAssign(booking.ref, id)} disabled={booking.status === "Completed" || booking.status === "Cancelled"} />
           {driverLocation && <DriverLiveBadge location={driverLocation} />}
           {booking.driver_id && unavailableDriverIds?.has(booking.driver_id) && (
-            <span className="flex items-center gap-1 text-[10px] font-bold text-red-400" title="Driver has marked this day unavailable"><AlertTriangle size={11} /> Unavailable</span>
+            <span className="flex items-center gap-1 text-[10px] font-bold text-red-600" title="Driver has marked this day unavailable"><AlertTriangle size={11} /> Unavailable</span>
           )}
         </div>
 
         <div className="flex items-center justify-between gap-2">
-          <button onClick={() => setExpanded((e) => !e)} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors">
+          <button onClick={() => setExpanded((e) => !e)} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-600 transition-colors">
             {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
             {expanded ? "Less details" : "More details"}
           </button>
           {onDangerAction && (
-            <button type="button" onClick={() => onDangerAction(booking)} title="Remove job" className="flex items-center gap-1 rounded-lg border border-red-400/20 bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-300 transition hover:bg-red-500/20"><Trash2 size={12} /> Remove</button>
+            <button type="button" onClick={() => onDangerAction(booking)} title="Remove job" className="flex items-center gap-1 rounded-lg border border-red-400/20 bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-500/20"><Trash2 size={12} /> Remove</button>
           )}
         </div>
 
         {expanded && (
-          <div className="space-y-2 pt-1 border-t border-white/5 slide-up">
+          <div className="space-y-2 pt-1 border-t border-slate-100 slide-up">
             {booking.travel_date && <DetailRow label="Date" value={displayDate(booking.travel_date) ?? booking.travel_date} />}
             {booking.journey_type && <DetailRow label="Journey" value={booking.journey_type.replace(/_/g, " ")} />}
             {booking.vehicle_type && <DetailRow label="Vehicle" value={booking.vehicle_type} />}
-            {booking.customer_phone && <div className="flex items-center gap-1.5"><Phone size={11} className="text-gold/60 shrink-0" /><span className="text-xs text-slate-400">{booking.customer_phone}</span></div>}
+            {booking.customer_phone && <div className="flex items-center gap-1.5"><Phone size={11} className="text-amber-600/70 shrink-0" /><span className="text-xs text-slate-500">{booking.customer_phone}</span></div>}
             {booking.customer_email && <DetailRow label="Email" value={booking.customer_email} />}
-            {(booking.notes || booking.operator_note) && <div className="flex items-start gap-1.5"><MessageSquare size={11} className="text-gold/60 shrink-0 mt-0.5" /><span className="text-xs text-slate-400 italic">{booking.notes || booking.operator_note}</span></div>}
-            {notification?.lastSent && <div className="flex items-center gap-1.5"><Bell size={11} className="text-gold/60 shrink-0" /><span className="text-xs text-slate-400">{NOTIFICATION_TYPE_LABELS[notification.lastSent.type] ?? notification.lastSent.type} sent {formatDistanceToNow(parseISO(notification.lastSent.sent_at), { addSuffix: true })}</span></div>}
-            {notification && notification.pendingCount > 0 && <div className="flex items-center gap-1.5 text-xs text-amber-300 bg-amber-900/20 px-3 py-1.5 rounded-lg"><Bell size={11} />{notification.pendingCount} notification{notification.pendingCount === 1 ? "" : "s"} pending</div>}
-            {notification && notification.failedCount > 0 && <div className="flex items-center gap-1.5 text-xs text-red-300 bg-red-900/20 px-3 py-1.5 rounded-lg"><AlertTriangle size={11} />{notification.failedCount} notification{notification.failedCount === 1 ? "" : "s"} failed to send</div>}
+            {(booking.notes || booking.operator_note) && <div className="flex items-start gap-1.5"><MessageSquare size={11} className="text-amber-600/70 shrink-0 mt-0.5" /><span className="text-xs text-slate-500 italic">{booking.notes || booking.operator_note}</span></div>}
+            {notification?.lastSent && <div className="flex items-center gap-1.5"><Bell size={11} className="text-amber-600/70 shrink-0" /><span className="text-xs text-slate-500">{NOTIFICATION_TYPE_LABELS[notification.lastSent.type] ?? notification.lastSent.type} sent {formatDistanceToNow(parseISO(notification.lastSent.sent_at), { addSuffix: true })}</span></div>}
+            {notification && notification.pendingCount > 0 && <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-100 px-3 py-1.5 rounded-lg"><Bell size={11} />{notification.pendingCount} notification{notification.pendingCount === 1 ? "" : "s"} pending</div>}
+            {notification && notification.failedCount > 0 && <div className="flex items-center gap-1.5 text-xs text-red-600 bg-red-100 px-3 py-1.5 rounded-lg"><AlertTriangle size={11} />{notification.failedCount} notification{notification.failedCount === 1 ? "" : "s"} failed to send</div>}
             {(booking.pob_at || booking.completed_at || (proofs && proofs.length > 0)) && (
               <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/5 p-3 space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-300"><ShieldCheck size={12} /> Proof of job</div>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600"><ShieldCheck size={12} /> Proof of job</div>
                 {booking.pob_at && <DetailRow label="Picked up" value={proofTime(booking.pob_at)} />}
                 {booking.completed_at && <DetailRow label="Completed" value={proofTime(booking.completed_at)} />}
                 {proofs && proofs.length > 0 && (
                   <div className="flex flex-wrap gap-2 pt-1">
                     {proofs.map((p) => (
-                      <a key={p.id} href={p.url} target="_blank" rel="noopener noreferrer" title={PROOF_KIND_LABEL[p.kind]} className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-navy-900/60 px-2 py-1 text-[10px] font-semibold text-slate-300 transition hover:border-gold/30 hover:text-gold"><Camera size={10} />{PROOF_KIND_LABEL[p.kind]}</a>
+                      <a key={p.id} href={p.url} target="_blank" rel="noopener noreferrer" title={PROOF_KIND_LABEL[p.kind]} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 transition hover:border-gold/30 hover:text-amber-600"><Camera size={10} />{PROOF_KIND_LABEL[p.kind]}</a>
                     ))}
                   </div>
                 )}
               </div>
             )}
-            <button type="button" onClick={() => setEditing(true)} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-gold/25 bg-gold/10 px-3 py-2 text-xs font-semibold text-gold transition hover:bg-gold/20"><Pencil size={13} /> Edit job</button>
+            <button type="button" onClick={() => setEditing(true)} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-gold/25 bg-gold/10 px-3 py-2 text-xs font-semibold text-amber-600 transition hover:bg-gold/20"><Pencil size={13} /> Edit job</button>
           </div>
         )}
 
-        {nextStatus && nextLabel && <button onClick={() => onStatusChange(booking.ref, nextStatus)} className="w-full mt-1 py-2 rounded-xl text-xs font-semibold bg-gold/10 text-gold border border-gold/25 hover:bg-gold/20 hover:border-gold/40 active:scale-[0.98] transition-all">{nextLabel}</button>}
+        {nextStatus && nextLabel && <button onClick={() => onStatusChange(booking.ref, nextStatus)} className="w-full mt-1 py-2 rounded-xl text-xs font-semibold bg-gold/10 text-amber-600 border border-gold/25 hover:bg-gold/20 hover:border-gold/40 active:scale-[0.98] transition-all">{nextLabel}</button>}
 
-        {booking.status === "Unassigned / Missed Call Recovery" && <div className="flex items-center gap-1.5 text-xs text-orange-300 bg-orange-900/20 px-3 py-1.5 rounded-lg"><AlertCircle size={11} /> Missed call recovery — assign driver urgently</div>}
+        {booking.status === "Unassigned / Missed Call Recovery" && <div className="flex items-center gap-1.5 text-xs text-orange-600 bg-orange-100 px-3 py-1.5 rounded-lg"><AlertCircle size={11} /> Missed call recovery — assign driver urgently</div>}
       </div>
 
       {editing && <EditBookingModal booking={booking} onClose={() => setEditing(false)} />}
@@ -256,17 +256,17 @@ function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: (
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <form onSubmit={save} className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-navy-900 shadow-2xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-navy-900 px-5 py-4">
+      <form onSubmit={save} className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
           <div>
-            <h2 className="text-lg font-bold text-white">Edit job</h2>
+            <h2 className="text-lg font-bold text-[#0F1B33]">Edit job</h2>
             <p className="text-xs text-slate-500">{booking.ref}</p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-white"><X size={16} /></button>
+          <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-[#0F1B33]"><X size={16} /></button>
         </div>
 
         <div className="space-y-4 p-5">
-          {error && <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3 text-xs text-red-200">{error}</div>}
+          {error && <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3 text-xs text-red-700">{error}</div>}
           <div className="grid grid-cols-2 gap-2">
             <Field label="Date" type="date" value={form.travel_date} onChange={(v) => set("travel_date", v)} />
             <Field label="Time" type="time" value={form.travel_time} onChange={(v) => set("travel_time", v)} />
@@ -289,14 +289,14 @@ function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: (
             <label className="mb-1 block text-xs text-slate-500">Notes</label>
             <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={3} className={editInputCls} />
           </div>
-          <label className="flex items-center gap-2 text-xs text-slate-400">
+          <label className="flex items-center gap-2 text-xs text-slate-500">
             <input type="checkbox" checked={form.priority} onChange={(e) => set("priority", e.target.checked)} className="h-4 w-4 accent-gold" />
             Mark as priority
           </label>
         </div>
 
-        <div className="sticky bottom-0 flex gap-3 border-t border-white/10 bg-navy-900 px-5 py-4">
-          <button type="button" onClick={onClose} disabled={saving} className="flex-1 rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 hover:border-white/20 disabled:opacity-50">Cancel</button>
+        <div className="sticky bottom-0 flex gap-3 border-t border-slate-200 bg-white px-5 py-4">
+          <button type="button" onClick={onClose} disabled={saving} className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 hover:border-slate-300 disabled:opacity-50">Cancel</button>
           <button type="submit" disabled={saving || !form.customer_name.trim()} className="flex-1 rounded-2xl bg-gold-gradient px-4 py-3 text-sm font-bold text-navy-900 disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button>
         </div>
       </form>
@@ -304,16 +304,16 @@ function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: (
   );
 }
 
-const editInputCls = "w-full rounded-xl border border-white/10 bg-navy-800 px-3 py-2 text-sm text-slate-100 outline-none focus:border-gold/50";
+const editInputCls = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-gold/50";
 
 function Field({ label, value, onChange, type = "text", required, min }: { label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean; min?: number }) {
   return <div><label className="mb-1 block text-xs text-slate-500">{label}</label><input type={type} min={min} value={value} onChange={(e) => onChange(e.target.value)} required={required} className={editInputCls} /></div>;
 }
 
 function InfoPill({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
-  return <div className="rounded-xl border border-white/6 bg-white/[0.02] px-3 py-2"><div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-600">{icon}{label}</div><div className="mt-1 text-xs font-semibold text-slate-200">{value}</div></div>;
+  return <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2"><div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-600">{icon}{label}</div><div className="mt-1 text-xs font-semibold text-slate-700">{value}</div></div>;
 }
 
 function DetailRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
-  return <div className="flex items-start gap-2"><span className="text-xs text-slate-600 w-20 shrink-0 mt-0.5">{label}</span><span className={`text-xs leading-relaxed ${strong ? "font-semibold text-slate-200" : "text-slate-400"}`}>{value}</span></div>;
+  return <div className="flex items-start gap-2"><span className="text-xs text-slate-600 w-20 shrink-0 mt-0.5">{label}</span><span className={`text-xs leading-relaxed ${strong ? "font-semibold text-slate-700" : "text-slate-500"}`}>{value}</span></div>;
 }

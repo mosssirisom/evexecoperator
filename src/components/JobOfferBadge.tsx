@@ -35,7 +35,7 @@ export default function JobOfferBadge({ booking }: { booking: DbBooking }) {
 
   if (status === "accepted") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-900/40 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
         <Check size={10} /> Accepted
       </span>
     );
@@ -43,7 +43,7 @@ export default function JobOfferBadge({ booking }: { booking: DbBooking }) {
 
   if (status === "declined") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-red-900/40 px-2 py-0.5 text-[10px] font-semibold text-red-400">
+      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600">
         <X size={10} /> Declined
       </span>
     );
@@ -51,7 +51,7 @@ export default function JobOfferBadge({ booking }: { booking: DbBooking }) {
 
   if (status === "expired") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-red-900/40 px-2 py-0.5 text-[10px] font-semibold text-red-400">
+      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600">
         <Clock3 size={10} /> Offer expired
       </span>
     );
@@ -64,14 +64,14 @@ export default function JobOfferBadge({ booking }: { booking: DbBooking }) {
 
   if (expired) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-red-900/40 px-2 py-0.5 text-[10px] font-semibold text-red-400">
+      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600">
         <Clock3 size={10} /> Offer expired
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-amber-900/40 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-600">
       <Hourglass size={10} /> Awaiting accept
       {booking.offer_expires_at && (
         <span className="tabular-nums">· {countdown(booking.offer_expires_at, now)}</span>

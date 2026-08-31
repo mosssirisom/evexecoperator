@@ -8,13 +8,13 @@ interface Props {
 }
 
 const CONFIG: Record<BookingStatus, { label: string; dot: string; bg: string; text: string; pulse: boolean }> = {
-  "Unassigned":                    { label: "Unassigned",         dot: "bg-slate-400",   bg: "bg-slate-800/60",   text: "text-slate-300",  pulse: false },
-  "Unassigned / Missed Call Recovery": { label: "Missed Call",   dot: "bg-orange-400",  bg: "bg-orange-900/30",  text: "text-orange-300", pulse: true  },
-  "Dispatched":                    { label: "Dispatched",         dot: "bg-amber-400",   bg: "bg-amber-900/30",   text: "text-amber-300",  pulse: true  },
-  "En Route":                      { label: "En Route",           dot: "bg-blue-400",    bg: "bg-blue-900/30",    text: "text-blue-300",   pulse: true  },
-  "Passenger On Board":            { label: "Passenger On Board", dot: "bg-purple-400",  bg: "bg-purple-900/30",  text: "text-purple-300", pulse: true  },
-  "Completed":                     { label: "Completed",          dot: "bg-emerald-400", bg: "bg-emerald-900/30", text: "text-emerald-300",pulse: false },
-  "Cancelled":                     { label: "Cancelled",          dot: "bg-red-500",     bg: "bg-red-900/30",     text: "text-red-400",    pulse: false },
+  "Unassigned":                    { label: "Unassigned",         dot: "bg-slate-400",   bg: "bg-slate-100",   text: "text-slate-600",  pulse: false },
+  "Unassigned / Missed Call Recovery": { label: "Missed Call",   dot: "bg-orange-400",  bg: "bg-orange-100",  text: "text-orange-700", pulse: true  },
+  "Dispatched":                    { label: "Dispatched",         dot: "bg-amber-400",   bg: "bg-amber-100",   text: "text-amber-700",  pulse: true  },
+  "En Route":                      { label: "En Route",           dot: "bg-blue-400",    bg: "bg-blue-100",    text: "text-blue-700",   pulse: true  },
+  "Passenger On Board":            { label: "Passenger On Board", dot: "bg-purple-400",  bg: "bg-purple-100",  text: "text-purple-700", pulse: true  },
+  "Completed":                     { label: "Completed",          dot: "bg-emerald-400", bg: "bg-emerald-100", text: "text-emerald-700",pulse: false },
+  "Cancelled":                     { label: "Cancelled",          dot: "bg-red-500",     bg: "bg-red-100",     text: "text-red-700",    pulse: false },
 };
 
 export default function StatusBadge({ status, compact = false }: Props) {
@@ -30,7 +30,7 @@ export default function StatusBadge({ status, compact = false }: Props) {
   }
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${bg} ${text} border border-white/5`}>
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${bg} ${text} border border-slate-100`}>
       <span className={`w-2 h-2 rounded-full ${dot} ${pulse ? "animate-gold-pulse" : ""}`} />
       {label}
     </span>
