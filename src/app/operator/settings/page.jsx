@@ -43,7 +43,7 @@ function Toggle({ value, onChange }) {
       aria-checked={value}
       role="switch"
       className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${
-        value ? "bg-amber-500" : "bg-white/10"
+        value ? "bg-amber-500" : "bg-slate-100"
       }`}
     >
       <span
@@ -66,7 +66,7 @@ function TextInput({ label, value, onChange, type = "text", placeholder = "" }) 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 transition focus:border-amber-400/40 focus:bg-white/[0.05]"
+        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none placeholder:text-slate-400 transition focus:border-amber-400/40 focus:bg-slate-50"
       />
     </div>
   );
@@ -74,9 +74,9 @@ function TextInput({ label, value, onChange, type = "text", placeholder = "" }) 
 
 function ToggleRow({ label, value, onChange, description }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4">
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4">
       <div className="min-w-0">
-        <span className="text-sm text-white">{label}</span>
+        <span className="text-sm text-[#0F1B33]">{label}</span>
         {description && <p className="mt-0.5 text-xs text-slate-500">{description}</p>}
       </div>
       <Toggle value={value} onChange={onChange} />
@@ -105,7 +105,7 @@ function BusinessSettings({ state, set }) {
           ].map((area) => (
             <span
               key={area}
-              className="flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1.5 text-xs text-amber-300"
+              className="flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1.5 text-xs text-amber-600"
             >
               <Check className="h-3 w-3" />
               {area}
@@ -127,17 +127,17 @@ const NOTIF_TYPE_LABELS = {
 
 function channelChipCls(ch) {
   return {
-    email: "border-blue-400/30 bg-blue-400/10 text-blue-300",
+    email: "border-blue-400/30 bg-blue-400/10 text-blue-600",
     sms: "border-violet-400/30 bg-violet-400/10 text-violet-300",
-    whatsapp: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
-    push: "border-amber-400/30 bg-amber-400/10 text-amber-300",
-  }[ch] || "border-white/10 text-slate-400";
+    whatsapp: "border-emerald-400/30 bg-emerald-400/10 text-emerald-600",
+    push: "border-amber-400/30 bg-amber-400/10 text-amber-600",
+  }[ch] || "border-slate-200 text-slate-500";
 }
 
 function deliveryState(row) {
-  if (row.has_error) return { label: "Failed", cls: "text-red-300" };
-  if (row.status === "sent") return { label: "Delivered", cls: "text-emerald-300" };
-  if (row.delivery_status === "retrying") return { label: "Retrying", cls: "text-amber-300" };
+  if (row.has_error) return { label: "Failed", cls: "text-red-600" };
+  if (row.status === "sent") return { label: "Delivered", cls: "text-emerald-600" };
+  if (row.delivery_status === "retrying") return { label: "Retrying", cls: "text-amber-600" };
   return { label: "Queued", cls: "text-slate-500" };
 }
 
@@ -175,11 +175,11 @@ function PushDeviceRow() {
   };
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
       <div className="flex items-center gap-3">
-        <BellRing className="h-4 w-4 flex-shrink-0 text-amber-300" />
+        <BellRing className="h-4 w-4 flex-shrink-0 text-amber-600" />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-white">Push notifications on this device</p>
+          <p className="text-sm font-medium text-[#0F1B33]">Push notifications on this device</p>
           <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">
             {supported
               ? "Get an alert on this device when a booking comes in from the website — even with the app closed."
@@ -190,14 +190,14 @@ function PushDeviceRow() {
           onClick={toggle}
           disabled={busy || !supported}
           className={`flex-shrink-0 rounded-xl px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${
-            enabled ? "border border-white/10 text-slate-300 hover:text-white" : "bg-amber-500 text-black hover:bg-amber-400"
+            enabled ? "border border-slate-200 text-slate-600 hover:text-[#0F1B33]" : "bg-amber-500 text-black hover:bg-amber-400"
           }`}
         >
           {busy ? "…" : enabled ? "Turn off" : "Enable"}
         </button>
       </div>
-      {err && <p className="mt-2 text-[11px] text-red-300">{err}</p>}
-      {enabled && !err && <p className="mt-2 text-[11px] text-emerald-300">This device is set up for push alerts.</p>}
+      {err && <p className="mt-2 text-[11px] text-red-600">{err}</p>}
+      {enabled && !err && <p className="mt-2 text-[11px] text-emerald-600">This device is set up for push alerts.</p>}
     </div>
   );
 }
@@ -218,8 +218,8 @@ function NotificationCenter() {
     <div className="space-y-6">
       <PushDeviceRow />
 
-      <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.04] p-4 text-xs leading-relaxed text-slate-300">
-        <p className="mb-1 font-semibold text-amber-300">How messages are sent</p>
+      <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.04] p-4 text-xs leading-relaxed text-slate-600">
+        <p className="mb-1 font-semibold text-amber-600">How messages are sent</p>
         Confirmations and 24-hour reminders go out on the highest-priority channel available for that
         person — <strong>email first</strong>, falling back to SMS only when there's no email. Time-critical
         alerts (a driver's new job, and “driver on the way / arrived”) always use SMS. Every message is sent on a
@@ -230,17 +230,17 @@ function NotificationCenter() {
         <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-slate-500">Channel priority</p>
         <div className="space-y-2">
           {channels.map((c) => (
-            <div key={c.key} className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3">
-              <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white/5 text-xs font-bold text-slate-400">{c.n}</span>
-              <c.icon className="h-4 w-4 flex-shrink-0 text-slate-400" />
+            <div key={c.key} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+              <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-slate-500">{c.n}</span>
+              <c.icon className="h-4 w-4 flex-shrink-0 text-slate-500" />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-white">{c.label}</p>
+                <p className="text-sm font-medium text-[#0F1B33]">{c.label}</p>
                 {!c.connected && <p className="text-[11px] text-slate-600">Not connected yet</p>}
               </div>
               {c.connected ? (
                 <Toggle value={!!c.enabled} onChange={(v) => update({ [c.toggle]: v })} />
               ) : (
-                <span className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-medium text-slate-500">Coming soon</span>
+                <span className="rounded-full border border-slate-200 px-2.5 py-1 text-[10px] font-medium text-slate-500">Coming soon</span>
               )}
             </div>
           ))}
@@ -255,11 +255,11 @@ function NotificationCenter() {
       />
 
       {saving && <p className="text-[11px] text-slate-500">Saving…</p>}
-      {error && <p className="text-[11px] text-red-300">{error}</p>}
+      {error && <p className="text-[11px] text-red-600">{error}</p>}
 
       <div>
         <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-slate-500">Recent notifications</p>
-        <div className="divide-y divide-white/5 rounded-2xl border border-white/5 bg-white/[0.02]">
+        <div className="divide-y divide-white/5 rounded-2xl border border-slate-100 bg-slate-50">
           {loading ? (
             <p className="px-4 py-6 text-center text-xs text-slate-600">Loading…</p>
           ) : activity.length === 0 ? (
@@ -270,7 +270,7 @@ function NotificationCenter() {
               return (
                 <div key={row.id} className="flex items-center gap-2 px-4 py-2.5">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-slate-200">{NOTIF_TYPE_LABELS[row.type] || row.type}</p>
+                    <p className="truncate text-xs font-medium text-slate-700">{NOTIF_TYPE_LABELS[row.type] || row.type}</p>
                     <p className="text-[10px] text-slate-600">{notifWhen(row.sent_at || row.created_at)}</p>
                   </div>
                   <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize ${channelChipCls(row.channel)}`}>{row.channel}</span>
@@ -378,13 +378,13 @@ function PortalRow({ portalKey, toast }) {
   };
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 sm:p-5">
+    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-white/5 bg-white/[0.03]">
-          <Icon className="h-4 w-4 text-amber-400" />
+        <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-slate-50">
+          <Icon className="h-4 w-4 text-amber-600" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-white">{portal.label}</p>
+          <p className="font-medium text-[#0F1B33]">{portal.label}</p>
           <p className="mt-0.5 text-xs text-slate-500">{portal.description}</p>
           <p className="mt-2 truncate font-mono text-[11px] text-slate-600">{portal.url}</p>
           <p className="mt-1 text-[10px] text-slate-700">env: {portal.envKey}</p>
@@ -393,14 +393,14 @@ function PortalRow({ portalKey, toast }) {
       <div className="mt-4 flex items-center gap-2">
         <button
           onClick={handleOpen}
-          className="flex items-center gap-1.5 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-3 py-2 text-xs font-medium text-amber-300 transition hover:bg-amber-400/10"
+          className="flex items-center gap-1.5 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-3 py-2 text-xs font-medium text-amber-600 transition hover:bg-amber-400/10"
         >
           <ExternalLink className="h-3 w-3" />
           Open
         </button>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-400 transition hover:border-white/20 hover:text-white"
+          className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-500 transition hover:border-slate-300 hover:text-[#0F1B33]"
         >
           <Copy className="h-3 w-3" />
           {copied ? "Copied!" : "Copy URL"}
@@ -412,17 +412,17 @@ function PortalRow({ portalKey, toast }) {
 
 function IntegrationItem({ name, description, connected, onAction, actionLabel }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-5">
       <div className="flex items-start gap-3">
         <div className="mt-0.5">
           {connected ? (
-            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
           ) : (
             <Circle className="h-4 w-4 text-slate-600" />
           )}
         </div>
         <div>
-          <p className="font-medium text-white">{name}</p>
+          <p className="font-medium text-[#0F1B33]">{name}</p>
           <p className="mt-0.5 text-xs text-slate-500">{description}</p>
         </div>
       </div>
@@ -430,8 +430,8 @@ function IntegrationItem({ name, description, connected, onAction, actionLabel }
         onClick={onAction}
         className={`flex-shrink-0 rounded-xl border px-4 py-2 text-xs font-medium transition ${
           connected
-            ? "border-emerald-400/20 text-emerald-300 hover:bg-emerald-400/10"
-            : "border-amber-400/20 text-amber-300 hover:bg-amber-400/10"
+            ? "border-emerald-400/20 text-emerald-600 hover:bg-emerald-400/10"
+            : "border-amber-400/20 text-amber-600 hover:bg-amber-400/10"
         }`}
       >
         {actionLabel ?? (connected ? "Connected" : "Connect")}
@@ -445,7 +445,7 @@ function IntegrationSettings({ toast }) {
     <div className="space-y-8">
       {/* Portals & Website */}
       <div>
-        <p className="mb-1 text-xs uppercase tracking-[0.28em] text-amber-400">Portals & Website</p>
+        <p className="mb-1 text-xs uppercase tracking-[0.28em] text-amber-600">Portals & Website</p>
         <p className="mb-4 text-xs text-slate-500">
           Quick-launch links for the driver portal and customer-facing website pages. Override any URL
           by setting the corresponding environment variable.
@@ -459,7 +459,7 @@ function IntegrationSettings({ toast }) {
 
       {/* Backend services */}
       <div>
-        <p className="mb-4 text-xs uppercase tracking-[0.28em] text-amber-400">Backend Services</p>
+        <p className="mb-4 text-xs uppercase tracking-[0.28em] text-amber-600">Backend Services</p>
         <div className="space-y-4">
           <IntegrationItem
             name="Supabase"
@@ -641,7 +641,7 @@ export default function Settings() {
   return (
     <div className="p-4 sm:p-6 lg:p-10">
       {/* Mobile: horizontal scrollable tab strip */}
-      <div className="mb-6 flex gap-1 overflow-x-auto rounded-2xl border border-white/5 bg-[#050B17] p-1 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="mb-6 flex gap-1 overflow-x-auto rounded-2xl border border-slate-100 bg-white p-1 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {SECTIONS.map((s) => {
           const Icon = s.icon;
           return (
@@ -650,8 +650,8 @@ export default function Settings() {
               onClick={() => setActive(s.key)}
               className={`flex flex-shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm transition ${
                 active === s.key
-                  ? "bg-amber-400/10 text-amber-300"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-amber-400/10 text-amber-600"
+                  : "text-slate-500 hover:text-[#0F1B33]"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -673,8 +673,8 @@ export default function Settings() {
                   onClick={() => setActive(s.key)}
                   className={`flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-sm transition ${
                     active === s.key
-                      ? "bg-amber-400/10 text-amber-300"
-                      : "text-slate-400 hover:bg-white/5 hover:text-white"
+                      ? "bg-amber-400/10 text-amber-600"
+                      : "text-slate-500 hover:bg-slate-100 hover:text-[#0F1B33]"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -691,8 +691,8 @@ export default function Settings() {
         {/* Content panel */}
         <div className="card p-6 sm:p-8">
           <div className="mb-6 sm:mb-8">
-            <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Settings</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">
+            <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Settings</p>
+            <h2 className="mt-2 text-2xl font-semibold text-[#0F1B33]">
               {SECTIONS.find((s) => s.key === active)?.label}
             </h2>
           </div>

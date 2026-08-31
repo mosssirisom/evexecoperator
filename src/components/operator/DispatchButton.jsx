@@ -40,7 +40,7 @@ export default function DispatchButton({ booking, driverName }) {
   if (state === "success") {
     return (
       <div className="flex items-center gap-1.5">
-        <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-300">
+        <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-600">
           <CheckCircle2 className="h-3.5 w-3.5" />
           Sent
         </span>
@@ -48,7 +48,7 @@ export default function DispatchButton({ booking, driverName }) {
           href={driverJobUrl(booking.id)}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 rounded-xl border border-white/10 px-2 py-2 text-xs text-slate-400 transition hover:text-amber-300"
+          className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-2 py-2 text-xs text-slate-500 transition hover:text-amber-600"
           title="View job on driver portal"
         >
           <ExternalLink className="h-3.5 w-3.5" />
@@ -60,7 +60,7 @@ export default function DispatchButton({ booking, driverName }) {
   if (state === "error") {
     return (
       <span
-        className="inline-flex items-center gap-1.5 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-300"
+        className="inline-flex items-center gap-1.5 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-600"
         title={errMsg}
       >
         <AlertTriangle className="h-3.5 w-3.5" />
@@ -74,7 +74,7 @@ export default function DispatchButton({ booking, driverName }) {
       <button
         onClick={handleDispatch}
         disabled={state === "loading"}
-        className="inline-flex items-center gap-1.5 rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs font-medium text-amber-300 transition hover:bg-amber-400/20 disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs font-medium text-amber-600 transition hover:bg-amber-400/20 disabled:opacity-60"
       >
         {state === "loading" ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -87,7 +87,7 @@ export default function DispatchButton({ booking, driverName }) {
         href={driverJobUrl(booking.id)}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 rounded-xl border border-white/10 px-2 py-2 text-xs text-slate-600 transition hover:border-white/20 hover:text-slate-400"
+        className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-2 py-2 text-xs text-slate-600 transition hover:border-slate-300 hover:text-slate-500"
         title="View job on driver portal"
       >
         <ExternalLink className="h-3.5 w-3.5" />

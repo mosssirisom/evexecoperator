@@ -38,10 +38,10 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 function statusChip(status) {
   switch (status) {
-    case "Paid":  return "border-emerald-400/30 bg-emerald-400/10 text-emerald-300";
-    case "Sent":  return "border-blue-400/30 bg-blue-400/10 text-blue-300";
-    case "Void":  return "border-slate-500/30 bg-slate-500/10 text-slate-400";
-    default:      return "border-amber-400/30 bg-amber-400/10 text-amber-300"; // Draft
+    case "Paid":  return "border-emerald-400/30 bg-emerald-400/10 text-emerald-600";
+    case "Sent":  return "border-blue-400/30 bg-blue-400/10 text-blue-600";
+    case "Void":  return "border-slate-500/30 bg-slate-500/10 text-slate-500";
+    default:      return "border-amber-400/30 bg-amber-400/10 text-amber-600"; // Draft
   }
 }
 
@@ -83,7 +83,7 @@ function journeyLines(j) {
 }
 
 const inputCls =
-  "w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-amber-400/40";
+  "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#0F1B33] placeholder:text-slate-400 outline-none transition focus:border-amber-400/40";
 const labelCls = "mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500";
 
 function InvoiceLogo() {
@@ -196,10 +196,10 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
 
   return (
     <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center">
-      <div className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#070D1F] sm:max-w-lg sm:rounded-3xl">
-        <div className="flex flex-shrink-0 items-center justify-between border-b border-white/5 px-5 py-4">
-          <h2 className="text-lg font-semibold text-white">New Invoice</h2>
-          <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 text-slate-400 hover:text-white">
+      <div className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white sm:max-w-lg sm:rounded-3xl">
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 px-5 py-4">
+          <h2 className="text-lg font-semibold text-[#0F1B33]">New Invoice</h2>
+          <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:text-[#0F1B33]">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -238,8 +238,8 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
           </div>
 
           {/* Journey details */}
-          <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-3">
-            <p className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-amber-400/80">
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
+            <p className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-amber-600/80">
               <MapPin className="h-3 w-3" /> Journey details
             </p>
             <div className="grid grid-cols-2 gap-3">
@@ -295,11 +295,11 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
                   <input value={it.description} onChange={(e) => setItem(i, "description", e.target.value)} className={inputCls + " flex-1"} placeholder="What's being charged" />
                   <input value={it.quantity} onChange={(e) => setItem(i, "quantity", e.target.value)} inputMode="numeric" className={inputCls + " w-14 text-center"} placeholder="Qty" />
                   <input value={it.unit_price} onChange={(e) => setItem(i, "unit_price", e.target.value)} inputMode="decimal" className={inputCls + " w-20"} placeholder="£" />
-                  <button onClick={() => removeItem(i)} className="mt-1 flex-shrink-0 text-slate-600 hover:text-red-300" title="Remove line"><X className="h-4 w-4" /></button>
+                  <button onClick={() => removeItem(i)} className="mt-1 flex-shrink-0 text-slate-600 hover:text-red-600" title="Remove line"><X className="h-4 w-4" /></button>
                 </div>
               ))}
             </div>
-            <button onClick={addItem} className="mt-2 inline-flex items-center gap-1.5 text-xs text-amber-300 hover:text-amber-200">
+            <button onClick={addItem} className="mt-2 inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700">
               <Plus className="h-3.5 w-3.5" /> Add charge
             </button>
           </div>
@@ -326,17 +326,17 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={inputCls} placeholder={"Leave blank for the standard terms:\nPayment due within 15 days · Bank Transfer / BACS preferred"} />
           </div>
 
-          <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-sm">
-            <div className="flex justify-between text-slate-400"><span>Subtotal</span><span>{money(totals.subtotal)}</span></div>
-            {vatRate > 0 && <div className="mt-1 flex justify-between text-slate-400"><span>VAT ({Math.round(vatRate * 100)}%)</span><span>{money(totals.vatAmount)}</span></div>}
-            <div className="mt-2 flex justify-between border-t border-white/5 pt-2 text-base font-semibold text-white"><span>Total</span><span className="text-amber-300">{money(totals.total)}</span></div>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm">
+            <div className="flex justify-between text-slate-500"><span>Subtotal</span><span>{money(totals.subtotal)}</span></div>
+            {vatRate > 0 && <div className="mt-1 flex justify-between text-slate-500"><span>VAT ({Math.round(vatRate * 100)}%)</span><span>{money(totals.vatAmount)}</span></div>}
+            <div className="mt-2 flex justify-between border-t border-slate-100 pt-2 text-base font-semibold text-[#0F1B33]"><span>Total</span><span className="text-amber-600">{money(totals.total)}</span></div>
           </div>
 
-          {err && <p className="rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-300">{err}</p>}
+          {err && <p className="rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-600">{err}</p>}
         </div>
 
-        <div className="flex flex-shrink-0 gap-2 border-t border-white/5 px-5 py-4">
-          <button onClick={onClose} disabled={busy} className="flex-1 rounded-2xl border border-white/10 py-3 text-sm font-semibold text-slate-300 hover:border-white/20 disabled:opacity-50">Cancel</button>
+        <div className="flex flex-shrink-0 gap-2 border-t border-slate-100 px-5 py-4">
+          <button onClick={onClose} disabled={busy} className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-semibold text-slate-600 hover:border-slate-300 disabled:opacity-50">Cancel</button>
           <button onClick={submit} disabled={busy} className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-amber-500 py-3 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-60">
             {busy ? "Creating…" : "Create Invoice"}
           </button>
@@ -418,19 +418,19 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
       <div className="w-full max-w-2xl">
         {/* Action bar — hidden when printing */}
         <div className="no-print mb-3 flex flex-wrap items-center justify-between gap-2">
-          <button onClick={onClose} className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300 hover:text-white">← Back</button>
+          <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:text-[#0F1B33]">← Back</button>
           <div className="flex flex-wrap items-center gap-2">
             {inv.status !== "Sent" && inv.status !== "Paid" && (
-              <button onClick={() => onStatus(inv.id, "Sent")} className="inline-flex items-center gap-1.5 rounded-xl border border-blue-400/30 bg-blue-400/10 px-3 py-2 text-xs font-medium text-blue-300 hover:bg-blue-400/20"><Send className="h-3.5 w-3.5" />Mark Sent</button>
+              <button onClick={() => onStatus(inv.id, "Sent")} className="inline-flex items-center gap-1.5 rounded-xl border border-blue-400/30 bg-blue-400/10 px-3 py-2 text-xs font-medium text-blue-600 hover:bg-blue-400/20"><Send className="h-3.5 w-3.5" />Mark Sent</button>
             )}
             {inv.status !== "Paid" && (
-              <button onClick={() => onStatus(inv.id, "Paid")} className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-300 hover:bg-emerald-400/20"><Check className="h-3.5 w-3.5" />Mark Paid</button>
+              <button onClick={() => onStatus(inv.id, "Paid")} className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-600 hover:bg-emerald-400/20"><Check className="h-3.5 w-3.5" />Mark Paid</button>
             )}
             {inv.status !== "Void" && (
-              <button onClick={() => onStatus(inv.id, "Void")} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-medium text-slate-400 hover:text-white">Void</button>
+              <button onClick={() => onStatus(inv.id, "Void")} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-500 hover:text-[#0F1B33]">Void</button>
             )}
-            <button onClick={() => onDelete(inv)} className="inline-flex items-center gap-1.5 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300 hover:bg-red-500/20"><Trash2 className="h-3.5 w-3.5" />Delete</button>
-            <button onClick={emailToCustomer} disabled={sending} className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-300 hover:bg-emerald-400/20 disabled:opacity-60">
+            <button onClick={() => onDelete(inv)} className="inline-flex items-center gap-1.5 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-500/20"><Trash2 className="h-3.5 w-3.5" />Delete</button>
+            <button onClick={emailToCustomer} disabled={sending} className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-600 hover:bg-emerald-400/20 disabled:opacity-60">
               {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
               {sending ? "Sending…" : "Email to Customer"}
             </button>
@@ -573,17 +573,17 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
           <div className="flex flex-wrap items-center justify-between gap-4 px-8 py-5 text-[11px] sm:px-10" style={{ backgroundColor: NAVY, ...exact }}>
             <div className="flex items-start gap-2">
               <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: GOLD }} />
-              <div className="leading-snug text-slate-200">
+              <div className="leading-snug text-slate-700">
                 {COMPANY.addressLines.map((l, i) => <p key={i}>{l}</p>)}
               </div>
             </div>
-            <div className="flex items-center gap-2 text-slate-200">
+            <div className="flex items-center gap-2 text-slate-700">
               <Phone className="h-4 w-4" style={{ color: GOLD }} /> {COMPANY.phone}
             </div>
-            <div className="flex items-center gap-2 text-slate-200">
+            <div className="flex items-center gap-2 text-slate-700">
               <Mail className="h-4 w-4" style={{ color: GOLD }} /> {COMPANY.email}
             </div>
-            <div className="flex items-center gap-2 text-slate-200">
+            <div className="flex items-center gap-2 text-slate-700">
               <Globe className="h-4 w-4" style={{ color: GOLD }} /> {COMPANY.web}
             </div>
           </div>
@@ -656,9 +656,9 @@ export default function InvoicesPage() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 sm:gap-4">
           {[
-            { label: "Outstanding", value: money(stats.outstanding), icon: Clock, color: "text-amber-300" },
-            { label: "Paid", value: money(stats.paid), icon: CircleDollarSign, color: "text-emerald-300" },
-            { label: "Unpaid", value: stats.unpaidCount, icon: FileText, color: "text-white" },
+            { label: "Outstanding", value: money(stats.outstanding), icon: Clock, color: "text-amber-600" },
+            { label: "Paid", value: money(stats.paid), icon: CircleDollarSign, color: "text-emerald-600" },
+            { label: "Unpaid", value: stats.unpaidCount, icon: FileText, color: "text-[#0F1B33]" },
           ].map((s) => (
             <div key={s.label} className="card p-3 sm:p-5">
               <div className="mb-2 flex items-center justify-between">
@@ -673,8 +673,8 @@ export default function InvoicesPage() {
         {/* Header + New */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Billing</p>
-            <h2 className="mt-1 text-2xl font-semibold text-white">Invoices</h2>
+            <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Billing</p>
+            <h2 className="mt-1 text-2xl font-semibold text-[#0F1B33]">Invoices</h2>
           </div>
           <button onClick={() => setModalOpen(true)} className="flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400 sm:px-5 sm:py-3">
             <Plus className="h-4 w-4" /> New Invoice
@@ -686,7 +686,7 @@ export default function InvoicesPage() {
           {["All", "Draft", "Sent", "Paid", "Void"].map((f) => (
             <button key={f} onClick={() => setFilter(f)}
               className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                filter === f ? "border-amber-400/40 bg-amber-400/10 text-amber-300" : "border-white/10 text-slate-500 hover:text-slate-300"}`}>
+                filter === f ? "border-amber-400/40 bg-amber-400/10 text-amber-600" : "border-slate-200 text-slate-500 hover:text-slate-600"}`}>
               {f}
             </button>
           ))}
@@ -701,7 +701,7 @@ export default function InvoicesPage() {
               <FileText className="mb-3 h-8 w-8 text-slate-700" />
               <p className="text-sm text-slate-600">{invoices.length === 0 ? "No invoices yet." : `No ${filter.toLowerCase()} invoices.`}</p>
               {invoices.length === 0 && (
-                <button onClick={() => setModalOpen(true)} className="mt-4 rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-400 hover:text-amber-300">
+                <button onClick={() => setModalOpen(true)} className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-500 hover:text-amber-600">
                   + Create your first invoice
                 </button>
               )}
@@ -710,19 +710,19 @@ export default function InvoicesPage() {
             <div className="space-y-2">
               {filtered.map((inv) => (
                 <button key={inv.id} onClick={() => setPreview(inv)}
-                  className="flex w-full items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-3 text-left transition hover:border-amber-400/20 hover:bg-white/[0.03]">
+                  className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 text-left transition hover:border-amber-400/20 hover:bg-slate-50">
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-amber-400/10">
-                    <FileText className="h-4 w-4 text-amber-300" />
+                    <FileText className="h-4 w-4 text-amber-600" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-white">{inv.customer}</p>
+                    <p className="truncate text-sm font-semibold text-[#0F1B33]">{inv.customer}</p>
                     <p className="truncate text-xs text-slate-500">
                       {inv.number}{inv.issueDate ? ` · ${inv.issueDate}` : ""}
                       {inv.journey?.pickup || inv.journey?.dropoff ? ` · ${[inv.journey.pickup, inv.journey.dropoff].filter(Boolean).join(" → ")}` : ""}
                     </p>
                   </div>
                   <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                    <span className="text-sm font-bold text-amber-300">{money(inv.total)}</span>
+                    <span className="text-sm font-bold text-amber-600">{money(inv.total)}</span>
                     <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusChip(inv.status)}`}>{inv.status}</span>
                   </div>
                 </button>

@@ -45,21 +45,21 @@ function NotificationPopover({
   return (
     <div
       ref={ref}
-      className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-white/10 bg-[#0B132B] shadow-2xl sm:w-80"
+      className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-slate-200 bg-white shadow-2xl sm:w-80"
     >
-      <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400">Notifications</p>
+      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600">Notifications</p>
         <div className="flex items-center gap-2">
           {total > 0 && (
             <button
               onClick={() => { onResolveAll(); onClearBookings(); }}
-              className="text-[10px] text-slate-400 hover:text-amber-300 transition"
+              className="text-[10px] text-slate-500 hover:text-amber-600 transition"
               title="Mark all as read"
             >
               Mark all read
             </button>
           )}
-          <button onClick={onClose} className="text-slate-500 hover:text-white transition">
+          <button onClick={onClose} className="text-slate-500 hover:text-[#0F1B33] transition">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -73,16 +73,16 @@ function NotificationPopover({
         {/* New bookings */}
         {newBookings.length > 0 && (
           <>
-            <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-400/80">
+            <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-600/80">
               New bookings
             </p>
             {newBookings.map((b) => (
-              <div key={`b-${b.id}`} className="flex items-start gap-3 border-b border-white/5 px-4 py-3 last:border-0">
+              <div key={`b-${b.id}`} className="flex items-start gap-3 border-b border-slate-100 px-4 py-3 last:border-0">
                 <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-400/10">
-                  <CalendarPlus className="h-3.5 w-3.5 text-emerald-300" />
+                  <CalendarPlus className="h-3.5 w-3.5 text-emerald-600" />
                 </div>
                 <button onClick={() => onOpenBooking(b)} className="min-w-0 flex-1 text-left">
-                  <p className="truncate text-sm font-medium text-white">{b.customer}</p>
+                  <p className="truncate text-sm font-medium text-[#0F1B33]">{b.customer}</p>
                   <p className="mt-0.5 truncate text-xs text-slate-500">{b.route}</p>
                   <p className="mt-0.5 text-[10px] text-slate-600">
                     {b.source === "website" ? "Online booking" : "New booking"}
@@ -91,7 +91,7 @@ function NotificationPopover({
                 </button>
                 <button
                   onClick={() => onDismissBooking(b.id)}
-                  className="mt-0.5 flex-shrink-0 text-slate-600 hover:text-white transition"
+                  className="mt-0.5 flex-shrink-0 text-slate-600 hover:text-[#0F1B33] transition"
                   title="Dismiss"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -104,22 +104,22 @@ function NotificationPopover({
         {/* Missed calls */}
         {calls.length > 0 && (
           <>
-            <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-red-400/80">
+            <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-red-600/80">
               Missed calls
             </p>
             {calls.map((c) => (
-              <div key={`c-${c.id}`} className="flex items-start gap-3 border-b border-white/5 px-4 py-3 last:border-0">
+              <div key={`c-${c.id}`} className="flex items-start gap-3 border-b border-slate-100 px-4 py-3 last:border-0">
                 <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-red-400/10">
-                  <PhoneMissed className="h-3.5 w-3.5 text-red-300" />
+                  <PhoneMissed className="h-3.5 w-3.5 text-red-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white">{c.caller}</p>
+                  <p className="text-sm font-medium text-[#0F1B33]">{c.caller}</p>
                   <p className="mt-0.5 text-xs text-slate-500 truncate">{c.notes || "Missed call"}</p>
                   <p className="mt-0.5 text-[10px] text-slate-600">{c.time}</p>
                 </div>
                 <button
                   onClick={() => onResolve(c.id)}
-                  className="mt-0.5 flex-shrink-0 text-slate-600 hover:text-white transition"
+                  className="mt-0.5 flex-shrink-0 text-slate-600 hover:text-[#0F1B33] transition"
                   title="Dismiss"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -198,16 +198,16 @@ export default function Layout({ children, onSignOut }) {
   }, [meta.title]);
 
   return (
-    <div className="min-h-screen bg-[#0B132B] text-white">
+    <div className="min-h-screen bg-white text-[#0F1B33]">
       <Sidebar />
-      <main className="ml-0 min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))] sm:ml-24 sm:pb-0 bg-[radial-gradient(circle_at_top_right,rgba(212,175,55,0.10),transparent_30%),linear-gradient(180deg,#0B132B_0%,#050814_100%)]">
-        <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0B132B]/80 px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] sm:px-10 sm:pb-6 sm:pt-6 backdrop-blur-xl">
+      <main className="ml-0 min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))] sm:ml-24 sm:pb-0 bg-[radial-gradient(circle_at_top_right,rgba(201,165,80,0.14),transparent_38%),linear-gradient(180deg,#EEF0F6_0%,#E4E7F0_100%)]">
+        <header className="sticky top-0 z-40 border-b border-slate-100 bg-white/85 px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] sm:px-10 sm:pb-6 sm:pt-6 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
 
             {/* Page title — hidden when mobile search is open */}
             <div className={`min-w-0 flex-1 sm:flex-none ${searchOpen ? "hidden sm:block" : ""}`}>
-              <p className="text-xs uppercase tracking-[0.3em] text-amber-400">{meta.label}</p>
-              <h1 className="mt-1 text-xl font-semibold tracking-tight text-white sm:text-3xl">
+              <p className="text-xs uppercase tracking-[0.3em] text-amber-600">{meta.label}</p>
+              <h1 className="mt-1 text-xl font-semibold tracking-tight text-[#0F1B33] sm:text-3xl">
                 {meta.title}
               </h1>
             </div>
@@ -225,13 +225,13 @@ export default function Layout({ children, onSignOut }) {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     aria-label="Search bookings and drivers"
                     placeholder="Search bookings, drivers…"
-                    className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-600"
+                    className="w-full bg-transparent text-sm text-[#0F1B33] outline-none placeholder:text-slate-400"
                   />
                 </div>
                 <button
                   type="button"
                   onClick={() => setSearchOpen(false)}
-                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-white/10 text-slate-400 transition hover:text-white"
+                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:text-[#0F1B33]"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -249,7 +249,7 @@ export default function Layout({ children, onSignOut }) {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   aria-label="Search bookings, flights and drivers"
                   placeholder="Search bookings, flights, drivers…"
-                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-600"
+                  className="w-full bg-transparent text-sm text-[#0F1B33] outline-none placeholder:text-slate-400"
                 />
               </div>
             </form>
@@ -265,7 +265,7 @@ export default function Layout({ children, onSignOut }) {
                   className="glass flex h-10 w-10 items-center justify-center rounded-2xl xl:hidden"
                   title="Search"
                 >
-                  <Search className="h-4 w-4 text-slate-300" />
+                  <Search className="h-4 w-4 text-slate-600" />
                 </button>
               )}
 
@@ -273,11 +273,11 @@ export default function Layout({ children, onSignOut }) {
               <div className="relative">
                 <button
                   onClick={() => setBellOpen(!bellOpen)}
-                  className="glass relative flex h-10 w-10 items-center justify-center rounded-2xl transition hover:bg-white/10 sm:h-12 sm:w-12"
+                  className="glass relative flex h-10 w-10 items-center justify-center rounded-2xl transition hover:bg-slate-100 sm:h-12 sm:w-12"
                   aria-label={alertCount > 0 ? `Notifications — ${alertCount} pending` : "Notifications"}
                   title="Notifications"
                 >
-                  <Bell className="h-4 w-4 text-slate-300 sm:h-5 sm:w-5" />
+                  <Bell className="h-4 w-4 text-slate-600 sm:h-5 sm:w-5" />
                   {alertCount > 0 && (
                     <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
                       {alertCount > 9 ? "9+" : alertCount}
@@ -305,14 +305,14 @@ export default function Layout({ children, onSignOut }) {
               {/* Profile chip */}
               <button
                 onClick={() => router.push("/operator/settings")}
-                className="glass hidden items-center gap-3 rounded-2xl px-3 py-2 transition hover:bg-white/10 lg:flex"
+                className="glass hidden items-center gap-3 rounded-2xl px-3 py-2 transition hover:bg-slate-100 lg:flex"
                 title="Settings"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-400/10 text-sm font-semibold text-amber-300">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-400/10 text-sm font-semibold text-amber-600">
                   EV
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">Operator</p>
+                  <p className="text-sm font-medium text-[#0F1B33]">Operator</p>
                   <p className="text-xs text-slate-500">Control Room</p>
                 </div>
               </button>
@@ -320,11 +320,11 @@ export default function Layout({ children, onSignOut }) {
               {/* Sign out */}
               <button
                 onClick={onSignOut}
-                className="glass flex h-10 w-10 items-center justify-center rounded-2xl transition hover:bg-white/10"
+                className="glass flex h-10 w-10 items-center justify-center rounded-2xl transition hover:bg-slate-100"
                 title="Sign out"
                 aria-label="Sign out"
               >
-                <LogOut className="h-4 w-4 text-slate-300" />
+                <LogOut className="h-4 w-4 text-slate-600" />
               </button>
             </div>
           </div>

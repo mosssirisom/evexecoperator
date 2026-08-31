@@ -62,24 +62,24 @@ export default function StatusActionMenu({ bookingId, currentStatus, onUpdate, d
       {open && !isUpdating && (
         <div
           role="menu"
-          className={`absolute z-50 w-56 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl ${
+          className={`absolute z-50 w-56 rounded-2xl border border-slate-200 bg-white py-1 shadow-2xl ${
             dropUp ? "bottom-full left-0 mb-2" : "left-0 top-full mt-1"
           }`}
         >
           {confirmCancel ? (
             <div className="px-4 py-3">
-              <p className="text-xs font-medium text-white">Cancel this booking?</p>
+              <p className="text-xs font-medium text-[#0F1B33]">Cancel this booking?</p>
               <p className="mt-0.5 text-[10px] text-slate-500">The customer will be texted that it's cancelled.</p>
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={() => applyStatus("Cancelled")}
-                  className="flex-1 rounded-xl bg-red-500/20 px-3 py-2.5 text-xs font-medium text-red-300 transition hover:bg-red-500/30"
+                  className="flex-1 rounded-xl bg-red-500/20 px-3 py-2.5 text-xs font-medium text-red-600 transition hover:bg-red-500/30"
                 >
                   Yes, Cancel
                 </button>
                 <button
                   onClick={() => setConfirmCancel(false)}
-                  className="flex-1 rounded-xl border border-white/10 px-3 py-2.5 text-xs text-slate-400 transition hover:text-white"
+                  className="flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-xs text-slate-500 transition hover:text-[#0F1B33]"
                 >
                   Keep Job
                 </button>
@@ -97,9 +97,9 @@ export default function StatusActionMenu({ bookingId, currentStatus, onUpdate, d
                 <button
                   role="menuitem"
                   onClick={() => applyStatus(reverse)}
-                  className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-slate-200 transition hover:bg-white/5"
+                  className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-slate-700 transition hover:bg-slate-100"
                 >
-                  <RotateCcw className="h-3.5 w-3.5 text-amber-300" />
+                  <RotateCcw className="h-3.5 w-3.5 text-amber-600" />
                   {reverseLabel(currentStatus)}
                 </button>
               )}
@@ -107,7 +107,7 @@ export default function StatusActionMenu({ bookingId, currentStatus, onUpdate, d
                 <button
                   role="menuitem"
                   onClick={() => setConfirmCancel(true)}
-                  className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-red-300 transition hover:bg-white/5"
+                  className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-red-600 transition hover:bg-slate-100"
                 >
                   <XCircle className="h-3.5 w-3.5" />
                   Cancel job

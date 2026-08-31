@@ -26,13 +26,13 @@ function BarChart({ bars }) {
 }
 
 const STATUS_COLORS = {
-  "Completed":                  { bar: "bg-emerald-400", text: "text-emerald-300" },
-  "Dispatched":                 { bar: "bg-amber-400",   text: "text-amber-300"   },
-  "En Route":                   { bar: "bg-blue-400",    text: "text-blue-300"    },
+  "Completed":                  { bar: "bg-emerald-400", text: "text-emerald-600" },
+  "Dispatched":                 { bar: "bg-amber-400",   text: "text-amber-600"   },
+  "En Route":                   { bar: "bg-blue-400",    text: "text-blue-600"    },
   "Passenger On Board":         { bar: "bg-purple-400",  text: "text-purple-300"  },
-  "Unassigned":                 { bar: "bg-slate-500",   text: "text-slate-400"   },
-  "Cancelled":                  { bar: "bg-red-500",     text: "text-red-400"     },
-  "Unassigned / Missed Call Recovery": { bar: "bg-orange-500", text: "text-orange-400" },
+  "Unassigned":                 { bar: "bg-slate-500",   text: "text-slate-500"   },
+  "Cancelled":                  { bar: "bg-red-500",     text: "text-red-600"     },
+  "Unassigned / Missed Call Recovery": { bar: "bg-orange-500", text: "text-orange-600" },
 };
 
 export default function Analytics() {
@@ -282,15 +282,15 @@ export default function Analytics() {
             onClick={() => setPeriod(p)}
             className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
               period === p
-                ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
-                : "border-white/10 text-slate-500 hover:text-slate-300"
+                ? "border-amber-400/40 bg-amber-400/10 text-amber-600"
+                : "border-slate-200 text-slate-500 hover:text-slate-600"
             }`}
           >
             {p}
           </button>
         ))}
         {isToday && (
-          <span className="flex items-center gap-1.5 text-xs text-emerald-400">
+          <span className="flex items-center gap-1.5 text-xs text-emerald-600">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             Live data
           </span>
@@ -327,13 +327,13 @@ export default function Analytics() {
         ].map((kpi) => (
           <div key={kpi.label} className="card p-4 sm:p-5">
             <div className="mb-4 flex items-center justify-between">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/5 bg-white/[0.03]">
-                <kpi.icon className="h-4 w-4 text-amber-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50">
+                <kpi.icon className="h-4 w-4 text-amber-600" />
               </div>
-              <TrendingUp className="h-3 w-3 text-emerald-400" />
+              <TrendingUp className="h-3 w-3 text-emerald-600" />
             </div>
-            <p className="text-sm text-slate-400">{kpi.label}</p>
-            <p className="mt-1 text-2xl font-semibold text-white sm:text-3xl">{kpi.value}</p>
+            <p className="text-sm text-slate-500">{kpi.label}</p>
+            <p className="mt-1 text-2xl font-semibold text-[#0F1B33] sm:text-3xl">{kpi.value}</p>
             <p className="mt-2 text-xs text-slate-500">{kpi.sub}</p>
           </div>
         ))}
@@ -341,18 +341,18 @@ export default function Analytics() {
 
       {/* Cancellation rate inline stat */}
       {bookings.length > 0 && (
-        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4">
-          <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-          <span className="text-sm text-slate-400">
-            Cancellation rate: <span className={`font-semibold ${cancellationRate > 10 ? "text-red-300" : "text-emerald-300"}`}>{cancellationRate}%</span>
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+          <span className="text-sm text-slate-500">
+            Cancellation rate: <span className={`font-semibold ${cancellationRate > 10 ? "text-red-600" : "text-emerald-600"}`}>{cancellationRate}%</span>
           </span>
           <span className="text-slate-700">·</span>
-          <span className="text-sm text-slate-400">
-            Completed: <span className="font-semibold text-emerald-300">{bookings.filter((b) => b.status === "Completed").length}</span>
+          <span className="text-sm text-slate-500">
+            Completed: <span className="font-semibold text-emerald-600">{bookings.filter((b) => b.status === "Completed").length}</span>
           </span>
           <span className="text-slate-700">·</span>
-          <span className="text-sm text-slate-400">
-            Active now: <span className="font-semibold text-amber-300">{bookings.filter((b) => ["Dispatched","En Route","Passenger On Board"].includes(b.status)).length}</span>
+          <span className="text-sm text-slate-500">
+            Active now: <span className="font-semibold text-amber-600">{bookings.filter((b) => ["Dispatched","En Route","Passenger On Board"].includes(b.status)).length}</span>
           </span>
         </div>
       )}
@@ -362,8 +362,8 @@ export default function Analytics() {
         {/* Revenue bar chart */}
         <div className="card p-5 sm:p-6">
           <div className="mb-6">
-            <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Revenue</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">
+            <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Revenue</p>
+            <h2 className="mt-2 text-2xl font-semibold text-[#0F1B33]">
               {period === "Today" ? "Today's Revenue" : `Revenue — ${period}`}
             </h2>
           </div>
@@ -373,13 +373,13 @@ export default function Analytics() {
               <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-slate-500">
                 <span>
                   Peak:{" "}
-                  <span className="text-amber-300">
+                  <span className="text-amber-600">
                     {peakDay.label} — £{peakDay.value.toLocaleString()}
                   </span>
                 </span>
                 <span>
                   Total:{" "}
-                  <span className="text-white">£{totalRevenue.toLocaleString()}</span>
+                  <span className="text-[#0F1B33]">£{totalRevenue.toLocaleString()}</span>
                 </span>
               </div>
             </>
@@ -391,8 +391,8 @@ export default function Analytics() {
         {/* Top routes */}
         <div className="card p-5 sm:p-6">
           <div className="mb-6">
-            <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Routes</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">Top Routes</h2>
+            <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Routes</p>
+            <h2 className="mt-2 text-2xl font-semibold text-[#0F1B33]">Top Routes</h2>
           </div>
           {topRoutes.length === 0 ? (
             <p className="py-12 text-center text-sm text-slate-600">No route data yet.</p>
@@ -401,12 +401,12 @@ export default function Analytics() {
               {topRoutes.map((r) => (
                 <div key={r.route}>
                   <div className="mb-1.5 flex items-center justify-between gap-4 text-sm">
-                    <span className="min-w-0 truncate text-slate-300">{r.route}</span>
-                    <span className="flex-shrink-0 font-semibold text-amber-300">
+                    <span className="min-w-0 truncate text-slate-600">{r.route}</span>
+                    <span className="flex-shrink-0 font-semibold text-amber-600">
                       £{r.revenue.toLocaleString()}
                     </span>
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-white/5">
+                  <div className="h-1.5 w-full rounded-full bg-white">
                     <div
                       className="h-full rounded-full bg-amber-400/50 transition-all duration-500"
                       style={{ width: `${(r.count / topRoutes[0].count) * 100}%` }}
@@ -425,10 +425,10 @@ export default function Analytics() {
         {/* Status breakdown */}
         <div className="card p-5 sm:p-6">
           <div className="mb-6 flex items-center gap-3">
-            <PieChart className="h-4 w-4 text-amber-400" />
+            <PieChart className="h-4 w-4 text-amber-600" />
             <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Breakdown</p>
-              <h2 className="mt-1 text-xl font-semibold text-white">Jobs by Status</h2>
+              <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Breakdown</p>
+              <h2 className="mt-1 text-xl font-semibold text-[#0F1B33]">Jobs by Status</h2>
             </div>
           </div>
           {statusBreakdown.length === 0 ? (
@@ -437,14 +437,14 @@ export default function Analytics() {
             <div className="space-y-3">
               {statusBreakdown.map(({ status, count }) => {
                 const pct = Math.round((count / bookings.length) * 100);
-                const c = STATUS_COLORS[status] ?? { bar: "bg-slate-500", text: "text-slate-400" };
+                const c = STATUS_COLORS[status] ?? { bar: "bg-slate-500", text: "text-slate-500" };
                 return (
                   <div key={status}>
                     <div className="mb-1.5 flex items-center justify-between gap-4 text-xs">
                       <span className={`font-medium ${c.text}`}>{status}</span>
                       <span className="flex-shrink-0 text-slate-500">{count} job{count !== 1 ? "s" : ""} · {pct}%</span>
                     </div>
-                    <div className="h-1.5 w-full rounded-full bg-white/5">
+                    <div className="h-1.5 w-full rounded-full bg-white">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${c.bar} opacity-60`}
                         style={{ width: `${pct}%` }}
@@ -460,10 +460,10 @@ export default function Analytics() {
         {/* Driver leaderboard */}
         <div className="card p-5 sm:p-6">
           <div className="mb-6 flex items-center gap-3">
-            <Trophy className="h-4 w-4 text-amber-400" />
+            <Trophy className="h-4 w-4 text-amber-600" />
             <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Performance</p>
-              <h2 className="mt-1 text-xl font-semibold text-white">Driver Leaderboard</h2>
+              <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Performance</p>
+              <h2 className="mt-1 text-xl font-semibold text-[#0F1B33]">Driver Leaderboard</h2>
             </div>
           </div>
           {driverLeaderboard.length === 0 ? (
@@ -471,25 +471,25 @@ export default function Analytics() {
           ) : (
             <div className="space-y-3">
               {driverLeaderboard.map((d, i) => (
-                <div key={d.id} className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3">
+                <div key={d.id} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
                   <span className={`w-5 flex-shrink-0 text-center text-sm font-bold ${
-                    i === 0 ? "text-amber-300" : i === 1 ? "text-slate-300" : "text-slate-600"
+                    i === 0 ? "text-amber-600" : i === 1 ? "text-slate-600" : "text-slate-600"
                   }`}>
                     {i + 1}
                   </span>
-                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-amber-400/10 text-xs font-semibold text-amber-300">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-amber-400/10 text-xs font-semibold text-amber-600">
                     {d.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-white">{d.name}</p>
+                    <p className="truncate text-sm font-medium text-[#0F1B33]">{d.name}</p>
                     <p className="truncate text-xs text-slate-600">{d.vehicle}</p>
                   </div>
                   <div className="flex-shrink-0 text-right">
-                    <p className="text-sm font-semibold text-emerald-300">{d.completed} jobs</p>
+                    <p className="text-sm font-semibold text-emerald-600">{d.completed} jobs</p>
                     <p className="text-xs text-slate-600">£{d.revenue.toLocaleString()}</p>
                   </div>
                   <div className="flex-shrink-0 text-right">
-                    <p className="text-xs font-semibold text-amber-300">{d.completedToday}</p>
+                    <p className="text-xs font-semibold text-amber-600">{d.completedToday}</p>
                     <p className="text-[10px] text-slate-700">today</p>
                   </div>
                 </div>

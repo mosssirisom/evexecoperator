@@ -74,8 +74,8 @@ function InlineDriverCell({ bookingId, currentDriverId, drivers, onAssign }) {
         ref={btnRef}
         onClick={handleOpen}
         disabled={pending}
-        className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs transition hover:bg-white/5 disabled:opacity-50 ${
-          current ? "text-slate-300" : "font-medium text-amber-400 hover:text-amber-300"
+        className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs transition hover:bg-slate-100 disabled:opacity-50 ${
+          current ? "text-slate-600" : "font-medium text-amber-600 hover:text-amber-600"
         }`}
       >
         {pending ? (
@@ -96,25 +96,25 @@ function InlineDriverCell({ bookingId, currentDriverId, drivers, onAssign }) {
         createPortal(
           <div
             ref={dropRef}
-            className="fixed z-[200] w-56 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl"
+            className="fixed z-[200] w-56 rounded-2xl border border-slate-200 bg-white py-1 shadow-2xl"
             style={{ top: pos.top, left: pos.left }}
           >
             <button
               onClick={() => handleAssign(null)}
-              className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-white/5 ${
-                !currentDriverId ? "text-amber-300" : "text-slate-500"
+              className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-slate-100 ${
+                !currentDriverId ? "text-amber-600" : "text-slate-500"
               }`}
             >
               <span className="h-2 w-2 rounded-full bg-slate-700" />
               Unassigned
             </button>
-            {drivers.length > 0 && <div className="mx-4 my-1 border-t border-white/5" />}
+            {drivers.length > 0 && <div className="mx-4 my-1 border-t border-slate-100" />}
             {drivers.map((d) => (
               <button
                 key={d.id}
                 onClick={() => handleAssign(d.id)}
-                className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-white/5 ${
-                  d.id === currentDriverId ? "text-amber-300" : "text-slate-300"
+                className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-slate-100 ${
+                  d.id === currentDriverId ? "text-amber-600" : "text-slate-600"
                 }`}
               >
                 <span className={`h-2 w-2 flex-shrink-0 rounded-full ${driverDot(d.status)}`} />
@@ -154,24 +154,24 @@ function ScheduleRow({ booking, onSelect }) {
         isActive
           ? "border-amber-400/20 bg-amber-400/[0.04]"
           : isPast
-          ? "border-white/[0.03] bg-white/[0.01] opacity-50"
-          : "border-white/5 bg-white/[0.02]"
+          ? "border-slate-100 bg-slate-50 opacity-50"
+          : "border-slate-100 bg-slate-50"
       }`}
     >
       <div className="w-14 flex-shrink-0 text-center">
-        <p className="text-sm font-semibold text-white">{booking.time}</p>
+        <p className="text-sm font-semibold text-[#0F1B33]">{booking.time}</p>
         {booking.pickupTime && <ETACountdown pickupTime={booking.pickupTime} className="text-[10px]" />}
       </div>
-      <div className="h-8 w-px bg-white/10" />
+      <div className="h-8 w-px bg-slate-100" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="truncate text-sm font-medium text-white">{booking.customer}</p>
-          {booking.priority && <span className="flex-shrink-0 text-xs text-red-400">⚡</span>}
+          <p className="truncate text-sm font-medium text-[#0F1B33]">{booking.customer}</p>
+          {booking.priority && <span className="flex-shrink-0 text-xs text-red-600">⚡</span>}
         </div>
         <p className="truncate text-xs text-slate-500">{booking.route}</p>
       </div>
       <div className="flex-shrink-0 text-right">
-        <p className="text-xs font-semibold text-amber-300">{booking.price}</p>
+        <p className="text-xs font-semibold text-amber-600">{booking.price}</p>
         <p className="text-xs text-slate-600">{booking.driver}</p>
       </div>
     </button>
@@ -239,18 +239,18 @@ function MobileDriverSheet({ booking, drivers, onAssign, onClose }) {
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-end sm:hidden">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full rounded-t-[28px] border-t border-white/10 bg-[#070D1F]">
+      <div className="relative z-10 w-full rounded-t-[28px] border-t border-slate-200 bg-white">
         {/* Drag handle */}
         <div className="flex justify-center pb-1 pt-3">
-          <div className="h-1 w-12 rounded-full bg-white/20" />
+          <div className="h-1 w-12 rounded-full bg-slate-200" />
         </div>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-amber-400">Assign Driver</p>
-            <p className="mt-0.5 text-sm font-semibold text-white">{booking.customer}</p>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-amber-600">Assign Driver</p>
+            <p className="mt-0.5 text-sm font-semibold text-[#0F1B33]">{booking.customer}</p>
           </div>
-          <button onClick={onClose} className="text-slate-500 transition hover:text-white">
+          <button onClick={onClose} className="text-slate-500 transition hover:text-[#0F1B33]">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -261,7 +261,7 @@ function MobileDriverSheet({ booking, drivers, onAssign, onClose }) {
             onClick={() => handleSelect(null)}
             disabled={pending}
             className={`flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-sm transition ${
-              !booking.driverId ? "bg-amber-400/10 text-amber-300" : "text-slate-400 hover:bg-white/5"
+              !booking.driverId ? "bg-amber-400/10 text-amber-600" : "text-slate-500 hover:bg-slate-100"
             }`}
           >
             <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-slate-700" />
@@ -277,7 +277,7 @@ function MobileDriverSheet({ booking, drivers, onAssign, onClose }) {
                 onClick={() => handleSelect(d.id)}
                 disabled={pending}
                 className={`flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-sm transition ${
-                  isCurrent ? "bg-amber-400/10 text-amber-300" : "text-slate-300 hover:bg-white/5"
+                  isCurrent ? "bg-amber-400/10 text-amber-600" : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
                 <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${driverDot(d.status)}`} />
@@ -327,7 +327,7 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign }) {
           ? "border-red-500/20 bg-red-500/[0.04]"
           : isActive
           ? "border-amber-400/15 bg-amber-400/[0.03]"
-          : "border-white/5 bg-white/[0.02]"
+          : "border-slate-100 bg-slate-50"
       } ${isCancelled ? "opacity-50" : ""}`}
     >
       {/* Left accent stripe */}
@@ -345,17 +345,17 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign }) {
         {/* Row 1 — passenger + price */}
         <div className="pointer-events-none flex items-baseline gap-2">
           {booking.priority && (
-            <AlertTriangle className="h-3 w-3 flex-shrink-0 self-center text-red-400" />
+            <AlertTriangle className="h-3 w-3 flex-shrink-0 self-center text-red-600" />
           )}
-          <p className="min-w-0 flex-1 truncate text-sm font-semibold text-white">
+          <p className="min-w-0 flex-1 truncate text-sm font-semibold text-[#0F1B33]">
             {booking.customer}
           </p>
-          <p className="flex-shrink-0 text-sm font-bold text-amber-300">{booking.price}</p>
+          <p className="flex-shrink-0 text-sm font-bold text-amber-600">{booking.price}</p>
         </div>
 
         {/* Row 2 — route, flight kept secondary */}
         <div className="pointer-events-none mt-0.5 flex items-center gap-1.5">
-          <p className="min-w-0 flex-1 truncate text-xs text-slate-400">{booking.route}</p>
+          <p className="min-w-0 flex-1 truncate text-xs text-slate-500">{booking.route}</p>
           {booking.flight && booking.flight !== "—" && (
             <span className="flex flex-shrink-0 items-center gap-0.5 text-[10px] text-slate-600">
               <Plane className="h-2.5 w-2.5" />
@@ -366,7 +366,7 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign }) {
 
         {/* Row 3 — time · driver (tap to assign) · status */}
         <div className="mt-0.5 flex items-center gap-1.5 text-[11px]">
-          <span className="pointer-events-none flex flex-shrink-0 items-center gap-1 text-slate-400">
+          <span className="pointer-events-none flex flex-shrink-0 items-center gap-1 text-slate-500">
             <Clock className="h-3 w-3 text-slate-600" />
             {booking.time}
           </span>
@@ -374,7 +374,7 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign }) {
           <button
             onClick={(e) => { e.stopPropagation(); setDriverSheetOpen(true); }}
             className={`min-w-0 flex-1 truncate text-left transition active:opacity-70 ${
-              booking.driverId ? "text-slate-300" : "font-medium text-amber-400/80"
+              booking.driverId ? "text-slate-600" : "font-medium text-amber-600/80"
             }`}
           >
             {booking.driver || "Unassigned"}
@@ -714,18 +714,18 @@ function DispatchPageContent() {
 
       <div className="grid gap-2 p-2 sm:gap-6 sm:p-6 lg:p-10">
         {error && (
-          <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-300">
+          <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-600">
             Failed to load transfers: {error}
           </div>
         )}
 
         {/* Stats — one slim row on mobile so the booking list starts higher;
             full stat cards on desktop */}
-        <div className="flex items-center justify-around gap-2 rounded-2xl border border-white/5 bg-white/[0.02] px-3 py-2 sm:hidden">
+        <div className="flex items-center justify-around gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2 sm:hidden">
           {[
-            { label: "Active", value: stats.active, color: "text-amber-300", dot: "bg-amber-400" },
-            { label: "Completed", value: stats.completed, color: "text-emerald-300", dot: "bg-emerald-400" },
-            { label: "Attention", value: stats.pending, color: "text-red-300", dot: "bg-red-400" },
+            { label: "Active", value: stats.active, color: "text-amber-600", dot: "bg-amber-400" },
+            { label: "Completed", value: stats.completed, color: "text-emerald-600", dot: "bg-emerald-400" },
+            { label: "Attention", value: stats.pending, color: "text-red-600", dot: "bg-red-400" },
           ].map((s) => (
             <div key={s.label} className="flex items-center gap-1.5">
               <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${s.dot}`} />
@@ -736,32 +736,32 @@ function DispatchPageContent() {
         </div>
         <div className="hidden grid-cols-3 gap-4 sm:grid">
           {[
-            { label: "Active", value: stats.active, color: "text-amber-300" },
-            { label: "Completed", value: stats.completed, color: "text-emerald-300" },
-            { label: "Attention", value: stats.pending, color: "text-red-300" },
+            { label: "Active", value: stats.active, color: "text-amber-600" },
+            { label: "Completed", value: stats.completed, color: "text-emerald-600" },
+            { label: "Attention", value: stats.pending, color: "text-red-600" },
           ].map((s) => (
             <div key={s.label} className="card flex items-center gap-5 p-5">
               <p className={`text-4xl font-bold ${s.color}`}>{s.value}</p>
-              <p className="text-sm text-slate-400">{s.label}</p>
+              <p className="text-sm text-slate-500">{s.label}</p>
             </div>
           ))}
         </div>
 
         {/* View toggle + New Booking */}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-1 rounded-2xl border border-white/10 p-1">
+          <div className="flex items-center gap-1 rounded-2xl border border-slate-200 p-1">
             <button
               onClick={() => setView("board")}
               className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition sm:px-4 sm:py-2.5 ${
                 view === "board"
-                  ? "bg-amber-400/10 text-amber-300"
-                  : "text-slate-500 hover:text-slate-300"
+                  ? "bg-amber-400/10 text-amber-600"
+                  : "text-slate-500 hover:text-slate-600"
               }`}
             >
               <List className="h-4 w-4" />
               Board
               {activeFilter !== "All" && filtered.length > 0 && (
-                <span className="rounded-full bg-amber-400/20 px-1.5 text-xs text-amber-300">
+                <span className="rounded-full bg-amber-400/20 px-1.5 text-xs text-amber-600">
                   {filtered.length}
                 </span>
               )}
@@ -770,14 +770,14 @@ function DispatchPageContent() {
               onClick={() => setView("schedule")}
               className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition sm:px-4 sm:py-2.5 ${
                 view === "schedule"
-                  ? "bg-amber-400/10 text-amber-300"
-                  : "text-slate-500 hover:text-slate-300"
+                  ? "bg-amber-400/10 text-amber-600"
+                  : "text-slate-500 hover:text-slate-600"
               }`}
             >
               <CalendarClock className="h-4 w-4" />
               <span className="hidden sm:inline">Today's </span>Schedule
               {schedule.length > 0 && (
-                <span className="rounded-full bg-amber-400/20 px-1.5 text-xs text-amber-300">
+                <span className="rounded-full bg-amber-400/20 px-1.5 text-xs text-amber-600">
                   {schedule.length}
                 </span>
               )}
@@ -797,8 +797,8 @@ function DispatchPageContent() {
           /* ── Schedule view ──────────────────────────────────────────────── */
           <div className="card p-4 sm:p-6">
             <div className="mb-5">
-              <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Today</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">Schedule</h2>
+              <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Today</p>
+              <h2 className="mt-2 text-2xl font-semibold text-[#0F1B33]">Schedule</h2>
               <p className="mt-1 text-sm text-slate-500">
                 {schedule.length === 0
                   ? "No pickups scheduled for today"
@@ -823,12 +823,12 @@ function DispatchPageContent() {
                 below the app header while the feed scrolls; static on desktop. */}
             <div
               style={{ top: stickyTop }}
-              className="sticky z-30 mb-2 flex min-w-0 flex-col gap-2 bg-[#0B132B]/95 py-2 backdrop-blur-md lg:static lg:mb-4 lg:flex-row lg:items-center lg:justify-between lg:gap-3 lg:bg-transparent lg:py-0 lg:backdrop-blur-none"
+              className="sticky z-30 mb-2 flex min-w-0 flex-col gap-2 bg-white/95 py-2 backdrop-blur-md lg:static lg:mb-4 lg:flex-row lg:items-center lg:justify-between lg:gap-3 lg:bg-transparent lg:py-0 lg:backdrop-blur-none"
             >
               {/* Heading — hidden on mobile to save vertical space */}
               <div className="hidden sm:block">
-                <p className="text-xs uppercase tracking-[0.28em] text-amber-400">Dispatch Board</p>
-                <h2 className="mt-1.5 text-2xl font-semibold text-white">All Transfers</h2>
+                <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Dispatch Board</p>
+                <h2 className="mt-1.5 text-2xl font-semibold text-[#0F1B33]">All Transfers</h2>
               </div>
 
               {/* Search + filter row */}
@@ -841,12 +841,12 @@ function DispatchPageContent() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search customer, flight, ref… (/)"
-                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-2.5 pl-9 pr-9 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-amber-400/30 sm:py-3 lg:w-72"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-9 text-sm text-[#0F1B33] placeholder:text-slate-400 outline-none transition focus:border-amber-400/30 sm:py-3 lg:w-72"
                   />
                   {search && (
                     <button
                       onClick={() => setSearch("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#0F1B33]"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -863,8 +863,8 @@ function DispatchPageContent() {
                         onClick={() => setActiveFilter(f)}
                         className={`flex-shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition sm:px-3 sm:py-1.5 sm:text-xs ${
                           activeFilter === f
-                            ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
-                            : "border-white/10 text-slate-500 hover:border-white/20 hover:text-slate-300"
+                            ? "border-amber-400/40 bg-amber-400/10 text-amber-600"
+                            : "border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-600"
                         }`}
                       >
                         {f === "Unassigned / Missed Call Recovery" ? "Missed Call" : f}
@@ -874,7 +874,7 @@ function DispatchPageContent() {
                   {activeFilter !== "All" && (
                     <button
                       onClick={() => setActiveFilter("All")}
-                      className="flex-shrink-0 text-slate-600 hover:text-white transition"
+                      className="flex-shrink-0 text-slate-600 hover:text-[#0F1B33] transition"
                       title="Clear filter"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -891,10 +891,10 @@ function DispatchPageContent() {
                       });
                     }}
                     aria-label={searchOpen ? "Close search" : "Search"}
-                    className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border transition active:bg-white/5 sm:hidden ${
+                    className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border transition active:bg-slate-100 sm:hidden ${
                       searchOpen || search
-                        ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
-                        : "border-white/10 text-slate-400"
+                        ? "border-amber-400/40 bg-amber-400/10 text-amber-600"
+                        : "border-slate-200 text-slate-500"
                     }`}
                   >
                     {searchOpen ? <X className="h-3.5 w-3.5" /> : <Search className="h-3.5 w-3.5" />}
@@ -908,14 +908,14 @@ function DispatchPageContent() {
             <div className="grid min-w-0 gap-2 pb-24 lg:hidden lg:pb-0">
               {loading && transfers.length === 0
                 ? [1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse rounded-xl border border-white/5 bg-white/[0.02] p-3">
-                      <div className="h-4 w-1/3 rounded-full bg-white/[0.04]" />
-                      <div className="mt-3 h-3 w-2/3 rounded-full bg-white/[0.03]" />
+                    <div key={i} className="animate-pulse rounded-xl border border-slate-100 bg-slate-50 p-3">
+                      <div className="h-4 w-1/3 rounded-full bg-slate-50" />
+                      <div className="mt-3 h-3 w-2/3 rounded-full bg-slate-50" />
                     </div>
                   ))
                 : groupByDate(filtered).map((g) => (
                     <div key={g.key ?? "no-date"} className="grid min-w-0 gap-1">
-                      <p className="px-0.5 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-400/80">
+                      <p className="px-0.5 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-600/80">
                         {g.label}
                         <span className="ml-1.5 text-slate-600">· {g.items.length}</span>
                       </p>
@@ -941,7 +941,7 @@ function DispatchPageContent() {
             <div className="hidden overflow-x-auto lg:block">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/5 text-left">
+                  <tr className="border-b border-slate-100 text-left">
                     {["Job ID", "Customer", "Route", "Flight", "Pickup", "ETA", "Driver", "Price", "Status", ""].map(
                       (h) => (
                         <th
@@ -962,7 +962,7 @@ function DispatchPageContent() {
                         {[...Array(10)].map((_, j) => (
                           <td key={j} className="py-4 pr-6">
                             <div
-                              className="h-3 rounded-full bg-white/[0.04]"
+                              className="h-3 rounded-full bg-slate-50"
                               style={{ width: `${50 + j * 5}%` }}
                             />
                           </td>
@@ -974,22 +974,22 @@ function DispatchPageContent() {
                       key={t.id}
                       onClick={() => setSelectedBooking(t)}
                       className={`cursor-pointer transition-colors ${
-                        t.priority ? "bg-red-500/[0.03]" : "hover:bg-white/[0.02]"
+                        t.priority ? "bg-red-500/[0.03]" : "hover:bg-slate-50"
                       } ${selectedBooking?.id === t.id ? "bg-amber-400/[0.04]" : ""}`}
                     >
                       <td className="py-4 pr-6">
                         <div className="flex items-center gap-1.5">
                           {t.priority && (
-                            <AlertTriangle className="h-3 w-3 flex-shrink-0 text-red-400" />
+                            <AlertTriangle className="h-3 w-3 flex-shrink-0 text-red-600" />
                           )}
                           <span className="font-mono text-xs text-slate-500">{t.id}</span>
                         </div>
                       </td>
-                      <td className="py-4 pr-6 font-medium text-white">{t.customer}</td>
-                      <td className="max-w-[180px] truncate py-4 pr-6 text-slate-400">{t.route}</td>
-                      <td className="py-4 pr-6 text-white">{t.flight}</td>
+                      <td className="py-4 pr-6 font-medium text-[#0F1B33]">{t.customer}</td>
+                      <td className="max-w-[180px] truncate py-4 pr-6 text-slate-500">{t.route}</td>
+                      <td className="py-4 pr-6 text-[#0F1B33]">{t.flight}</td>
                       <td className="py-4 pr-6">
-                        <div className="flex items-center gap-1.5 text-white">
+                        <div className="flex items-center gap-1.5 text-[#0F1B33]">
                           <Clock className="h-3.5 w-3.5 text-slate-500" />
                           {t.time}
                         </div>
@@ -1005,7 +1005,7 @@ function DispatchPageContent() {
                           onAssign={handleAssignDriver}
                         />
                       </td>
-                      <td className="py-4 pr-6 font-semibold text-amber-300">{t.price}</td>
+                      <td className="py-4 pr-6 font-semibold text-amber-600">{t.price}</td>
                       <td className="py-4 pr-6" onClick={(e) => e.stopPropagation()}>
                         <StatusActionMenu
                           bookingId={t.id}
@@ -1029,14 +1029,14 @@ function DispatchPageContent() {
 
             {/* Load more — shown on both mobile and desktop when more pages exist */}
             {totalCount > transfers.length && !debouncedSearch && activeFilter === "All" && (
-              <div className="mt-4 flex items-center justify-center gap-4 border-t border-white/5 pt-4">
+              <div className="mt-4 flex items-center justify-center gap-4 border-t border-slate-100 pt-4">
                 <p className="text-xs text-slate-600">
                   Showing {transfers.length} of {totalCount} bookings
                 </p>
                 <button
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="rounded-xl border border-white/10 px-4 py-2.5 text-xs text-slate-400 transition hover:border-amber-400/20 hover:text-amber-300 disabled:opacity-50"
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs text-slate-500 transition hover:border-amber-400/20 hover:text-amber-600 disabled:opacity-50"
                 >
                   {loadingMore ? "Loading…" : "Load more"}
                 </button>

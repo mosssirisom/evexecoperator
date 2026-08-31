@@ -17,7 +17,7 @@ function Row({ icon: Icon, label, value, muted }) {
       <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-600" />
       <div>
         <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">{label}</p>
-        <p className={`mt-0.5 text-sm ${muted ? "text-slate-400" : "text-white"}`}>{value}</p>
+        <p className={`mt-0.5 text-sm ${muted ? "text-slate-500" : "text-[#0F1B33]"}`}>{value}</p>
       </div>
     </div>
   );
@@ -73,22 +73,22 @@ function StatusPicker({ currentStatus, onUpdate }) {
         <div
           role="menu"
           aria-label="Correct booking status"
-          className="absolute left-0 top-full z-[60] mt-1 w-64 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl"
+          className="absolute left-0 top-full z-[60] mt-1 w-64 rounded-2xl border border-slate-200 bg-white py-1 shadow-2xl"
         >
           {confirmCancel ? (
             <div className="px-4 py-3 space-y-2">
-              <p className="text-xs text-slate-300">Cancel this booking?</p>
+              <p className="text-xs text-slate-600">Cancel this booking?</p>
               <p className="text-[10px] text-slate-500">The customer will be texted that it's cancelled.</p>
               <div className="flex gap-2">
                 <button
                   onClick={handleConfirmCancel}
-                  className="flex-1 rounded-xl bg-red-500/20 border border-red-500/30 px-3 py-2 text-xs text-red-300 transition hover:bg-red-500/30"
+                  className="flex-1 rounded-xl bg-red-500/20 border border-red-500/30 px-3 py-2 text-xs text-red-600 transition hover:bg-red-500/30"
                 >
                   Yes, Cancel
                 </button>
                 <button
                   onClick={() => setConfirmCancel(false)}
-                  className="flex-1 rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-400 transition hover:text-white"
+                  className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-500 transition hover:text-[#0F1B33]"
                 >
                   Keep Job
                 </button>
@@ -104,9 +104,9 @@ function StatusPicker({ currentStatus, onUpdate }) {
                 <button
                   role="menuitem"
                   onClick={() => handleSelect(reverse)}
-                  className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-slate-200 transition hover:bg-white/5"
+                  className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-slate-700 transition hover:bg-slate-100"
                 >
-                  <RotateCcw className="h-3.5 w-3.5 text-amber-300" />
+                  <RotateCcw className="h-3.5 w-3.5 text-amber-600" />
                   {reverseLabel(currentStatus)}
                 </button>
               )}
@@ -114,7 +114,7 @@ function StatusPicker({ currentStatus, onUpdate }) {
                 <button
                   role="menuitem"
                   onClick={() => setConfirmCancel(true)}
-                  className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-red-300 transition hover:bg-white/5"
+                  className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-red-600 transition hover:bg-slate-100"
                 >
                   <XCircle className="h-3.5 w-3.5" />
                   Cancel job
@@ -164,14 +164,14 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
         aria-expanded={open}
         className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
           current
-            ? "border-white/10 bg-white/[0.02] text-white hover:border-amber-400/20"
-            : "border-dashed border-amber-400/30 bg-amber-400/[0.04] text-amber-300 hover:border-amber-400/50 hover:bg-amber-400/[0.06]"
+            ? "border-slate-200 bg-slate-50 text-[#0F1B33] hover:border-amber-400/20"
+            : "border-dashed border-amber-400/30 bg-amber-400/[0.04] text-amber-600 hover:border-amber-400/50 hover:bg-amber-400/[0.06]"
         }`}
       >
         {pending ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
-            <span className="flex-1 text-left text-slate-400">Assigning…</span>
+            <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+            <span className="flex-1 text-left text-slate-500">Assigning…</span>
           </>
         ) : current ? (
           <>
@@ -191,28 +191,28 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
         <div
           role="listbox"
           aria-label="Assign driver"
-          className="absolute left-0 right-0 top-full z-[60] mt-1 rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl"
+          className="absolute left-0 right-0 top-full z-[60] mt-1 rounded-2xl border border-slate-200 bg-white py-1 shadow-2xl"
         >
           <button
             role="option"
             aria-selected={currentDriverId == null}
             onClick={() => handleAssign(null)}
-            className={`flex w-full items-center gap-3 px-4 py-3 text-sm transition hover:bg-white/5 ${
-              currentDriverId == null ? "text-amber-300" : "text-slate-500"
+            className={`flex w-full items-center gap-3 px-4 py-3 text-sm transition hover:bg-slate-100 ${
+              currentDriverId == null ? "text-amber-600" : "text-slate-500"
             }`}
           >
             <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
             Unassigned
           </button>
-          {drivers.length > 0 && <div className="mx-4 my-1 border-t border-white/5" />}
+          {drivers.length > 0 && <div className="mx-4 my-1 border-t border-slate-100" />}
           {drivers.map((d) => (
             <button
               key={d.id}
               role="option"
               aria-selected={d.id === currentDriverId}
               onClick={() => handleAssign(d.id)}
-              className={`flex w-full items-center gap-3 px-4 py-3 text-sm transition hover:bg-white/5 ${
-                d.id === currentDriverId ? "text-amber-300" : "text-slate-300"
+              className={`flex w-full items-center gap-3 px-4 py-3 text-sm transition hover:bg-slate-100 ${
+                d.id === currentDriverId ? "text-amber-600" : "text-slate-600"
               }`}
             >
               <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${driverDot(d.status)}`} />
@@ -228,9 +228,9 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
 }
 
 const PAYMENT_STATES = [
-  { value: "Unpaid",   color: "border-red-400/30 bg-red-400/10 text-red-300",         dot: "bg-red-400" },
-  { value: "Invoiced", color: "border-amber-400/30 bg-amber-400/10 text-amber-300",   dot: "bg-amber-400" },
-  { value: "Paid",     color: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300", dot: "bg-emerald-400" },
+  { value: "Unpaid",   color: "border-red-400/30 bg-red-400/10 text-red-600",         dot: "bg-red-400" },
+  { value: "Invoiced", color: "border-amber-400/30 bg-amber-400/10 text-amber-600",   dot: "bg-amber-400" },
+  { value: "Paid",     color: "border-emerald-400/30 bg-emerald-400/10 text-emerald-600", dot: "bg-emerald-400" },
 ];
 
 // How the customer is paying — surfaced at dispatch so the driver/operator
@@ -254,8 +254,8 @@ function PaymentMethodPicker({ value, onSelect }) {
             }}
             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
               active
-                ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
-                : "border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200"
+                ? "border-amber-400/40 bg-amber-400/10 text-amber-600"
+                : "border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700"
             }`}
           >
             {pending === m ? "…" : m}
@@ -284,8 +284,8 @@ function MarkFarePaidButton({ paid, onSet }) {
       title={paid ? "Fare paid in advance — tap to undo" : "Mark the fare as paid in advance"}
       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
         paid
-          ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-200 hover:bg-emerald-400/25"
-          : "border-emerald-400/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+          ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-700 hover:bg-emerald-400/25"
+          : "border-emerald-400/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20"
       }`}
     >
       {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
@@ -319,7 +319,7 @@ function PaymentBadge({ paymentStatus, onUpdate }) {
 }
 
 const editInputCls =
-  "w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-amber-400/40";
+  "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#0F1B33] placeholder:text-slate-400 outline-none transition focus:border-amber-400/40";
 
 function EditField({ label, icon: Icon, children }) {
   return (
@@ -379,7 +379,7 @@ function BookingEditForm({ booking, onSave, onCancel }) {
 
   return (
     <div className="space-y-4 px-5 py-5 sm:px-6">
-      <p className="text-[10px] uppercase tracking-[0.28em] text-amber-400">Edit booking</p>
+      <p className="text-[10px] uppercase tracking-[0.28em] text-amber-600">Edit booking</p>
 
       <EditField label="Customer" icon={User}>
         <input className={editInputCls} value={form.customer} onChange={set("customer")} placeholder="Customer name" />
@@ -431,7 +431,7 @@ function BookingEditForm({ booking, onSave, onCancel }) {
       </div>
 
       {err && (
-        <p className="rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-300">{err}</p>
+        <p className="rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-600">{err}</p>
       )}
 
       <div className="flex gap-2 pt-1">
@@ -439,7 +439,7 @@ function BookingEditForm({ booking, onSave, onCancel }) {
           type="button"
           onClick={onCancel}
           disabled={busy}
-          className="flex-1 rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-white/20 disabled:opacity-50"
+          className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-300 disabled:opacity-50"
         >
           Cancel
         </button>
@@ -576,23 +576,23 @@ export default function BookingDetailDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="drawer-booking-title"
-        className="fixed bottom-0 left-0 right-0 z-50 flex max-h-[92vh] flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#070D1F] shadow-2xl sm:bottom-auto sm:left-auto sm:right-0 sm:top-0 sm:h-full sm:max-h-none sm:w-full sm:max-w-md sm:rounded-none sm:border-l sm:border-r-0 sm:border-t-0"
+        className="fixed bottom-0 left-0 right-0 z-50 flex max-h-[92vh] flex-col overflow-hidden rounded-t-[28px] border border-slate-200 bg-white shadow-2xl sm:bottom-auto sm:left-auto sm:right-0 sm:top-0 sm:h-full sm:max-h-none sm:w-full sm:max-w-md sm:rounded-none sm:border-l sm:border-r-0 sm:border-t-0"
       >
         {/* Mobile drag handle */}
         <div className="flex flex-shrink-0 justify-center pb-1 pt-3 sm:hidden">
-          <div className="h-1 w-12 rounded-full bg-white/20" />
+          <div className="h-1 w-12 rounded-full bg-slate-200" />
         </div>
 
         {/* Header */}
-        <div className="flex flex-shrink-0 items-start justify-between border-b border-white/5 px-5 py-4 sm:px-6 sm:py-5">
+        <div className="flex flex-shrink-0 items-start justify-between border-b border-slate-100 px-5 py-4 sm:px-6 sm:py-5">
           <div className="min-w-0 flex-1">
             <p className="font-mono text-xs text-slate-500">{booking.id}</p>
-            <h2 id="drawer-booking-title" className="mt-1 truncate text-lg font-semibold text-white sm:text-xl">
+            <h2 id="drawer-booking-title" className="mt-1 truncate text-lg font-semibold text-[#0F1B33] sm:text-xl">
               {booking.customer}
             </h2>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {booking.priority && (
-                <span className="rounded-full border border-red-400/30 bg-red-400/10 px-2 py-0.5 text-[10px] font-medium text-red-300">
+                <span className="rounded-full border border-red-400/30 bg-red-400/10 px-2 py-0.5 text-[10px] font-medium text-red-600">
                   ⚡ Priority
                 </span>
               )}
@@ -608,14 +608,14 @@ export default function BookingDetailDrawer({
                 onClick={() => setEditMode(true)}
                 title="Edit booking"
                 aria-label="Edit booking"
-                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 text-slate-400 transition hover:bg-white/5 hover:text-amber-300"
+                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-amber-600"
               >
                 <Edit3 className="h-4 w-4" />
               </button>
             )}
             <button
               onClick={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 text-slate-500 transition hover:bg-white/5 hover:text-white"
+              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-[#0F1B33]"
             >
               <X className="h-5 w-5" />
             </button>
@@ -624,10 +624,10 @@ export default function BookingDetailDrawer({
 
         {/* ETA banner for active jobs */}
         {isActive && booking.pickupTime && (
-          <div className="flex-shrink-0 border-b border-white/5 bg-amber-400/[0.04] px-5 py-3 sm:px-6">
+          <div className="flex-shrink-0 border-b border-slate-100 bg-amber-400/[0.04] px-5 py-3 sm:px-6">
             <p className="text-xs text-slate-500">Pickup</p>
             <div className="flex items-baseline gap-3">
-              <span className="text-lg font-semibold text-white">{booking.time}</span>
+              <span className="text-lg font-semibold text-[#0F1B33]">{booking.time}</span>
               <ETACountdown pickupTime={booking.pickupTime} className="text-sm" />
             </div>
           </div>
@@ -646,7 +646,7 @@ export default function BookingDetailDrawer({
           <div className="space-y-6 px-5 py-5 sm:px-6">
             {/* Contact */}
             <div>
-              <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-400">Contact</p>
+              <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-600">Contact</p>
               <div className="space-y-3">
                 {booking.phone && (
                   <div className="flex items-center gap-3">
@@ -654,11 +654,11 @@ export default function BookingDetailDrawer({
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Phone</p>
                       <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                        <p className="text-sm text-white">{booking.phone}</p>
+                        <p className="text-sm text-[#0F1B33]">{booking.phone}</p>
                         {phoneHref && (
                           <a
                             href={phoneHref}
-                            className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] text-emerald-300 transition hover:bg-emerald-400/20"
+                            className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] text-emerald-600 transition hover:bg-emerald-400/20"
                           >
                             Call
                           </a>
@@ -668,7 +668,7 @@ export default function BookingDetailDrawer({
                             href={waHref}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] text-emerald-300 transition hover:bg-emerald-400/20"
+                            className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] text-emerald-600 transition hover:bg-emerald-400/20"
                           >
                             WhatsApp
                           </a>
@@ -684,7 +684,7 @@ export default function BookingDetailDrawer({
                       <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Email</p>
                       <a
                         href={`mailto:${booking.email}`}
-                        className="mt-0.5 truncate text-sm text-blue-300 hover:underline"
+                        className="mt-0.5 truncate text-sm text-blue-600 hover:underline"
                       >
                         {booking.email}
                       </a>
@@ -696,7 +696,7 @@ export default function BookingDetailDrawer({
 
             {/* Journey */}
             <div>
-              <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-400">Journey</p>
+              <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-600">Journey</p>
               <div className="space-y-3">
                 <Row icon={MapPin} label="Route" value={booking.route} />
                 <Row icon={Plane} label="Flight" value={booking.flight !== "—" ? booking.flight : null} />
@@ -759,7 +759,7 @@ export default function BookingDetailDrawer({
 
             {/* Driver */}
             <div>
-              <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-400">Driver</p>
+              <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-600">Driver</p>
               <DriverPicker
                 currentDriverId={booking.driverId}
                 drivers={drivers}
@@ -770,11 +770,11 @@ export default function BookingDetailDrawer({
             {/* Notes */}
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-[10px] uppercase tracking-[0.28em] text-amber-400">Notes</p>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-amber-600">Notes</p>
                 {!editingNotes && (
                   <button
                     onClick={() => setEditingNotes(true)}
-                    className="flex min-h-[36px] items-center gap-1 px-2 text-[10px] text-slate-500 transition hover:text-amber-300"
+                    className="flex min-h-[36px] items-center gap-1 px-2 text-[10px] text-slate-500 transition hover:text-amber-600"
                   >
                     <Edit3 className="h-3 w-3" />
                     Edit
@@ -788,7 +788,7 @@ export default function BookingDetailDrawer({
                     onChange={(e) => setNotes(e.target.value)}
                     rows={4}
                     placeholder="Add notes…"
-                    className="w-full rounded-2xl border border-amber-400/20 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 resize-none"
+                    className="w-full rounded-2xl border border-amber-400/20 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none placeholder:text-slate-400 resize-none"
                     autoFocus
                   />
                   <div className="mt-2 flex gap-2">
@@ -801,21 +801,21 @@ export default function BookingDetailDrawer({
                     </button>
                     <button
                       onClick={() => { setNotes(booking.notes ?? ""); setEditingNotes(false); }}
-                      className="min-h-[44px] rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-400 transition hover:text-white"
+                      className="min-h-[44px] rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-500 transition hover:text-[#0F1B33]"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
               ) : (
-                <p className={`text-sm ${notes ? "text-slate-300" : "text-slate-600 italic"}`}>
+                <p className={`text-sm ${notes ? "text-slate-600" : "text-slate-600 italic"}`}>
                   {notes || "No notes added"}
                 </p>
               )}
             </div>
 
             {/* Meta */}
-            <div className="border-t border-white/5 pt-4 text-xs text-slate-600 space-y-1">
+            <div className="border-t border-slate-100 pt-4 text-xs text-slate-600 space-y-1">
               {booking.createdAt && (
                 <p>Created {new Date(booking.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
               )}
@@ -829,7 +829,7 @@ export default function BookingDetailDrawer({
 
         {/* Footer actions */}
         {!editMode && (
-        <div className="flex-shrink-0 border-t border-white/5 px-5 py-4 sm:px-6">
+        <div className="flex-shrink-0 border-t border-slate-100 px-5 py-4 sm:px-6">
           <div className="flex flex-col gap-2">
             {/* Edit job — primary action, mirrors the Calendar's edit button */}
             {onUpdateBooking && (
@@ -845,7 +845,7 @@ export default function BookingDetailDrawer({
             {booking.airport && booking.destination && (
               <button
                 onClick={() => onCreateReturn?.(booking)}
-                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-amber-400/20 bg-amber-400/5 px-4 py-2.5 text-sm font-medium text-amber-300 transition hover:bg-amber-400/10"
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-amber-400/20 bg-amber-400/5 px-4 py-2.5 text-sm font-medium text-amber-600 transition hover:bg-amber-400/10"
               >
                 <RefreshCw className="h-4 w-4" />
                 Create Return Journey
@@ -856,8 +856,8 @@ export default function BookingDetailDrawer({
                 onClick={() => onTogglePriority?.(booking.id)}
                 className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition ${
                   booking.priority
-                    ? "border-red-400/30 bg-red-400/10 text-red-300 hover:bg-red-400/20"
-                    : "border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-300"
+                    ? "border-red-400/30 bg-red-400/10 text-red-600 hover:bg-red-400/20"
+                    : "border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-600"
                 }`}
               >
                 <AlertTriangle className="h-4 w-4" />
@@ -865,7 +865,7 @@ export default function BookingDetailDrawer({
               </button>
               <button
                 onClick={onClose}
-                className="min-h-[44px] rounded-2xl border border-white/10 px-5 py-2.5 text-sm text-slate-400 transition hover:text-white"
+                className="min-h-[44px] rounded-2xl border border-slate-200 px-5 py-2.5 text-sm text-slate-500 transition hover:text-[#0F1B33]"
               >
                 Close
               </button>
@@ -873,7 +873,7 @@ export default function BookingDetailDrawer({
             {onDelete && (
               <button
                 onClick={() => { setDeleteError(null); setDeletePassword(""); setDeleteOpen(true); }}
-                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-500/20"
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-500/20"
               >
                 <Trash2 className="h-4 w-4" />
                 Delete Job
@@ -886,23 +886,23 @@ export default function BookingDetailDrawer({
 
       {deleteOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-red-400/20 bg-[#0B132B] p-5 shadow-2xl">
+          <div className="w-full max-w-md rounded-3xl border border-red-400/20 bg-white p-5 shadow-2xl">
             <div className="flex items-start gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-red-300"><ShieldCheck className="h-5 w-5" /></div>
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-red-600"><ShieldCheck className="h-5 w-5" /></div>
               <div>
-                <h2 className="text-lg font-bold text-white">Confirm job deletion</h2>
-                <p className="mt-1 text-sm text-slate-400">For security, re-enter your operator password before deleting this booking.</p>
+                <h2 className="text-lg font-bold text-[#0F1B33]">Confirm job deletion</h2>
+                <p className="mt-1 text-sm text-slate-500">For security, re-enter your operator password before deleting this booking.</p>
               </div>
             </div>
-            <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.03] p-3 text-sm">
-              <p className="font-semibold text-slate-100">{booking.customer}</p>
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm">
+              <p className="font-semibold text-slate-800">{booking.customer}</p>
               <p className="mt-1 text-xs text-slate-500">{booking.id} · {booking.route}</p>
             </div>
-            <div className="mt-4 flex gap-2 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-xs text-amber-200">
+            <div className="mt-4 flex gap-2 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-xs text-amber-700">
               <AlertTriangle className="h-4 w-4 shrink-0" /> This permanently removes the job from the operator and driver views.
             </div>
             {deleteError && (
-              <p className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-xs text-red-300">{deleteError}</p>
+              <p className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-xs text-red-600">{deleteError}</p>
             )}
             <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-slate-500">Operator password</label>
             <input
@@ -911,7 +911,7 @@ export default function BookingDetailDrawer({
               onChange={(e) => setDeletePassword(e.target.value)}
               autoFocus
               onKeyDown={(e) => { if (e.key === "Enter" && deletePassword.trim() && !deleteBusy) confirmDelete(); }}
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none focus:border-red-400/50"
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none focus:border-red-400/50"
               placeholder="Enter password"
             />
             <div className="mt-5 flex gap-3">
@@ -919,7 +919,7 @@ export default function BookingDetailDrawer({
                 type="button"
                 onClick={() => { setDeleteOpen(false); setDeletePassword(""); setDeleteError(null); }}
                 disabled={deleteBusy}
-                className="flex-1 rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 hover:border-white/20 disabled:opacity-50"
+                className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 hover:border-slate-300 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -927,7 +927,7 @@ export default function BookingDetailDrawer({
                 type="button"
                 onClick={confirmDelete}
                 disabled={deleteBusy || !deletePassword.trim()}
-                className="flex-1 rounded-2xl border border-red-400/30 bg-red-500/15 px-4 py-3 text-sm font-semibold text-red-200 hover:bg-red-500/25 disabled:opacity-50"
+                className="flex-1 rounded-2xl border border-red-400/30 bg-red-500/15 px-4 py-3 text-sm font-semibold text-red-700 hover:bg-red-500/25 disabled:opacity-50"
               >
                 {deleteBusy ? "Verifying…" : "Delete Job"}
               </button>

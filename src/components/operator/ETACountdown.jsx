@@ -10,12 +10,12 @@ function compute(pickupTime) {
   if (mins > 120) {
     const hrs = Math.floor(mins / 60);
     const m = mins % 60;
-    return { label: `${hrs}h ${m}m`, color: "text-slate-400" };
+    return { label: `${hrs}h ${m}m`, color: "text-slate-500" };
   }
-  if (mins > 30) return { label: `in ${mins}m`, color: "text-emerald-400" };
-  if (mins > 10) return { label: `in ${mins}m`, color: "text-amber-400" };
-  if (mins > 0)  return { label: `in ${mins}m`, color: "text-red-400 font-semibold", urgent: true };
-  if (mins > -60) return { label: `${Math.abs(mins)}m ago`, color: "text-red-300" };
+  if (mins > 30) return { label: `in ${mins}m`, color: "text-emerald-600" };
+  if (mins > 10) return { label: `in ${mins}m`, color: "text-amber-600" };
+  if (mins > 0)  return { label: `in ${mins}m`, color: "text-red-600 font-semibold", urgent: true };
+  if (mins > -60) return { label: `${Math.abs(mins)}m ago`, color: "text-red-600" };
   return { label: `${Math.abs(Math.floor(Math.abs(mins) / 60))}h ago`, color: "text-slate-600" };
 }
 

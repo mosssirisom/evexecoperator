@@ -60,18 +60,18 @@ function CustomerPicker({ customers, onPick }) {
         onChange={(e) => { setQ(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         placeholder="Use an existing customer — search name, phone or email"
-        className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-3 pl-11 pr-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-amber-400/40 transition"
+        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-[#0F1B33] outline-none placeholder:text-slate-400 focus:border-amber-400/40 transition"
       />
       {open && results.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-60 overflow-y-auto rounded-2xl border border-white/10 bg-[#0B132B] py-1 shadow-2xl">
+        <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-60 overflow-y-auto rounded-2xl border border-slate-200 bg-white py-1 shadow-2xl">
           {results.map((c, i) => (
             <button
               type="button"
               key={`${c.phone || c.name}-${i}`}
               onClick={() => { onPick(c); setOpen(false); setQ(""); }}
-              className="flex w-full flex-col items-start px-4 py-2.5 text-left transition hover:bg-white/5"
+              className="flex w-full flex-col items-start px-4 py-2.5 text-left transition hover:bg-slate-100"
             >
-              <span className="text-sm font-medium text-white">{c.name}</span>
+              <span className="text-sm font-medium text-[#0F1B33]">{c.name}</span>
               {(c.phone || c.email) && (
                 <span className="text-xs text-slate-500">{[c.phone, c.email].filter(Boolean).join("  ·  ")}</span>
               )}
@@ -126,7 +126,7 @@ function Field({ label, icon: Icon, error, children }) {
         {label}
       </label>
       {children}
-      {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
     </div>
   );
 }
@@ -137,11 +137,11 @@ function Select({ value, onChange, options, placeholder }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none focus:border-amber-400/40 transition"
+        className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none focus:border-amber-400/40 transition"
       >
-        <option value="" className="bg-[#0B132B]">{placeholder}</option>
+        <option value="" className="bg-white">{placeholder}</option>
         {options.map((o) => (
-          <option key={typeof o === "string" ? o : o.id} value={typeof o === "string" ? o : o.id} className="bg-[#0B132B]">
+          <option key={typeof o === "string" ? o : o.id} value={typeof o === "string" ? o : o.id} className="bg-white">
             {typeof o === "string" ? o : o.label}
           </option>
         ))}
@@ -158,7 +158,7 @@ function Input({ value, onChange, placeholder, type = "text" }) {
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-amber-400/40 transition"
+      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none placeholder:text-slate-400 focus:border-amber-400/40 transition"
     />
   );
 }
@@ -329,25 +329,25 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-modal-title"
-        className="relative z-10 flex max-h-[96vh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#0B132B] shadow-2xl sm:max-w-2xl sm:rounded-3xl"
+        className="relative z-10 flex max-h-[96vh] w-full flex-col overflow-hidden rounded-t-[28px] border border-slate-200 bg-white shadow-2xl sm:max-w-2xl sm:rounded-3xl"
       >
         {/* Mobile drag handle */}
         <div className="flex flex-shrink-0 justify-center pb-1 pt-3 sm:hidden">
-          <div className="h-1 w-12 rounded-full bg-white/20" />
+          <div className="h-1 w-12 rounded-full bg-slate-200" />
         </div>
         {/* Header */}
-        <div className="flex flex-shrink-0 items-center justify-between border-b border-white/5 bg-[#0B132B] px-4 py-4 sm:px-8 sm:py-6">
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 bg-white px-4 py-4 sm:px-8 sm:py-6">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-amber-400">
+            <p className="text-xs uppercase tracking-[0.28em] text-amber-600">
               {initialValues ? "Return Journey" : "New Booking"}
             </p>
-            <h2 id="booking-modal-title" className="mt-1 text-2xl font-semibold text-white">
+            <h2 id="booking-modal-title" className="mt-1 text-2xl font-semibold text-[#0F1B33]">
               {initialValues ? "Create Return" : "Create Transfer"}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 text-slate-400 transition hover:border-white/20 hover:text-white"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-[#0F1B33]"
           >
             <X className="h-4 w-4" />
           </button>
@@ -358,12 +358,12 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
         {submitted ? (
           <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-400/10">
-              <svg className="h-8 w-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <p className="text-xl font-semibold text-white">Booking Created</p>
-            <p className="text-sm text-slate-400">Transfer added to dispatch board</p>
+            <p className="text-xl font-semibold text-[#0F1B33]">Booking Created</p>
+            <p className="text-sm text-slate-500">Transfer added to dispatch board</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="grid gap-5 px-4 py-4 sm:gap-6 sm:px-8 sm:py-6">
@@ -415,7 +415,7 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
                     </Field>
                   )}
                 </div>
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
                   <input
                     type="checkbox"
                     checked={form.bespoke}
@@ -444,9 +444,9 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
 
             {/* Return journey */}
             <div>
-              <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                <span className="flex items-center gap-2 text-sm font-medium text-white">
-                  <ArrowLeftRight className="h-4 w-4 text-amber-400" />
+              <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <span className="flex items-center gap-2 text-sm font-medium text-[#0F1B33]">
+                  <ArrowLeftRight className="h-4 w-4 text-amber-600" />
                   Add return journey
                 </span>
                 <input
@@ -486,7 +486,7 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
               </Field>
               <Field label="Fixed Price" icon={PoundSterling}>
                 <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">£</span>
+                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-500">£</span>
                   <input
                     type="number"
                     min="0"
@@ -494,7 +494,7 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
                     value={form.price}
                     onChange={(e) => set("price")(e.target.value)}
                     placeholder="0"
-                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-3 pl-8 pr-4 text-sm text-amber-300 outline-none placeholder:text-slate-600 focus:border-amber-400/40 transition"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-8 pr-4 text-sm text-amber-600 outline-none placeholder:text-slate-400 focus:border-amber-400/40 transition"
                   />
                 </div>
               </Field>
@@ -507,21 +507,21 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
                 onChange={(e) => set("notes")(e.target.value)}
                 placeholder="Child seat required, meet & greet at arrivals..."
                 rows={3}
-                className="w-full resize-none rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-amber-400/40 transition"
+                className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none placeholder:text-slate-400 focus:border-amber-400/40 transition"
               />
             </Field>
 
             {/* Submit */}
             {submitError && (
-              <p className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-300">
+              <p className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-600">
                 {submitError}
               </p>
             )}
-            <div className="flex items-center justify-between gap-4 border-t border-white/5 pt-4">
+            <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-4">
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-2xl border border-white/10 px-5 py-3 text-sm text-slate-400 transition hover:border-white/20 hover:text-white"
+                className="rounded-2xl border border-slate-200 px-5 py-3 text-sm text-slate-500 transition hover:border-slate-300 hover:text-[#0F1B33]"
               >
                 Cancel
               </button>
