@@ -20,7 +20,7 @@ import { PORTALS } from "@/lib/operator/portals";
 // Dashboard duplicated Dispatch, and the Automation page was a mock; both were
 // folded away (their routes redirect to Dispatch).
 const navItems = [
-  { label: "Calendar", icon: CalendarDays, href: "/" },
+  { label: "Calendar", icon: CalendarDays, href: "/operator/calendar" },
   { label: "Dispatch", icon: Route, href: "/operator/dispatch" },
   { label: "Drivers", icon: Users, href: "/operator/drivers" },
   { label: "Invoices", icon: FileText, href: "/operator/invoices" },

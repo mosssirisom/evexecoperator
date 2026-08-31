@@ -15,6 +15,7 @@ import { useBookings } from "@/hooks/operator/useBookings";
 import { playNewBookingChime } from "@/lib/operator/notificationSound";
 
 const pageMeta = {
+  "/operator/calendar": { label: "Schedule", title: "Calendar" },
   "/operator/dispatch": { label: "Live Operations", title: "Live Dispatch" },
   "/operator/drivers": { label: "Fleet", title: "Driver Management" },
   "/operator/invoices": { label: "Billing", title: "Invoices" },
