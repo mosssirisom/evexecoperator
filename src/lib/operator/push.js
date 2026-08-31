@@ -20,11 +20,6 @@ function urlBase64ToUint8Array(base64String) {
   return arr;
 }
 
-async function authHeader() {
-  const { data } = await supabase.auth.getSession();
-  return { Authorization: `Bearer ${data?.session?.access_token ?? ""}` };
-}
-
 // Is this device already subscribed and permitted?
 export async function getPushEnabled() {
   if (!isPushSupported()) return false;
@@ -48,9 +43,10 @@ export async function enableOperatorPush() {
   const reg = await navigator.serviceWorker.register("/sw.js");
   await navigator.serviceWorker.ready;
 
-  const res = await fetch("/api/push/public-key");
-  const { publicKey } = await res.json().catch(() => ({}));
-  if (!publicKey) throw new Error("Push isn't set up on the server yet.");
+  // The VAPID public key isn't secret; read it straight from the DB (no server
+  // env var needed) via a SECURITY DEFINER function.
+  const { data: publicKey, error: keyErr } = await supabase.rpc("get_push_public_key");
+  if (keyErr || !publicKey) throw new Error("Push isn't set up on the server yet.");
 
   let sub = await reg.pushManager.getSubscription();
   if (!sub) {
@@ -60,18 +56,13 @@ export async function enableOperatorPush() {
     });
   }
   const j = sub.toJSON();
-  const post = await fetch("/api/push/subscribe", {
-    method: "POST",
-    headers: { "content-type": "application/json", ...(await authHeader()) },
-    body: JSON.stringify({
-      subscription: { endpoint: j.endpoint, keys: j.keys },
-      label: navigator.userAgent.slice(0, 120),
-    }),
+  const { error: regErr } = await supabase.rpc("register_operator_push", {
+    p_endpoint: j.endpoint,
+    p_p256dh: j.keys?.p256dh,
+    p_auth: j.keys?.auth,
+    p_label: navigator.userAgent.slice(0, 120),
   });
-  if (!post.ok) {
-    const e = await post.json().catch(() => ({}));
-    throw new Error(e.error || "Couldn't register this device for push.");
-  }
+  if (regErr) throw new Error(regErr.message || "Couldn't register this device for push.");
   return true;
 }
 
@@ -83,11 +74,7 @@ export async function disableOperatorPush() {
     if (sub) {
       const endpoint = sub.endpoint;
       await sub.unsubscribe();
-      await fetch("/api/push/subscribe", {
-        method: "DELETE",
-        headers: { "content-type": "application/json", ...(await authHeader()) },
-        body: JSON.stringify({ endpoint }),
-      });
+      await supabase.rpc("unregister_operator_push", { p_endpoint: endpoint });
     }
   } catch {
     /* ignore */

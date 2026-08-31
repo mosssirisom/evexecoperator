@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -16,16 +16,19 @@ function json(body: unknown, status = 200) {
 const compact = (v: unknown) => (v ? String(v).split(",")[0].trim() : "");
 
 export async function POST(req: Request) {
-  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return json({ error: "not configured" }, 503);
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
+  if (!SUPABASE_URL || !ANON_KEY) return json({ error: "not configured" }, 503);
+  const db = createClient(SUPABASE_URL, ANON_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
 
-  const { data: cfg } = await admin.from("push_config").select("*").eq("id", true).maybeSingle();
-  if (!cfg?.vapid_public || !cfg?.vapid_private || !cfg?.webhook_secret) {
-    return json({ error: "push not set up" }, 503);
-  }
-  if ((req.headers.get("x-webhook-secret") ?? "") !== cfg.webhook_secret) {
-    return json({ error: "unauthorised" }, 401);
-  }
+  // The webhook secret (sent by the DB trigger) gates a SECURITY DEFINER
+  // function that returns the VAPID keys + every subscription — so no
+  // service-role key is required on the server.
+  const secret = req.headers.get("x-webhook-secret") ?? "";
+  const { data: bundle } = await db.rpc("get_push_dispatch_bundle", { p_secret: secret });
+  if (!bundle) return json({ error: "unauthorised or not set up" }, 401);
+  const cfg = bundle as {
+    vapid_public: string; vapid_private: string; vapid_subject: string;
+    subscriptions: { endpoint: string; p256dh: string; auth: string }[];
+  };
 
   let payloadBody: { record?: Record<string, unknown> };
   try { payloadBody = await req.json(); } catch { payloadBody = {}; }
@@ -48,11 +51,11 @@ export async function POST(req: Request) {
 
   webpush.setVapidDetails(cfg.vapid_subject || "mailto:book@evexec.co.uk", cfg.vapid_public, cfg.vapid_private);
 
-  const { data: subs } = await admin.from("operator_push_subscriptions").select("endpoint,p256dh,auth");
+  const subs = cfg.subscriptions ?? [];
   let sent = 0;
   let removed = 0;
   await Promise.all(
-    (subs ?? []).map(async (s: { endpoint: string; p256dh: string; auth: string }) => {
+    subs.map(async (s) => {
       try {
         await webpush.sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
@@ -62,7 +65,7 @@ export async function POST(req: Request) {
       } catch (e: unknown) {
         const code = (e as { statusCode?: number })?.statusCode;
         if (code === 404 || code === 410) {
-          await admin.from("operator_push_subscriptions").delete().eq("endpoint", s.endpoint);
+          await db.rpc("unregister_operator_push", { p_endpoint: s.endpoint });
           removed++;
         }
       }
