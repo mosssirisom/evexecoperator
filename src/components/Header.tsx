@@ -100,8 +100,8 @@ export default function Header({ onNewBooking, onSignOut, newBookings = [], onOp
     <header
       className="relative w-full"
       style={{
-        background: "linear-gradient(to right, #0c0f18 0%, #14182a 40%, #1c2035 100%)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        background: "linear-gradient(to right, #ffffff 0%, #eef0f6 100%)",
+        borderBottom: "1px solid #e2e5ee",
       }}
     >
       <div className="max-w-3xl mx-auto px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] flex items-center justify-between gap-4">
