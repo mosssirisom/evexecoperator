@@ -762,6 +762,7 @@ export default function BookingDetailDrawer({
                     </div>
                   </div>
                 )}
+                <Row icon={User} label="Preferred contact" value={booking.contactMethod} />
               </div>
             </div>
 
@@ -773,6 +774,7 @@ export default function BookingDetailDrawer({
                 <Row icon={Plane} label="Flight" value={booking.flight !== "—" ? booking.flight : null} />
                 <Row icon={Users} label="Passengers" value={booking.passengers != null ? String(booking.passengers) : null} />
                 <Row icon={Briefcase} label="Bags" value={booking.luggage || null} />
+                <Row icon={Car} label="Vehicle" value={booking.vehicleType} />
                 <Row icon={Clock} label="Pickup time" value={
                   booking.pickupTime
                     ? new Date(booking.pickupTime).toLocaleString("en-GB", {
@@ -827,6 +829,19 @@ export default function BookingDetailDrawer({
                 </div>
               </div>
             </div>
+
+            {/* Return journey (customer booked a return on the same request) */}
+            {booking.returnJourney && (
+              <div>
+                <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-600">Return journey</p>
+                <div className="space-y-3">
+                  <Row icon={RotateCcw} label="Return route" value={booking.returnRoute} />
+                  <Row icon={Plane} label="Return flight" value={booking.returnFlight && booking.returnFlight !== "—" ? booking.returnFlight : null} />
+                  <Row icon={Calendar} label="Return date" value={booking.returnDate ? new Date(booking.returnDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : null} />
+                  <Row icon={Clock} label="Return time" value={booking.returnTime ? booking.returnTime.slice(0, 5) : null} />
+                </div>
+              </div>
+            )}
 
             {/* Driver */}
             <div>
