@@ -311,10 +311,27 @@ function cardAccent(booking) {
   return "bg-slate-600/50";
 }
 
-function BookingCard({ booking, onSelect, drivers = [], onAssign }) {
+function BookingCard({ booking, onSelect, drivers = [], onAssign, onRespond }) {
   const [driverSheetOpen, setDriverSheetOpen] = useState(false);
+  const [respBusy, setRespBusy] = useState(null);
   const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
   const isCancelled = booking.status === "Cancelled";
+  const pendingRequest =
+    booking.source === "website" &&
+    !booking.operatorResponse &&
+    !["Cancelled", "Completed"].includes(booking.status);
+
+  const respond = async (e, decision) => {
+    e.stopPropagation();
+    setRespBusy(decision);
+    try {
+      await onRespond?.(booking.id, decision);
+    } catch {
+      /* error is surfaced by the caller / rolled back in the hook */
+    } finally {
+      setRespBusy(null);
+    }
+  };
   const statusLabel =
     booking.status === "Unassigned / Missed Call Recovery" ? "Missed Call" :
     booking.status === "Passenger On Board" ? "On Board" :
@@ -323,7 +340,9 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign }) {
   return (
     <div
       className={`relative min-w-0 overflow-visible rounded-xl border transition ${
-        booking.priority
+        pendingRequest
+          ? "border-amber-400/50 bg-amber-400/[0.06]"
+          : booking.priority
           ? "border-red-500/20 bg-red-500/[0.04]"
           : isActive
           ? "border-amber-400/15 bg-amber-400/[0.03]"
@@ -350,6 +369,11 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign }) {
           <p className="min-w-0 flex-1 truncate text-sm font-semibold text-[#0F1B33]">
             {booking.customer}
           </p>
+          {pendingRequest && (
+            <span className="flex-shrink-0 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-black">
+              New
+            </span>
+          )}
           <p className="flex-shrink-0 text-sm font-bold text-amber-600">{booking.price}</p>
         </div>
 
@@ -387,6 +411,28 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign }) {
             {statusLabel}
           </span>
         </div>
+
+        {/* Accept / reject for a new website request */}
+        {pendingRequest && (
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={(e) => respond(e, "accepted")}
+              disabled={!!respBusy}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-2 text-xs font-bold text-white transition active:scale-95 disabled:opacity-60"
+            >
+              {respBusy === "accepted" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              Accept
+            </button>
+            <button
+              onClick={(e) => respond(e, "rejected")}
+              disabled={!!respBusy}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-400/40 bg-red-500/10 py-2 text-xs font-bold text-red-600 transition active:scale-95 disabled:opacity-60"
+            >
+              {respBusy === "rejected" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+              Reject
+            </button>
+          </div>
+        )}
       </div>
 
       {driverSheetOpen && (
@@ -448,6 +494,7 @@ function DispatchPageContent() {
     createBooking,
     updateStatus,
     assignDriver,
+    respondToBooking,
     updateNotes,
     togglePriority,
     updatePaymentStatus,
@@ -497,6 +544,27 @@ function DispatchPageContent() {
       toast({ message: err?.message ?? "Failed to update status", type: "error" });
     }
   }, [updateStatus, toast]);
+
+  const handleRespond = useCallback(async (id, decision) => {
+    // respondToBooking throws only on a DB failure (which it rolls back) — let
+    // that propagate so the drawer panel can show it. Notification issues come
+    // back as { warning } instead.
+    const out = await respondToBooking(id, decision);
+    const verb = decision === "accepted" ? "Accepted" : "Rejected";
+    if (out?.warning) {
+      toast({ message: `${verb}, but ${out.warning}`, type: "error" });
+    } else {
+      toast({
+        message: `${verb} — customer notified${out?.channel ? ` by ${out.channel}` : ""}`,
+        type: "success",
+      });
+    }
+    setSelectedBooking((prev) =>
+      prev?.id === id
+        ? { ...prev, operatorResponse: decision, ...(decision === "rejected" ? { status: "Cancelled" } : {}) }
+        : prev
+    );
+  }, [respondToBooking, toast]);
 
   const handleDeleteBooking = useCallback(async (id, password) => {
     // Throws on bad password / failure so the drawer's modal can show the error
@@ -699,6 +767,7 @@ function DispatchPageContent() {
           booking={liveSelectedBooking}
           drivers={drivers}
           onClose={() => setSelectedBooking(null)}
+          onRespond={handleRespond}
           onUpdateStatus={handleStatusUpdate}
           onAssignDriver={handleAssignDriver}
           onUpdateNotes={handleUpdateNotes}
@@ -926,6 +995,7 @@ function DispatchPageContent() {
                           onSelect={setSelectedBooking}
                           drivers={drivers}
                           onAssign={handleAssignDriver}
+                          onRespond={handleRespond}
                         />
                       ))}
                     </div>

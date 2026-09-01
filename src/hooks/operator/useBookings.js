@@ -61,6 +61,8 @@ export function shapedBooking(row) {
     driverId: row.driver_id ?? row.assigned_driver_id ?? null,
     price: row.quoted_price ? `£${Number(row.quoted_price).toFixed(0)}` : "TBC",
     status: row.status,
+    source: row.source ?? null,
+    operatorResponse: row.operator_response ?? null,
     paymentStatus: row.payment_status ?? "Unpaid",
     paymentMethod: row.payment_method ?? null,
     priority: row.priority ?? false,
@@ -182,6 +184,72 @@ export function useBookings() {
       setBookings(snapshot);
       throw err;
     }
+  }, []);
+
+  // Operator accepts or rejects an incoming website booking. Records the
+  // decision (rejecting also cancels the job), then notifies the customer —
+  // email first, SMS fallback — via the booking-response route. Returns the
+  // channel used so the caller can surface it.
+  const respondToBooking = useCallback(async (id, decision) => {
+    if (decision !== "accepted" && decision !== "rejected") {
+      throw new ValidationError("Decision must be accepted or rejected.");
+    }
+    const current = bookingsRef.current.find((b) => b.id === id);
+    const snapshot = bookingsRef.current;
+    const rejecting = decision === "rejected";
+
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id === id
+          ? { ...b, operatorResponse: decision, ...(rejecting ? { status: "Cancelled" } : {}) }
+          : b
+      )
+    );
+
+    if (isConfigured) {
+      const patch = {
+        operator_response: decision,
+        operator_responded_at: new Date().toISOString(),
+      };
+      if (rejecting && current && !["Cancelled", "Completed"].includes(current.status)) {
+        patch.status = "Cancelled";
+      }
+      const { error: err } = await supabase.from("bookings").update(patch).eq("ref", id);
+      if (err) {
+        setBookings(snapshot);
+        throw new Error(err.message);
+      }
+    }
+
+    // Notify the customer. Failures here don't roll back the decision.
+    let channel = null;
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data?.session?.access_token ?? "";
+      const res = await fetch("/api/booking-response", {
+        method: "POST",
+        headers: { "content-type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          ref: id,
+          decision,
+          name: current?.customer ?? "",
+          email: current?.email && current.email !== "—" ? current.email : "",
+          phone: current?.phone ?? "",
+          whenText: [current?.travelDate, current?.time && current.time !== "—" ? current.time : ""]
+            .filter(Boolean)
+            .join(" "),
+          routeText: current?.route && current.route !== "—" ? current.route : "",
+        }),
+      });
+      const out = await res.json().catch(() => ({}));
+      channel = out?.channel ?? null;
+      if (!res.ok || out?.ok === false) {
+        return { decision, channel, warning: out?.error ?? "Customer could not be notified." };
+      }
+    } catch {
+      return { decision, channel: null, warning: "Decision saved, but the customer notification failed to send." };
+    }
+    return { decision, channel };
   }, []);
 
   const createBooking = useCallback(
@@ -480,5 +548,5 @@ export function useBookings() {
     }
   }, []);
 
-  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, updateNotes, togglePriority, updatePaymentStatus, updatePaymentMethod, updateBooking, deleteBooking, refetch: fetchBookings };
+  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, respondToBooking, updateNotes, togglePriority, updatePaymentStatus, updatePaymentMethod, updateBooking, deleteBooking, refetch: fetchBookings };
 }

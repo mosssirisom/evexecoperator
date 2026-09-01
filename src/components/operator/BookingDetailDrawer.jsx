@@ -456,10 +456,58 @@ function BookingEditForm({ booking, onSave, onCancel }) {
   );
 }
 
+// Accept / reject panel for an incoming website booking awaiting a decision.
+// Accepting confirms the job; rejecting cancels it. Either way the customer is
+// notified (email first, SMS fallback) by the parent's onRespond handler.
+function RespondPanel({ booking, onRespond }) {
+  const [busy, setBusy] = useState(null);
+  const [error, setError] = useState(null);
+
+  const respond = async (decision) => {
+    setBusy(decision);
+    setError(null);
+    try {
+      await onRespond?.(booking.id, decision);
+      // On success the booking gains operator_response and this panel unmounts;
+      // the parent surfaces the "customer notified" confirmation.
+    } catch (e) {
+      setError(e?.message ?? "Something went wrong.");
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="flex-shrink-0 border-b border-slate-100 bg-amber-400/[0.06] px-5 py-4 sm:px-6">
+      <p className="text-[10px] uppercase tracking-[0.28em] text-amber-600">New website request</p>
+      <p className="mt-1 text-sm text-slate-600">
+        Accept to confirm the job, or reject to decline. The customer is notified by email (SMS if there's no email).
+      </p>
+      <div className="mt-3 flex gap-2">
+        <button
+          onClick={() => respond("accepted")}
+          disabled={!!busy}
+          className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-sm transition active:scale-95 disabled:opacity-60"
+        >
+          {busy === "accepted" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Accept
+        </button>
+        <button
+          onClick={() => respond("rejected")}
+          disabled={!!busy}
+          className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-600 transition active:scale-95 disabled:opacity-60"
+        >
+          {busy === "rejected" ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />} Reject
+        </button>
+      </div>
+      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+    </div>
+  );
+}
+
 export default function BookingDetailDrawer({
   booking,
   drivers = [],
   onClose,
+  onRespond,
   onUpdateStatus,
   onAssignDriver,
   onUpdateNotes,
@@ -621,6 +669,29 @@ export default function BookingDetailDrawer({
             </button>
           </div>
         </div>
+
+        {/* Accept / reject for an incoming website request awaiting a decision */}
+        {booking.source === "website" &&
+          !booking.operatorResponse &&
+          !["Cancelled", "Completed"].includes(booking.status) && (
+            <RespondPanel booking={booking} onRespond={onRespond} />
+          )}
+
+        {/* Confirmed / declined chip once the operator has responded */}
+        {booking.operatorResponse && (
+          <div className="flex-shrink-0 border-b border-slate-100 px-5 py-2.5 sm:px-6">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                booking.operatorResponse === "accepted"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-red-100 text-red-700"
+              }`}
+            >
+              {booking.operatorResponse === "accepted" ? <Check className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+              {booking.operatorResponse === "accepted" ? "Accepted" : "Rejected"}
+            </span>
+          </div>
+        )}
 
         {/* ETA banner for active jobs */}
         {isActive && booking.pickupTime && (
