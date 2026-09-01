@@ -179,9 +179,6 @@ export default function Layout({ children, onSignOut }) {
     router.push(`/operator/dispatch?q=${encodeURIComponent(b.ref)}`);
   }, [router, dismissNewBooking]);
 
-  // Dispatch has its own New Booking controls; show the global button elsewhere.
-  const showNewBooking = pathname !== "/operator/dispatch";
-
   const handleCreateBooking = useCallback(async (form) => {
     const result = await createBooking(form);
     toast({
@@ -259,6 +256,16 @@ export default function Layout({ children, onSignOut }) {
             <div className="flex items-center gap-2 sm:gap-3">
               <RealtimeDot />
 
+              {/* New booking — one consistent gold action, top-right on every screen */}
+              <button
+                onClick={() => setNewBookingOpen(true)}
+                title="New Booking"
+                aria-label="New Booking"
+                className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gold-gradient text-navy-900 shadow-gold-sm transition hover:shadow-gold-md active:scale-95 sm:h-12 sm:w-12"
+              >
+                <Plus className="h-5 w-5" strokeWidth={2.75} />
+              </button>
+
               {/* Mobile search toggle */}
               {!searchOpen && (
                 <button
@@ -333,18 +340,6 @@ export default function Layout({ children, onSignOut }) {
         <ErrorBoundary>{children}</ErrorBoundary>
       </main>
 
-      {/* Global New Booking — one consistent action on every screen except
-          Dispatch, which has its own. Sits above the mobile tab bar. */}
-      {showNewBooking && (
-        <button
-          onClick={() => setNewBookingOpen(true)}
-          title="New Booking"
-          className="fixed bottom-24 right-4 z-40 flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-3 text-sm font-bold text-black shadow-xl shadow-amber-500/25 transition active:scale-95 sm:bottom-6 sm:right-6"
-        >
-          <Plus className="h-4 w-4" />
-          New Booking
-        </button>
-      )}
       <BookingModal
         open={newBookingOpen}
         onClose={() => setNewBookingOpen(false)}

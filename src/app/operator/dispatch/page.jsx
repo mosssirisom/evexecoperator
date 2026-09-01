@@ -19,7 +19,7 @@ import DispatchButton from "@/components/operator/DispatchButton";
 import BookingDetailDrawer from "@/components/operator/BookingDetailDrawer";
 import ETACountdown from "@/components/operator/ETACountdown";
 import {
-  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2, ChevronDown, Check, Car, Plane, Plus,
+  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2, ChevronDown, Check, Car, Plane,
 } from "lucide-react";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { useBookings } from "@/hooks/operator/useBookings";
@@ -816,7 +816,7 @@ function DispatchPageContent() {
           ))}
         </div>
 
-        {/* View toggle + New Booking */}
+        {/* View toggle (New Booking lives as the + in the top-right header) */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-1 rounded-2xl border border-slate-200 p-1">
             <button
@@ -852,14 +852,6 @@ function DispatchPageContent() {
               )}
             </button>
           </div>
-          {/* Desktop new booking button */}
-          <button
-            onClick={() => setModalOpen(true)}
-            title="New Booking (N)"
-            className="hidden rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400 sm:block"
-          >
-            + New Booking
-          </button>
         </div>
 
         {view === "schedule" ? (
@@ -1116,15 +1108,6 @@ function DispatchPageContent() {
         )}
       </div>
 
-      {/* Mobile floating New Booking button — compact round FAB so it covers
-          as little of the list as possible */}
-      <button
-        onClick={() => setModalOpen(true)}
-        aria-label="New Booking"
-        className="fixed bottom-[5.5rem] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 text-black shadow-xl shadow-amber-500/30 transition active:scale-95 sm:hidden"
-      >
-        <Plus className="h-6 w-6" strokeWidth={2.5} />
-      </button>
     </>
   );
 }
