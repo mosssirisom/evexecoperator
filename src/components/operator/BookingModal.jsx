@@ -151,29 +151,32 @@ function Select({ value, onChange, options, placeholder }) {
   );
 }
 
-function Input({ value, onChange, placeholder, type = "text" }) {
+function Input({ value, onChange, placeholder, type = "text", list }) {
   return (
     <input
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
+      list={list}
       className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none placeholder:text-slate-400 focus:border-amber-400/40 transition"
     />
   );
 }
 
-const DIRECTION_OPTIONS = ["Airport → Destination", "Destination → Airport"];
+// Combined suggestions for the pickup / drop-off comboboxes — airports first,
+// then the common local towns. Operators can still type any free-text address.
+const LOCATIONS = [...AIRPORTS, ...DESTINATIONS];
+
+// True when a location reads as an airport (has "airport" or a 3-letter code).
+export const looksLikeAirport = (s) => /\bairport\b|\([A-Za-z]{3}\)/.test(String(s || ""));
 
 const empty = {
   customer: "",
   phone: "",
   email: "",
-  direction: "Airport → Destination",
-  airport: "",
-  destination: "",
-  bespoke: false,
-  customAddress: "",
+  pickup: "",
+  dropoff: "",
   flight: "",
   date: "",
   time: "",
@@ -209,17 +212,9 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
       setSubmitting(false);
       setSubmitError(null);
     } else {
-      // Pre-fill with initial values when provided (e.g. return journey). If the
-      // prefilled destination isn't one of the listed towns, treat it as bespoke.
+      // Pre-fill with initial values when provided (e.g. a return journey, which
+      // arrives with pickup/drop-off already swapped).
       const iv = initialValues ? { ...empty, ...initialValues } : { ...empty };
-      if (iv.destination && iv.destination !== "Custom address…" && !DESTINATIONS.includes(iv.destination)) {
-        iv.bespoke = true;
-        iv.customAddress = iv.customAddress || iv.destination;
-        iv.destination = "";
-      } else if (iv.destination === "Custom address…") {
-        iv.bespoke = true;
-        iv.destination = "";
-      }
       setForm(iv);
       // Focus first focusable element when modal opens
       setTimeout(() => {
@@ -266,22 +261,19 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
   );
 
   useEffect(() => {
-    if (!form.airport || form.bespoke || !form.destination) return;
     if (form.price) return; // don't override a pre-filled price
-    const suggested = getSuggestedPrice(form.airport);
+    const airportSide = looksLikeAirport(form.pickup) ? form.pickup : looksLikeAirport(form.dropoff) ? form.dropoff : null;
+    if (!airportSide) return;
+    const suggested = getSuggestedPrice(airportSide);
     if (suggested !== null) setForm((f) => ({ ...f, price: String(suggested) }));
-  }, [form.airport, form.destination, form.bespoke]);
+  }, [form.pickup, form.dropoff]);
 
   function validate() {
     const e = {};
     if (!form.customer.trim()) e.customer = "Customer name is required";
     if (!form.phone.trim()) e.phone = "Phone number is required";
-    if (!form.airport) e.airport = "Airport is required";
-    if (form.bespoke) {
-      if (!form.customAddress.trim()) e.customAddress = "Please enter the address";
-    } else if (!form.destination) {
-      e.destination = "Destination is required";
-    }
+    if (!form.pickup.trim()) e.pickup = "Pickup location is required";
+    if (!form.dropoff.trim()) e.dropoff = "Drop-off location is required";
     if (!form.date) e.date = "Date is required";
     if (!form.time) e.time = "Pickup time is required";
     if (form.returnJourney) {
@@ -392,38 +384,22 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
               </div>
             </div>
 
-            {/* Route */}
+            {/* Route — just where from, where to. Type an address or pick a
+                suggestion; either side can be the airport. */}
             <div>
               <p className="mb-4 text-xs uppercase tracking-[0.2em] text-slate-600">
                 Route
               </p>
+              <datalist id="location-suggestions">
+                {LOCATIONS.map((l) => <option key={l} value={l} />)}
+              </datalist>
               <div className="grid gap-4">
-                <Field label="Direction">
-                  <Select value={form.direction} onChange={set("direction")} options={DIRECTION_OPTIONS} placeholder="" />
+                <Field label="Pickup" icon={MapPin} error={errors.pickup}>
+                  <Input value={form.pickup} onChange={set("pickup")} placeholder="Manchester Airport (MAN), or a full address" list="location-suggestions" />
                 </Field>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field label="Airport" icon={Plane} error={errors.airport}>
-                    <Select value={form.airport} onChange={set("airport")} options={AIRPORTS} placeholder="Select airport" />
-                  </Field>
-                  {form.bespoke ? (
-                    <Field label="Bespoke Address" icon={MapPin} error={errors.customAddress}>
-                      <Input value={form.customAddress} onChange={set("customAddress")} placeholder="Enter full address" />
-                    </Field>
-                  ) : (
-                    <Field label="Destination" icon={MapPin} error={errors.destination}>
-                      <Select value={form.destination} onChange={set("destination")} options={DESTINATIONS} placeholder="Select destination" />
-                    </Field>
-                  )}
-                </div>
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
-                  <input
-                    type="checkbox"
-                    checked={form.bespoke}
-                    onChange={(e) => set("bespoke")(e.target.checked)}
-                    className="h-4 w-4 accent-amber-500"
-                  />
-                  Bespoke / custom address (not a listed destination)
-                </label>
+                <Field label="Drop-off" icon={MapPin} error={errors.dropoff}>
+                  <Input value={form.dropoff} onChange={set("dropoff")} placeholder="18 Lowther Rd, Fleetwood — or an airport" list="location-suggestions" />
+                </Field>
               </div>
             </div>
 
@@ -470,9 +446,9 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
                   <Field label="Return Flight Number (optional)" icon={Plane}>
                     <Input value={form.returnFlight} onChange={set("returnFlight")} placeholder="EK018" />
                   </Field>
-                  {form.airport && (form.destination || form.customAddress) && (
+                  {form.pickup && form.dropoff && (
                     <p className="text-xs text-slate-500">
-                      Return runs {form.destination === "Custom address…" ? form.customAddress || "your address" : form.destination} → {form.airport}, booked as its own job on the board.
+                      Return runs {form.dropoff} → {form.pickup}, booked as its own job on the board.
                     </p>
                   )}
                 </div>

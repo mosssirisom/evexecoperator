@@ -677,23 +677,22 @@ function DispatchPageContent() {
   }, [updatePaymentMethod, toast]);
 
   const handleCreateReturn = useCallback((booking) => {
-    const flip = (dir) =>
-      dir === "Airport → Destination" ? "Destination → Airport" : "Airport → Destination";
     const rawPrice = booking.price !== "TBC" ? booking.price.replace(/[^0-9.]/g, "") : "";
+    // Return leg = the reverse trip: original drop-off becomes the new pickup.
+    const origPickup = booking.pickupLocation || booking.airport || "";
+    const origDropoff = booking.dropoffAddress || booking.destination || booking.airport || "";
     setReturnPrefill({
-      customer:      booking.customer ?? "",
-      phone:         booking.phone ?? "",
-      email:         booking.email ?? "",
-      flight:        "",
-      direction:     flip(booking.direction ?? "Airport → Destination"),
-      airport:       booking.airport ?? "",
-      destination:   booking.destination ?? "",
-      customAddress: "",
-      date:          "",
-      time:          "",
-      driver:        "",
-      price:         rawPrice,
-      notes:         "",
+      customer: booking.customer ?? "",
+      phone:    booking.phone ?? "",
+      email:    booking.email ?? "",
+      flight:   "",
+      pickup:   origDropoff,
+      dropoff:  origPickup,
+      date:     "",
+      time:     "",
+      driver:   "",
+      price:    rawPrice,
+      notes:    "",
     });
     setSelectedBooking(null);
     setModalOpen(true);

@@ -100,16 +100,11 @@ export function validateBookingPayload(form) {
       "email"
     );
 
-  if (!form.airport)
-    throw new ValidationError("Airport is required", "airport");
+  if (!form.pickup?.trim())
+    throw new ValidationError("Pickup location is required", "pickup");
 
-  // Destination is either a listed town or a bespoke (custom) address.
-  if (form.bespoke || form.destination === "Custom address…") {
-    if (!form.customAddress?.trim())
-      throw new ValidationError("Bespoke address is required", "customAddress");
-  } else if (!form.destination) {
-    throw new ValidationError("Destination is required", "destination");
-  }
+  if (!form.dropoff?.trim())
+    throw new ValidationError("Drop-off location is required", "dropoff");
 
   if (!form.date)
     throw new ValidationError("Pickup date is required", "date");

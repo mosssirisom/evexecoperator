@@ -256,10 +256,19 @@ export function useBookings() {
     async (form) => {
       validateBookingPayload(form);
 
-      const dest =
-        form.bespoke || form.destination === "Custom address…"
-          ? (form.customAddress || "").trim()
-          : form.destination;
+      // The form captures a plain pickup + drop-off. Either side may be the
+      // airport; detect it so airport (flight context) and direction (legacy /
+      // analytics) still get sensible values, while pickup_location and
+      // dropoff_address always hold the literal route the operator entered.
+      const pickup = (form.pickup || "").trim();
+      const dropoff = (form.dropoff || "").trim();
+      const looksLikeAirport = (s) => /\bairport\b|\([A-Za-z]{3}\)/.test(String(s || ""));
+      const airportSide = looksLikeAirport(pickup) ? pickup : looksLikeAirport(dropoff) ? dropoff : null;
+      const direction = looksLikeAirport(pickup)
+        ? "Airport → Destination"
+        : looksLikeAirport(dropoff)
+        ? "Destination → Airport"
+        : "Point to Point";
 
       if (!isConfigured) throw new Error("Database not configured. Please add Supabase credentials.");
 
@@ -301,9 +310,10 @@ export function useBookings() {
       const ref = await insertLeg({
         ...shared,
         flight_number:      form.flight?.trim() || null,
-        direction:          form.direction,
-        airport:            form.airport,
-        dropoff_address:    dest,
+        direction,
+        airport:            airportSide,
+        pickup_location:    pickup,
+        dropoff_address:    dropoff,
         travel_date:        form.date || null,
         travel_time:        form.time || null,
         driver_id:          driverRow?.id ?? null,
@@ -317,7 +327,7 @@ export function useBookings() {
       dispatchJobToDriverApp({
         bookingRef: ref,
         customer: form.customer,
-        route: `${form.airport} → ${dest}`,
+        route: `${pickup} → ${dropoff}`,
         flight: form.flight,
         pickupTime: form.date && form.time ? `${form.date}T${form.time}` : null,
         price: form.price ? `£${form.price}` : "TBC",
@@ -325,18 +335,23 @@ export function useBookings() {
         status: driverRow ? "Dispatched" : "Unassigned",
       }).catch(() => {});
 
-      // Optional return leg — the reverse trip on the return date/time, created as
-      // its own dispatchable job (left unassigned for the operator to allocate).
+      // Optional return leg — the reverse trip (pickup/drop-off swapped) on the
+      // return date/time, created as its own dispatchable job (left unassigned).
       let returnRef = null;
       if (form.returnJourney && form.returnDate && form.returnTime) {
-        const flip = (d) =>
-          d === "Airport → Destination" ? "Destination → Airport" : "Airport → Destination";
+        const returnDirection =
+          direction === "Airport → Destination"
+            ? "Destination → Airport"
+            : direction === "Destination → Airport"
+            ? "Airport → Destination"
+            : "Point to Point";
         returnRef = await insertLeg({
           ...shared,
           flight_number:      form.returnFlight?.trim() || null,
-          direction:          flip(form.direction),
-          airport:            form.airport,
-          dropoff_address:    dest,
+          direction:          returnDirection,
+          airport:            airportSide,
+          pickup_location:    dropoff,
+          dropoff_address:    pickup,
           travel_date:        form.returnDate,
           travel_time:        form.returnTime,
           driver_id:          null,
@@ -348,7 +363,7 @@ export function useBookings() {
         dispatchJobToDriverApp({
           bookingRef: returnRef,
           customer: form.customer,
-          route: `${dest} → ${form.airport}`,
+          route: `${dropoff} → ${pickup}`,
           flight: form.returnFlight,
           pickupTime: `${form.returnDate}T${form.returnTime}`,
           price: form.price ? `£${form.price}` : "TBC",

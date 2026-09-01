@@ -66,8 +66,8 @@ function tomorrow() {
 function validForm(overrides = {}) {
   return {
     customer: "Test Customer", phone: "+44 7700 900000", email: "",
-    direction: "Airport → Destination", airport: "Manchester Airport (MAN)",
-    destination: "Blackpool", date: tomorrow(), time: "10:00",
+    pickup: "Manchester Airport (MAN)", dropoff: "Blackpool",
+    date: tomorrow(), time: "10:00",
     flight: "EK017", notes: "", price: 160, driver: "",
     ...overrides,
   };
@@ -144,8 +144,9 @@ describe("useBookings — createBooking", () => {
     expect(mockChain.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         customer_name: "Test Customer",
-        airport: "Manchester Airport (MAN)",
+        pickup_location: "Manchester Airport (MAN)",
         dropoff_address: "Blackpool",
+        airport: "Manchester Airport (MAN)",
         status: "Unassigned",
       })
     );
