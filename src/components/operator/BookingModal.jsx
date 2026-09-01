@@ -5,10 +5,13 @@ import { X, Plane, MapPin, Clock, User, Car, PoundSterling, ChevronDown, ArrowLe
 import { useDrivers } from "@/hooks/operator/useDrivers";
 
 // Builds a de-duplicated list of past customers from the bookings feed, so a
-// manual booking can reuse a saved customer's details instead of retyping them.
-// Keyed by phone (falling back to name); later records backfill a missing email.
+// manual booking can reuse a saved customer's details — and their addresses —
+// instead of retyping them. Keyed by phone (falling back to name); later
+// records backfill a missing email, and every non-airport location the
+// customer has used is collected (most-recent first) as their saved addresses.
 export function customersFromBookings(bookings = []) {
   const clean = (v) => (v && v !== "—" ? String(v).trim() : "");
+  const isAirport = (s) => /\bairport\b|\([A-Za-z]{3}\)/.test(s || "");
   const map = new Map();
   for (const b of bookings) {
     const name = clean(b.customer);
@@ -16,15 +19,32 @@ export function customersFromBookings(bookings = []) {
     const email = clean(b.email);
     if (!name && !phone) continue;
     const key = phone || name.toLowerCase();
-    const existing = map.get(key);
-    if (!existing) {
-      map.set(key, { name, phone, email });
+    let c = map.get(key);
+    if (!c) {
+      c = { name, phone, email, _addr: new Map() };
+      map.set(key, c);
     } else {
-      if (!existing.email && email) existing.email = email;
-      if (!existing.phone && phone) existing.phone = phone;
+      if (!c.email && email) c.email = email;
+      if (!c.phone && phone) c.phone = phone;
+      if (!c.name && name) c.name = name;
+    }
+    const ts = b.createdAt ? Date.parse(b.createdAt) || 0 : 0;
+    for (const loc of [clean(b.pickupLocation), clean(b.dropoffAddress)]) {
+      if (!loc || isAirport(loc)) continue;
+      const k = loc.toLowerCase();
+      const prev = c._addr.get(k);
+      if (!prev || ts > prev.ts) c._addr.set(k, { loc, ts });
     }
   }
-  return [...map.values()].filter((c) => c.name).sort((a, b) => a.name.localeCompare(b.name));
+  return [...map.values()]
+    .filter((c) => c.name)
+    .map((c) => ({
+      name: c.name,
+      phone: c.phone,
+      email: c.email,
+      addresses: [...c._addr.values()].sort((a, b) => b.ts - a.ts).map((x) => x.loc).slice(0, 6),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // Type-ahead picker for reusing an existing customer's details.
@@ -74,6 +94,11 @@ function CustomerPicker({ customers, onPick }) {
               <span className="text-sm font-medium text-[#0F1B33]">{c.name}</span>
               {(c.phone || c.email) && (
                 <span className="text-xs text-slate-500">{[c.phone, c.email].filter(Boolean).join("  ·  ")}</span>
+              )}
+              {c.addresses?.length > 0 && (
+                <span className="text-[11px] text-amber-600">
+                  {c.addresses.length} saved address{c.addresses.length > 1 ? "es" : ""}
+                </span>
               )}
             </button>
           ))}
@@ -151,12 +176,13 @@ function Select({ value, onChange, options, placeholder }) {
   );
 }
 
-function Input({ value, onChange, placeholder, type = "text", list }) {
+function Input({ value, onChange, placeholder, type = "text", list, onFocus }) {
   return (
     <input
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onFocus={onFocus}
       placeholder={placeholder}
       list={list}
       className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none placeholder:text-slate-400 focus:border-amber-400/40 transition"
@@ -200,6 +226,10 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  // Saved addresses for the picked customer, and which route field to drop the
+  // next tapped address into (whichever pickup/drop-off the operator last used).
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [lastRouteField, setLastRouteField] = useState(null);
   const closeTimerRef = useRef(null);
   const dialogRef = useRef(null);
 
@@ -211,6 +241,8 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
       setSubmitted(false);
       setSubmitting(false);
       setSubmitError(null);
+      setSavedAddresses([]);
+      setLastRouteField(null);
     } else {
       // Pre-fill with initial values when provided (e.g. a return journey, which
       // arrives with pickup/drop-off already swapped).
@@ -259,6 +291,15 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
     (field) => (value) => setForm((f) => ({ ...f, [field]: value })),
     []
   );
+
+  // Drop a saved address into the route field the operator last touched (or the
+  // first empty one).
+  const fillAddress = useCallback((addr) => {
+    setForm((f) => {
+      const target = lastRouteField || (!f.pickup ? "pickup" : "dropoff");
+      return { ...f, [target]: addr };
+    });
+  }, [lastRouteField]);
 
   useEffect(() => {
     if (form.price) return; // don't override a pre-filled price
@@ -366,7 +407,10 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
               </p>
               <CustomerPicker
                 customers={customers}
-                onPick={(c) => setForm((f) => ({ ...f, customer: c.name, phone: c.phone || "", email: c.email || "" }))}
+                onPick={(c) => {
+                  setForm((f) => ({ ...f, customer: c.name, phone: c.phone || "", email: c.email || "" }));
+                  setSavedAddresses(Array.isArray(c.addresses) ? c.addresses : []);
+                }}
               />
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Full Name" icon={User} error={errors.customer}>
@@ -391,15 +435,36 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
                 Route
               </p>
               <datalist id="location-suggestions">
-                {LOCATIONS.map((l) => <option key={l} value={l} />)}
+                {[...savedAddresses, ...LOCATIONS].map((l) => <option key={l} value={l} />)}
               </datalist>
               <div className="grid gap-4">
                 <Field label="Pickup" icon={MapPin} error={errors.pickup}>
-                  <Input value={form.pickup} onChange={set("pickup")} placeholder="Manchester Airport (MAN), or a full address" list="location-suggestions" />
+                  <Input value={form.pickup} onChange={set("pickup")} onFocus={() => setLastRouteField("pickup")} placeholder="Manchester Airport (MAN), or a full address" list="location-suggestions" />
                 </Field>
                 <Field label="Drop-off" icon={MapPin} error={errors.dropoff}>
-                  <Input value={form.dropoff} onChange={set("dropoff")} placeholder="18 Lowther Rd, Fleetwood — or an airport" list="location-suggestions" />
+                  <Input value={form.dropoff} onChange={set("dropoff")} onFocus={() => setLastRouteField("dropoff")} placeholder="18 Lowther Rd, Fleetwood — or an airport" list="location-suggestions" />
                 </Field>
+
+                {/* One-tap saved addresses for the picked customer */}
+                {savedAddresses.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                      Saved addresses — tap to use
+                    </span>
+                    {savedAddresses.map((a) => (
+                      <button
+                        type="button"
+                        key={a}
+                        onClick={() => fillAddress(a)}
+                        title={`Use ${a} for the ${lastRouteField || "empty"} field`}
+                        className="flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-xs text-amber-700 transition hover:bg-amber-400/20"
+                      >
+                        <MapPin className="h-3 w-3" />
+                        {a}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
