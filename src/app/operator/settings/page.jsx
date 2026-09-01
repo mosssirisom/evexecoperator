@@ -220,10 +220,10 @@ function NotificationCenter() {
 
       <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.04] p-4 text-xs leading-relaxed text-slate-600">
         <p className="mb-1 font-semibold text-amber-600">How messages are sent</p>
-        Confirmations and 24-hour reminders go out on the highest-priority channel available for that
-        person — <strong>email first</strong>, falling back to SMS only when there's no email. Time-critical
-        alerts (a driver's new job, and “driver on the way / arrived”) always use SMS. Every message is sent on a
-        single channel, so no one is texted and emailed the same thing.
+        <strong>Operators</strong> are alerted by push &amp; in-app only. <strong>Drivers</strong> get their jobs
+        by in-app push and <strong>email</strong> — no SMS. <strong>Customers</strong> get <strong>email</strong>,
+        falling back to SMS only when there's no email on file. Every message goes on a single channel, so no one is
+        texted and emailed the same thing.
       </div>
 
       <div>
@@ -249,7 +249,7 @@ function NotificationCenter() {
 
       <ToggleRow
         label="Use SMS only when necessary"
-        description="Prefer email for confirmations & reminders; keep SMS for time-critical alerts. Cuts Twilio spend."
+        description="Customers with an email get email; SMS is only a fallback when there's no email. Drivers and operators never get SMS. Cuts Twilio spend."
         value={!!settings.sms_only_when_necessary}
         onChange={(v) => update({ sms_only_when_necessary: v })}
       />
