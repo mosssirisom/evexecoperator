@@ -368,13 +368,17 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
     ]);
     const jsPDF = jsPDFmod.jsPDF || jsPDFmod.default;
     const el = sheetRef.current;
-    const prevWidth = el.style.width;
-    el.style.width = "794px"; // A4 width at 96dpi — a consistent capture size
+    // Pin to full A4 (794×1123px at 96dpi) with square corners so the PDF fills
+    // the page — footer at the bottom — and the navy header has no white notches.
+    const prev = { width: el.style.width, minHeight: el.style.minHeight, borderRadius: el.style.borderRadius };
+    el.style.width = "794px";
+    el.style.minHeight = "1123px";
+    el.style.borderRadius = "0px";
     let canvas;
     try {
       canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false, windowWidth: 900 });
     } finally {
-      el.style.width = prevWidth;
+      Object.assign(el.style, prev);
     }
     const imgData = canvas.toDataURL("image/jpeg", 0.95);
 
@@ -493,7 +497,10 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
         </div>
 
         {/* The invoice sheet */}
-        <div ref={sheetRef} className="invoice-print overflow-hidden rounded-2xl bg-white text-slate-900 shadow-2xl" style={exact}>
+        <div ref={sheetRef} className="invoice-print flex flex-col overflow-hidden rounded-2xl bg-white text-slate-900 shadow-2xl" style={exact}>
+          {/* Everything above the footer — grows to push the footer to the
+              bottom of the page when the sheet is sized to A4 for print/PDF. */}
+          <div className="flex flex-1 flex-col">
           {/* ── Header band ── */}
           <div className="relative px-5 pt-5 pb-10 sm:px-10 sm:pt-8 sm:pb-14" style={{ backgroundColor: NAVY, ...exact }}>
             <div className="flex items-start justify-between gap-3">
@@ -626,6 +633,8 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
               </div>
             </div>
           </div>
+
+          </div>{/* end grow wrapper */}
 
           {/* ── Footer band ── */}
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-4 text-[11px] sm:px-10 sm:py-5" style={{ backgroundColor: NAVY, ...exact }}>
