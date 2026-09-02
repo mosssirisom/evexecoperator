@@ -720,20 +720,20 @@ export default function InvoicesPage() {
         .no-print { display: none !important; }
       }`}</style>
 
-      <div className="grid gap-4 p-4 sm:gap-6 sm:p-6 lg:p-10">
+      <div className="grid min-w-0 gap-4 p-4 sm:gap-6 sm:p-6 lg:p-10">
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid min-w-0 grid-cols-3 gap-3 sm:gap-4">
           {[
             { label: "Outstanding", value: money(stats.outstanding), icon: Clock, color: "text-amber-600" },
             { label: "Paid", value: money(stats.paid), icon: CircleDollarSign, color: "text-emerald-600" },
             { label: "Unpaid", value: stats.unpaidCount, icon: FileText, color: "text-[#0F1B33]" },
           ].map((s) => (
-            <div key={s.label} className="card p-3 sm:p-5">
+            <div key={s.label} className="card min-w-0 p-3 sm:p-5">
               <div className="mb-2 flex items-center justify-between">
                 <s.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${s.color}`} />
               </div>
-              <p className={`text-lg font-bold sm:text-2xl ${s.color}`}>{s.value}</p>
-              <p className="mt-1 text-[11px] text-slate-500 sm:text-sm">{s.label}</p>
+              <p className={`truncate text-lg font-bold sm:text-2xl ${s.color}`}>{s.value}</p>
+              <p className="mt-1 truncate text-[11px] text-slate-500 sm:text-sm">{s.label}</p>
             </div>
           ))}
         </div>
@@ -761,7 +761,7 @@ export default function InvoicesPage() {
         </div>
 
         {/* List */}
-        <div className="card p-3 sm:p-4">
+        <div className="card min-w-0 p-3 sm:p-4">
           {loading && invoices.length === 0 ? (
             <p className="py-10 text-center text-sm text-slate-600">Loading invoices…</p>
           ) : filtered.length === 0 ? (

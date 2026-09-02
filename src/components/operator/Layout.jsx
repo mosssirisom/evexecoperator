@@ -198,7 +198,7 @@ export default function Layout({ children, onSignOut }) {
   return (
     <div className="min-h-screen bg-white text-[#0F1B33]">
       <Sidebar />
-      <main className="ml-0 min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))] sm:ml-24 sm:pb-0 bg-[radial-gradient(circle_at_top_right,rgba(201,165,80,0.14),transparent_38%),linear-gradient(180deg,#EEF0F6_0%,#E4E7F0_100%)]">
+      <main className="ml-0 min-h-screen w-full max-w-full overflow-x-hidden pb-[calc(5rem+env(safe-area-inset-bottom))] sm:ml-24 sm:w-auto sm:pb-0 bg-[radial-gradient(circle_at_top_right,rgba(201,165,80,0.14),transparent_38%),linear-gradient(180deg,#EEF0F6_0%,#E4E7F0_100%)]">
         <header className="sticky top-0 z-40 border-b border-slate-100 bg-white/85 px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] sm:px-10 sm:pb-6 sm:pt-6 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
 

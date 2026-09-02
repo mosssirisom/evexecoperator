@@ -9,8 +9,8 @@ import { createClient } from "@supabase/supabase-js";
 //
 // Required env (set in Vercel project settings):
 //   RESEND_API_KEY               — re_… from resend.com (Domains → Add domain, verify evexec.co.uk)
-//   NEXT_PUBLIC_SUPABASE_URL     — already configured
-//   SUPABASE_SERVICE_ROLE_KEY    — service role key (server only)
+//   NEXT_PUBLIC_SUPABASE_URL      — already configured
+//   NEXT_PUBLIC_SUPABASE_ANON_KEY — already configured (used to verify the caller's JWT)
 // Optional:
 //   INVOICE_FROM                 — sender, default "EV Exec <book@evexec.co.uk>"
 //                                  (the domain must be verified in Resend)
@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const FROM = process.env.INVOICE_FROM ?? "EV Exec <book@evexec.co.uk>";
 const REPLY_TO = process.env.INVOICE_REPLY_TO ?? "book@evexec.co.uk";
 
@@ -77,7 +77,10 @@ function emailHtml(name: string, number: string, total: string) {
 }
 
 export async function POST(req: Request) {
-  if (!RESEND_API_KEY || !SUPABASE_URL || !SERVICE_ROLE_KEY) {
+  if (!SUPABASE_URL || !ANON_KEY) {
+    return json({ error: "Server not configured.", configured: false }, 503);
+  }
+  if (!RESEND_API_KEY) {
     return json(
       {
         error:
@@ -88,15 +91,15 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── Verify the caller is a signed-in operator ──────────────────────────────
+  // ── Verify the caller is a signed-in operator (anon key validates the JWT) ──
   const authHeader = req.headers.get("authorization") ?? "";
   const token = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
   if (!token) return json({ error: "Not authorised." }, 401);
 
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+  const db = createClient(SUPABASE_URL, ANON_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data: userData, error: userErr } = await admin.auth.getUser(token);
+  const { data: userData, error: userErr } = await db.auth.getUser(token);
   if (userErr || !userData?.user) return json({ error: "Not authorised." }, 401);
 
   // ── Parse + validate the payload ───────────────────────────────────────────
