@@ -15,6 +15,18 @@ function json(body: unknown, status = 200) {
 }
 const compact = (v: unknown) => (v ? String(v).split(",")[0].trim() : "");
 
+// UK format, time first: "02:00 12/07/2027". Falls back gracefully if either
+// part is missing or the date isn't a plain ISO (YYYY-MM-DD) value.
+function ukWhen(dateVal: unknown, timeVal: unknown): string {
+  const time = timeVal ? String(timeVal).slice(0, 5) : "";
+  let date = "";
+  if (dateVal) {
+    const m = String(dateVal).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    date = m ? `${m[3]}/${m[2]}/${m[1]}` : String(dateVal);
+  }
+  return [time, date].filter(Boolean).join(" ");
+}
+
 export async function POST(req: Request) {
   if (!SUPABASE_URL || !ANON_KEY) return json({ error: "not configured" }, 503);
   const db = createClient(SUPABASE_URL, ANON_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
@@ -38,9 +50,8 @@ export async function POST(req: Request) {
   const pickup = compact(r.pickup_location || r.airport || r.direction);
   const dropoff = compact(r.dropoff_address || r.destination || r.airport);
   const route = [pickup, dropoff].filter(Boolean).join(" → ");
-  const time = r.travel_time ? String(r.travel_time).slice(0, 5) : "";
-  const date = (r.travel_date as string) || "";
-  const detail = [route, [date, time].filter(Boolean).join(" ")].filter(Boolean).join(" · ");
+  const when = ukWhen(r.travel_date, r.travel_time);
+  const detail = [route, when].filter(Boolean).join(" · ");
 
   const payload = JSON.stringify({
     title: `New booking — ${customer}`,
