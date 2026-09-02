@@ -402,13 +402,27 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
     [inv.number]
   );
 
-  // Save the A4 PDF to the device (replaces the unreliable browser print).
+  // Save/share the A4 PDF (replaces the unreliable browser print). On phones we
+  // prefer the native share sheet (Save to Files, Mail, Messages…), since iOS
+  // Safari won't reliably download a blob; desktop falls back to a download.
   const downloadPdf = useCallback(async () => {
     if (!sheetRef.current) return;
     setDownloading(true);
     try {
       const pdf = await buildPdf();
-      pdf.save(fileName());
+      const name = fileName();
+      const blob = pdf.output("blob");
+      const file = typeof File !== "undefined" ? new File([blob], name, { type: "application/pdf" }) : null;
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: name });
+          return;
+        } catch (err) {
+          if (err?.name === "AbortError") return; // user closed the share sheet
+          // any other error → fall back to a direct download below
+        }
+      }
+      pdf.save(name);
     } catch (e) {
       toast({ message: e?.message ?? "Couldn't build the PDF.", type: "error" });
     } finally {
