@@ -368,12 +368,24 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
     ]);
     const jsPDF = jsPDFmod.jsPDF || jsPDFmod.default;
     const el = sheetRef.current;
-    // Pin to full A4 (794×1123px at 96dpi) with square corners so the PDF fills
-    // the page — footer at the bottom — and the navy header has no white notches.
-    const prev = { width: el.style.width, minHeight: el.style.minHeight, borderRadius: el.style.borderRadius };
+    // Pin to A4 (794px wide at 96dpi) with square corners so the PDF fills the
+    // page and the navy header/footer bands have no white notches. We set an
+    // *exact* height — the invoice's natural height, but never less than one A4
+    // page (1123px) — so the flex spacer grows to push the footer flush to the
+    // bottom edge. min-height alone left the footer floating short of the page.
+    const prev = {
+      width: el.style.width, height: el.style.height,
+      minHeight: el.style.minHeight, borderRadius: el.style.borderRadius,
+    };
     el.style.width = "794px";
-    el.style.minHeight = "1123px";
     el.style.borderRadius = "0px";
+    el.style.minHeight = "0px";
+    el.style.height = "auto";
+    // Measure the content's natural height at the pinned A4 width, then lock the
+    // sheet to at least a full page so short invoices fill the whole A4 sheet.
+    const A4_H = 1123;
+    const natural = Math.ceil(el.getBoundingClientRect().height);
+    el.style.height = `${Math.max(A4_H, natural)}px`;
     let canvas;
     try {
       canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false, windowWidth: 900 });
