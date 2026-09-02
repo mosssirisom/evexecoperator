@@ -648,11 +648,21 @@ export default function InvoicesPage() {
 
   return (
     <>
-      {/* Print isolation: only the invoice sheet prints, with backgrounds intact */}
-      <style>{`@media print {
+      {/* Print isolation: only the invoice sheet prints, sized to a single A4
+          page with the full-width (desktop) layout and backgrounds intact. */}
+      <style>{`
+      @page { size: A4 portrait; margin: 12mm; }
+      @media print {
+        html, body { width: 210mm; background: #ffffff !important; }
         body * { visibility: hidden !important; }
         .invoice-print, .invoice-print * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        .invoice-print { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; border-radius: 0 !important; }
+        .invoice-print {
+          position: absolute; left: 0; top: 0;
+          width: 186mm;              /* A4 width (210mm) minus 2×12mm page margins */
+          box-shadow: none !important; border-radius: 0 !important;
+        }
+        .invoice-print table { page-break-inside: auto; }
+        .invoice-print tr { page-break-inside: avoid; }
         .no-print { display: none !important; }
       }`}</style>
 
