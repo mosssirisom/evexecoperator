@@ -3,7 +3,7 @@
 import React, { useMemo, useRef, useState, useCallback } from "react";
 import {
   FileText, Plus, X, Printer, Trash2, Check, Send, CircleDollarSign, Clock,
-  MapPin, Plane, Users, Briefcase, Car, CalendarClock,
+  MapPin, Plane, Users, Briefcase, Car, CalendarClock, ImageDown,
   Calendar, CreditCard, Gem, Phone, Mail, Globe, Loader2,
 } from "lucide-react";
 import { useInvoices, computeTotals } from "@/hooks/operator/useInvoices";
@@ -355,20 +355,19 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
   const sheetRef = useRef(null);
   const [sending, setSending] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [savingImg, setSavingImg] = useState(false);
   const toast = useOperatorToast();
 
   // Render the on-screen invoice to a true A4 PDF (jsPDF). Browser print on
   // iOS/Safari ignores @page sizing and prints a tiny corner, so we always
   // build the PDF ourselves. The sheet is momentarily pinned to a fixed A4
   // width so the capture fills the page crisply regardless of screen size.
-  const buildPdf = useCallback(async () => {
-    const [{ default: html2canvas }, jsPDFmod] = await Promise.all([
-      import("html2canvas"),
-      import("jspdf"),
-    ]);
-    const jsPDF = jsPDFmod.jsPDF || jsPDFmod.default;
+  // Capture the invoice sheet to a canvas, pinned to a full A4 page so the
+  // footer sits flush at the bottom. Shared by both the PDF and image exports.
+  const captureCanvas = useCallback(async () => {
+    const { default: html2canvas } = await import("html2canvas");
     const el = sheetRef.current;
-    // Pin to A4 (794px wide at 96dpi) with square corners so the PDF fills the
+    // Pin to A4 (794px wide at 96dpi) with square corners so the export fills the
     // page and the navy header/footer bands have no white notches. We set an
     // *exact* height — the invoice's natural height, but never less than one A4
     // page (1123px) — so the flex spacer grows to push the footer flush to the
@@ -386,12 +385,17 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
     const A4_H = 1123;
     const natural = Math.ceil(el.getBoundingClientRect().height);
     el.style.height = `${Math.max(A4_H, natural)}px`;
-    let canvas;
     try {
-      canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false, windowWidth: 900 });
+      return await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false, windowWidth: 900 });
     } finally {
       Object.assign(el.style, prev);
     }
+  }, []);
+
+  const buildPdf = useCallback(async () => {
+    const jsPDFmod = await import("jspdf");
+    const jsPDF = jsPDFmod.jsPDF || jsPDFmod.default;
+    const canvas = await captureCanvas();
     const imgData = canvas.toDataURL("image/jpeg", 0.95);
 
     const pdf = new jsPDF({ unit: "pt", format: "a4" });
@@ -411,10 +415,10 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
       remaining -= pageH;
     }
     return pdf;
-  }, []);
+  }, [captureCanvas]);
 
   const fileName = useCallback(
-    () => `${String(inv.number || "invoice").replace(/[^A-Za-z0-9_-]+/g, "-")}.pdf`,
+    (ext = "pdf") => `${String(inv.number || "invoice").replace(/[^A-Za-z0-9_-]+/g, "-")}.${ext}`,
     [inv.number]
   );
 
@@ -445,6 +449,42 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
       setDownloading(false);
     }
   }, [buildPdf, fileName, toast]);
+
+  // Save/share the invoice as a PNG image. Same A4 capture as the PDF, output as
+  // a picture for pasting into messages, socials, or a photo library. Uses the
+  // native share sheet on phones and falls back to a plain download on desktop.
+  const downloadImage = useCallback(async () => {
+    if (!sheetRef.current) return;
+    setSavingImg(true);
+    try {
+      const canvas = await captureCanvas();
+      const name = fileName("png");
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("Couldn't build the image.");
+      const file = typeof File !== "undefined" ? new File([blob], name, { type: "image/png" }) : null;
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: name });
+          return;
+        } catch (err) {
+          if (err?.name === "AbortError") return; // user closed the share sheet
+          // any other error → fall back to a direct download below
+        }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast({ message: e?.message ?? "Couldn't build the image.", type: "error" });
+    } finally {
+      setSavingImg(false);
+    }
+  }, [captureCanvas, fileName, toast]);
 
   // Render the on-screen invoice to a PDF, then post it to the API route which
   // emails it to the customer via Resend.
@@ -500,6 +540,10 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
             <button onClick={emailToCustomer} disabled={sending} className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-600 hover:bg-emerald-400/20 disabled:opacity-60">
               {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
               {sending ? "Sending…" : "Email to Customer"}
+            </button>
+            <button onClick={downloadImage} disabled={savingImg} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:border-slate-300 hover:text-[#0F1B33] disabled:opacity-60">
+              {savingImg ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageDown className="h-3.5 w-3.5" />}
+              {savingImg ? "Building…" : "Save Image"}
             </button>
             <button onClick={downloadPdf} disabled={downloading} className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-xs font-semibold text-black hover:bg-amber-400 disabled:opacity-60">
               {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
