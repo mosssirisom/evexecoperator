@@ -19,7 +19,7 @@ const VAT_RATES = [
 
 // Brand colours. NAVY matches the logo's own flat background (#04080f) so the
 // real EV Exec badge blends into the header/footer bands with no visible box.
-const NAVY = "#04080f";
+const NAVY = "#0B132B";
 const GOLD = "#d7a23f";
 
 // Fixed company details shown on every invoice (from EV Exec's letterhead).
@@ -91,9 +91,9 @@ function InvoiceLogo() {
     <div className="flex flex-col items-start">
       {/* Real EV Exec badge — its background is the same navy as the header band */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={EV_EXEC_LOGO} alt="EV Exec" className="h-32 w-auto" />
-      <div className="mt-1 h-px w-40" style={{ background: GOLD, opacity: 0.55 }} />
-      <p className="mt-1.5 text-[9px] font-semibold leading-relaxed tracking-[0.28em]" style={{ color: GOLD }}>
+      <img src={EV_EXEC_LOGO} alt="EV Exec" className="h-16 w-auto sm:h-20" />
+      <div className="mt-1 h-px w-28 sm:w-36" style={{ background: GOLD, opacity: 0.55 }} />
+      <p className="mt-1.5 text-[8px] font-semibold leading-relaxed tracking-[0.24em] sm:text-[9px]" style={{ color: GOLD }}>
         {COMPANY.tagline1}<br />{COMPANY.tagline2}
       </p>
     </div>
@@ -441,12 +441,12 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
         {/* The invoice sheet */}
         <div ref={sheetRef} className="invoice-print overflow-hidden rounded-2xl bg-white text-slate-900 shadow-2xl" style={exact}>
           {/* ── Header band ── */}
-          <div className="relative px-8 pt-8 pb-14 sm:px-10" style={{ backgroundColor: NAVY, ...exact }}>
-            <div className="flex items-start justify-between gap-4">
+          <div className="relative px-5 pt-5 pb-10 sm:px-10 sm:pt-8 sm:pb-14" style={{ backgroundColor: NAVY, ...exact }}>
+            <div className="flex items-start justify-between gap-3">
               <InvoiceLogo />
               <div className="text-right">
-                <p className="text-3xl font-light tracking-[0.35em]" style={{ color: GOLD }}>INVOICE</p>
-                <div className="ml-auto mt-2 h-0.5 w-24" style={{ background: GOLD }} />
+                <p className="text-xl font-light tracking-[0.3em] sm:text-3xl sm:tracking-[0.35em]" style={{ color: GOLD }}>INVOICE</p>
+                <div className="ml-auto mt-2 h-0.5 w-16 sm:w-24" style={{ background: GOLD }} />
               </div>
             </div>
             {/* angled gold accent toward the white body */}
@@ -457,7 +457,7 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
           </div>
 
           {/* ── Bill-to + meta ── */}
-          <div className="grid grid-cols-2 gap-6 px-8 pt-6 text-sm sm:px-10">
+          <div className="grid grid-cols-2 gap-4 px-5 pt-5 text-sm sm:gap-6 sm:px-10">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Invoice to</p>
               <p className="mt-2 text-lg font-bold text-slate-900">{inv.customer}</p>
@@ -493,54 +493,58 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
           </div>
 
           {/* ── Line-items table ── */}
-          <div className="px-8 pt-6 sm:px-10">
+          <div className="px-5 pt-5 sm:px-10 sm:pt-6">
             <div className="overflow-hidden rounded-sm border" style={{ borderColor: `${GOLD}66` }}>
-              <table className="w-full text-sm">
+              <table className="w-full table-fixed text-[13px] sm:text-sm">
+                <colgroup>
+                  <col />
+                  <col className="w-9 sm:w-12" />
+                  <col className="w-16 sm:w-24" />
+                  <col className="w-16 sm:w-24" />
+                </colgroup>
                 <thead>
                   <tr style={{ backgroundColor: NAVY, ...exact }}>
-                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: GOLD }}>Description</th>
-                    <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: GOLD }}>Qty</th>
-                    <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: GOLD }}>Unit Price</th>
-                    <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: GOLD }}>Amount</th>
+                    <th className="px-2.5 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.12em] sm:px-4 sm:py-3 sm:text-[11px]" style={{ color: GOLD }}>Description</th>
+                    <th className="px-1 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] sm:px-3 sm:py-3 sm:text-[11px]" style={{ color: GOLD }}>Qty</th>
+                    <th className="px-1 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] sm:px-3 sm:py-3 sm:text-[11px]" style={{ color: GOLD }}>Price</th>
+                    <th className="px-2.5 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] sm:px-4 sm:py-3 sm:text-[11px]" style={{ color: GOLD }}>Amount</th>
                   </tr>
                 </thead>
                 <tbody>
                   {inv.lineItems.map((li, i) => (
                     <tr key={i} className="align-top" style={{ borderTop: i === 0 ? "none" : `1px solid ${GOLD}22` }}>
-                      <td className="px-4 py-3 text-slate-700">
-                        <p className="font-medium text-slate-800">{li.description}</p>
+                      <td className="px-2.5 py-2.5 text-slate-700 sm:px-4 sm:py-3">
+                        <p className="break-words font-medium text-slate-800">{li.description}</p>
                         {i === 0 && jLines.length > 0 && (
                           <div className="mt-1 space-y-0.5">
-                            {jLines.map((l, k) => <p key={k} className="text-[11px] text-slate-500">{l}</p>)}
+                            {jLines.map((l, k) => <p key={k} className="break-words text-[10px] text-slate-500 sm:text-[11px]">{l}</p>)}
                           </div>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-center text-slate-600">{li.quantity}</td>
-                      <td className="px-3 py-3 text-center text-slate-600">{money(li.unit_price)}</td>
-                      <td className="px-4 py-3 text-center font-medium text-slate-800">{money((Number(li.quantity) || 0) * (Number(li.unit_price) || 0))}</td>
+                      <td className="px-1 py-2.5 text-center text-slate-600 sm:px-3 sm:py-3">{li.quantity}</td>
+                      <td className="whitespace-nowrap px-1 py-2.5 text-center text-slate-600 sm:px-3 sm:py-3">{money(li.unit_price)}</td>
+                      <td className="whitespace-nowrap px-2.5 py-2.5 text-center font-medium text-slate-800 sm:px-4 sm:py-3">{money((Number(li.quantity) || 0) * (Number(li.unit_price) || 0))}</td>
                     </tr>
                   ))}
-                  {/* spacer to give the table body some height like the template */}
-                  <tr><td colSpan={4} className="py-6" /></tr>
                   {/* Subtotal */}
                   <tr style={{ borderTop: `1px solid ${GOLD}66` }}>
-                    <td className="px-4 py-2.5" />
-                    <td colSpan={2} className="px-3 py-2.5 text-center text-[12px] font-bold uppercase tracking-wider text-slate-600" style={{ borderLeft: `1px solid ${GOLD}66` }}>Subtotal</td>
-                    <td className="px-4 py-2.5 text-center font-medium text-slate-800">{money(inv.subtotal)}</td>
+                    <td className="px-2.5 py-2 sm:px-4 sm:py-2.5" />
+                    <td colSpan={2} className="px-1 py-2 text-center text-[11px] font-bold uppercase tracking-wider text-slate-600 sm:px-3 sm:py-2.5 sm:text-[12px]" style={{ borderLeft: `1px solid ${GOLD}66` }}>Subtotal</td>
+                    <td className="whitespace-nowrap px-2.5 py-2 text-center font-medium text-slate-800 sm:px-4 sm:py-2.5">{money(inv.subtotal)}</td>
                   </tr>
                   {/* Tax */}
                   <tr style={{ borderTop: `1px solid ${GOLD}66` }}>
-                    <td className="px-4 py-2.5" />
-                    <td colSpan={2} className="px-3 py-2.5 text-center text-[12px] font-bold uppercase tracking-wider text-slate-600" style={{ borderLeft: `1px solid ${GOLD}66` }}>
+                    <td className="px-2.5 py-2 sm:px-4 sm:py-2.5" />
+                    <td colSpan={2} className="px-1 py-2 text-center text-[11px] font-bold uppercase tracking-wider text-slate-600 sm:px-3 sm:py-2.5 sm:text-[12px]" style={{ borderLeft: `1px solid ${GOLD}66` }}>
                       Tax ({Math.round((inv.vatRate || 0) * 100)}%)
                     </td>
-                    <td className="px-4 py-2.5 text-center font-medium text-slate-800">{money(inv.vatAmount)}</td>
+                    <td className="whitespace-nowrap px-2.5 py-2 text-center font-medium text-slate-800 sm:px-4 sm:py-2.5">{money(inv.vatAmount)}</td>
                   </tr>
                   {/* Total */}
                   <tr style={{ backgroundColor: NAVY, ...exact }}>
-                    <td className="px-4 py-3.5" />
-                    <td colSpan={2} className="px-3 py-3.5 text-center text-lg font-bold uppercase tracking-wider" style={{ color: GOLD }}>Total</td>
-                    <td className="px-4 py-3.5 text-center text-lg font-black" style={{ color: GOLD }}>{money(inv.total)}</td>
+                    <td className="px-2.5 py-3 sm:px-4 sm:py-3.5" />
+                    <td colSpan={2} className="px-1 py-3 text-center text-base font-bold uppercase tracking-wider sm:px-3 sm:py-3.5 sm:text-lg" style={{ color: GOLD }}>Total</td>
+                    <td className="whitespace-nowrap px-2.5 py-3 text-center text-base font-black sm:px-4 sm:py-3.5 sm:text-lg" style={{ color: GOLD }}>{money(inv.total)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -548,19 +552,19 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
           </div>
 
           {/* ── Payment terms + thank you ── */}
-          <div className="grid grid-cols-2 gap-6 px-8 py-8 sm:px-10">
+          <div className="grid grid-cols-2 gap-4 px-5 py-6 sm:gap-6 sm:px-10 sm:py-8">
             <div className="flex items-start gap-3">
-              <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border-2" style={{ borderColor: GOLD }}>
-                <CreditCard className="h-5 w-5" style={{ color: GOLD }} />
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border-2 sm:h-11 sm:w-11" style={{ borderColor: GOLD }}>
+                <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: GOLD }} />
               </span>
               <div>
                 <p className="text-[12px] font-bold uppercase tracking-[0.15em] text-slate-800">Payment terms</p>
                 <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-slate-600">{terms}</p>
               </div>
             </div>
-            <div className="flex items-start gap-3 border-l pl-6" style={{ borderColor: `${GOLD}33` }}>
-              <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border-2" style={{ borderColor: GOLD }}>
-                <Gem className="h-5 w-5" style={{ color: GOLD }} />
+            <div className="flex items-start gap-3 border-l pl-4 sm:pl-6" style={{ borderColor: `${GOLD}33` }}>
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border-2 sm:h-11 sm:w-11" style={{ borderColor: GOLD }}>
+                <Gem className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: GOLD }} />
               </span>
               <div>
                 <p className="text-[12px] font-bold uppercase tracking-[0.15em] text-slate-800">Thank you</p>
@@ -570,20 +574,20 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
           </div>
 
           {/* ── Footer band ── */}
-          <div className="flex flex-wrap items-center justify-between gap-4 px-8 py-5 text-[11px] sm:px-10" style={{ backgroundColor: NAVY, ...exact }}>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-4 text-[11px] sm:px-10 sm:py-5" style={{ backgroundColor: NAVY, ...exact }}>
             <div className="flex items-start gap-2">
               <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: GOLD }} />
-              <div className="leading-snug text-slate-700">
+              <div className="leading-snug text-slate-300">
                 {COMPANY.addressLines.map((l, i) => <p key={i}>{l}</p>)}
               </div>
             </div>
-            <div className="flex items-center gap-2 text-slate-700">
+            <div className="flex items-center gap-2 text-slate-300">
               <Phone className="h-4 w-4" style={{ color: GOLD }} /> {COMPANY.phone}
             </div>
-            <div className="flex items-center gap-2 text-slate-700">
+            <div className="flex items-center gap-2 text-slate-300">
               <Mail className="h-4 w-4" style={{ color: GOLD }} /> {COMPANY.email}
             </div>
-            <div className="flex items-center gap-2 text-slate-700">
+            <div className="flex items-center gap-2 text-slate-300">
               <Globe className="h-4 w-4" style={{ color: GOLD }} /> {COMPANY.web}
             </div>
           </div>
