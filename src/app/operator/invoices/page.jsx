@@ -647,9 +647,19 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
           </div>
 
           {/* Thank-you flourish — centres in the space above the footer so a
-              short invoice still fills the A4 page. */}
-          <div className="flex flex-1 items-center justify-center px-8 py-8">
-            <div className="text-center">
+              short invoice still fills the A4 page. A faint EV Exec badge sits
+              behind it as a watermark to fill the empty space. */}
+          <div className="relative flex flex-1 items-center justify-center px-8 py-8">
+            {/* Watermark — the real badge, greatly enlarged and dimmed. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={EV_EXEC_LOGO}
+              alt=""
+              aria-hidden="true"
+              className="pointer-events-none absolute left-1/2 top-1/2 w-64 max-w-[70%] -translate-x-1/2 -translate-y-1/2 select-none sm:w-80"
+              style={{ opacity: 0.06 }}
+            />
+            <div className="relative text-center">
               <p className="text-[15px] font-semibold uppercase tracking-[0.18em] sm:text-base" style={{ color: NAVY }}>
                 Thank you for choosing EV Exec
               </p>
