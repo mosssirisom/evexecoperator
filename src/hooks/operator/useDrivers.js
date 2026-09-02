@@ -5,6 +5,7 @@ import { supabase, isConfigured } from "@/lib/supabase";
 import { useRealtimeDrivers } from "./useRealtimeBookings";
 
 const PHONE_RE = /^[+\d][\d\s\-().]{4,}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function shapedDriver(row) {
   return {
@@ -83,6 +84,7 @@ export function useDrivers() {
 
     if (!name) throw new Error("Driver name is required.");
     if (name.length > 120) throw new Error("Name must be 120 characters or fewer.");
+    if (!email || !EMAIL_RE.test(email)) throw new Error("A valid email address is required — every driver needs one for job notifications.");
     if (phone && !PHONE_RE.test(phone)) throw new Error("Please enter a valid phone number.");
     if (plate && plate.length > 20) throw new Error("Plate number must be 20 characters or fewer.");
 
@@ -110,6 +112,7 @@ export function useDrivers() {
 
     if (!name) throw new Error("Driver name is required.");
     if (name.length > 120) throw new Error("Name must be 120 characters or fewer.");
+    if (!email || !EMAIL_RE.test(email)) throw new Error("A valid email address is required — every driver needs one for job notifications.");
     if (phone && !PHONE_RE.test(phone)) throw new Error("Please enter a valid phone number.");
     if (plate && plate.length > 20) throw new Error("Plate number must be 20 characters or fewer.");
 

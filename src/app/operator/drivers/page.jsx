@@ -38,10 +38,16 @@ function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email?.trim() ?? "");
+  const canSubmit = form.name.trim() && emailOk;
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.name.trim()) return;
+    if (!emailOk) {
+      setSubmitError("A valid email address is required — every driver needs one for job notifications.");
+      return;
+    }
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -83,14 +89,14 @@ function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
               <div key={key}>
                 <label className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-500">
                   <Icon className="h-3.5 w-3.5" />
-                  {label}{key === "name" && <span className="text-red-600">*</span>}
+                  {label}{(key === "name" || key === "email") && <span className="text-red-600">*</span>}
                 </label>
                 <input
                   type={type}
                   value={form[key] ?? ""}
                   onChange={set(key)}
                   placeholder={placeholder}
-                  required={key === "name"}
+                  required={key === "name" || key === "email"}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none placeholder:text-slate-400 transition focus:border-amber-400/40"
                 />
               </div>
@@ -112,7 +118,7 @@ function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
               </button>
               <button
                 type="submit"
-                disabled={submitting || !form.name.trim()}
+                disabled={submitting || !canSubmit}
                 className="flex-1 rounded-2xl bg-amber-500 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? "Saving…" : submitLabel}
