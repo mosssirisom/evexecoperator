@@ -354,10 +354,70 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
   const exact = { WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" };
   const sheetRef = useRef(null);
   const [sending, setSending] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const toast = useOperatorToast();
 
-  // Render the on-screen invoice to a PDF in the browser, then post it to the
-  // API route which emails it to the customer via Resend.
+  // Render the on-screen invoice to a true A4 PDF (jsPDF). Browser print on
+  // iOS/Safari ignores @page sizing and prints a tiny corner, so we always
+  // build the PDF ourselves. The sheet is momentarily pinned to a fixed A4
+  // width so the capture fills the page crisply regardless of screen size.
+  const buildPdf = useCallback(async () => {
+    const [{ default: html2canvas }, jsPDFmod] = await Promise.all([
+      import("html2canvas"),
+      import("jspdf"),
+    ]);
+    const jsPDF = jsPDFmod.jsPDF || jsPDFmod.default;
+    const el = sheetRef.current;
+    const prevWidth = el.style.width;
+    el.style.width = "794px"; // A4 width at 96dpi — a consistent capture size
+    let canvas;
+    try {
+      canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false, windowWidth: 900 });
+    } finally {
+      el.style.width = prevWidth;
+    }
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+
+    const pdf = new jsPDF({ unit: "pt", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    // Slice across pages if the invoice is taller than one A4 page.
+    let remaining = imgH;
+    let position = 0;
+    pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH);
+    remaining -= pageH;
+    while (remaining > 0) {
+      position -= pageH;
+      pdf.addPage();
+      pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH);
+      remaining -= pageH;
+    }
+    return pdf;
+  }, []);
+
+  const fileName = useCallback(
+    () => `${String(inv.number || "invoice").replace(/[^A-Za-z0-9_-]+/g, "-")}.pdf`,
+    [inv.number]
+  );
+
+  // Save the A4 PDF to the device (replaces the unreliable browser print).
+  const downloadPdf = useCallback(async () => {
+    if (!sheetRef.current) return;
+    setDownloading(true);
+    try {
+      const pdf = await buildPdf();
+      pdf.save(fileName());
+    } catch (e) {
+      toast({ message: e?.message ?? "Couldn't build the PDF.", type: "error" });
+    } finally {
+      setDownloading(false);
+    }
+  }, [buildPdf, fileName, toast]);
+
+  // Render the on-screen invoice to a PDF, then post it to the API route which
+  // emails it to the customer via Resend.
   const emailToCustomer = useCallback(async () => {
     if (!inv.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inv.email)) {
       toast({ message: "This invoice has no valid customer email. Add one via the booking, or resend after editing.", type: "error" });
@@ -366,30 +426,7 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
     if (!sheetRef.current) return;
     setSending(true);
     try {
-      const [{ default: html2canvas }, jsPDFmod] = await Promise.all([
-        import("html2canvas"),
-        import("jspdf"),
-      ]);
-      const jsPDF = jsPDFmod.jsPDF || jsPDFmod.default;
-      const canvas = await html2canvas(sheetRef.current, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false });
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
-
-      const pdf = new jsPDF({ unit: "pt", format: "a4" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const imgW = pageW;
-      const imgH = (canvas.height * imgW) / canvas.width;
-      // Slice across pages if the invoice is taller than one A4 page.
-      let remaining = imgH;
-      let position = 0;
-      pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH);
-      remaining -= pageH;
-      while (remaining > 0) {
-        position -= pageH;
-        pdf.addPage();
-        pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH);
-        remaining -= pageH;
-      }
+      const pdf = await buildPdf();
       const pdfBase64 = pdf.output("datauristring").split(",")[1];
 
       const { data: { session } } = await supabase.auth.getSession();
@@ -411,7 +448,7 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
     } finally {
       setSending(false);
     }
-  }, [inv, toast, onEmailed]);
+  }, [inv, toast, onEmailed, buildPdf]);
 
   return (
     <div className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm">
@@ -434,7 +471,10 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
               {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
               {sending ? "Sending…" : "Email to Customer"}
             </button>
-            <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-xs font-semibold text-black hover:bg-amber-400"><Printer className="h-3.5 w-3.5" />Print / Save PDF</button>
+            <button onClick={downloadPdf} disabled={downloading} className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-xs font-semibold text-black hover:bg-amber-400 disabled:opacity-60">
+              {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
+              {downloading ? "Building…" : "Save PDF (A4)"}
+            </button>
           </div>
         </div>
 
