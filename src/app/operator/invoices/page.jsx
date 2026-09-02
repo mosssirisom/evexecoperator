@@ -634,6 +634,16 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
             </div>
           </div>
 
+          {/* Thank-you flourish — centres in the space above the footer so a
+              short invoice still fills the A4 page. */}
+          <div className="flex flex-1 items-center justify-center px-8 py-8">
+            <div className="text-center">
+              <p className="text-[15px] font-semibold uppercase tracking-[0.18em] sm:text-base" style={{ color: NAVY }}>
+                Thank you for choosing EV Exec
+              </p>
+              <div className="mx-auto mt-2.5 h-px w-20" style={{ background: GOLD }} />
+            </div>
+          </div>
           </div>{/* end grow wrapper */}
 
           {/* ── Footer band ── */}
