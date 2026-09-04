@@ -21,8 +21,8 @@ function validForm(overrides = {}) {
     customer: "James Whitmore",
     phone: "+44 7700 900000",
     email: "",
-    airport: "Manchester Airport (MAN)",
-    destination: "Blackpool",
+    pickup: "Manchester Airport (MAN)",
+    dropoff: "Blackpool",
     date: tomorrow(),
     time: "10:00",
     flight: "EK017",
@@ -65,45 +65,29 @@ describe("validateBookingPayload", () => {
     expect(err.field).toBe("phone");
   });
 
-  it("throws when airport is missing", () => {
-    const err = getValidationError(() => validateBookingPayload(validForm({ airport: "" })));
-    expect(err.field).toBe("airport");
+  it("throws when pickup is missing", () => {
+    const err = getValidationError(() => validateBookingPayload(validForm({ pickup: "" })));
+    expect(err.field).toBe("pickup");
   });
 
-  it("throws when destination is missing", () => {
-    const err = getValidationError(() => validateBookingPayload(validForm({ destination: "" })));
-    expect(err.field).toBe("destination");
+  it("throws when pickup is whitespace only", () => {
+    const err = getValidationError(() => validateBookingPayload(validForm({ pickup: "   " })));
+    expect(err.field).toBe("pickup");
   });
 
-  it("throws when custom address destination has no address text", () => {
-    const err = getValidationError(() =>
-      validateBookingPayload(
-        validForm({ destination: "Custom address…", customAddress: "" })
-      )
-    );
-    expect(err.field).toBe("customAddress");
+  it("throws when dropoff is missing", () => {
+    const err = getValidationError(() => validateBookingPayload(validForm({ dropoff: "" })));
+    expect(err.field).toBe("dropoff");
   });
 
-  it("passes when custom address destination has non-empty address", () => {
+  it("throws when dropoff is whitespace only", () => {
+    const err = getValidationError(() => validateBookingPayload(validForm({ dropoff: "   " })));
+    expect(err.field).toBe("dropoff");
+  });
+
+  it("passes with a free-text pickup and drop-off (any address)", () => {
     expect(() =>
-      validateBookingPayload(
-        validForm({ destination: "Custom address…", customAddress: "42 Fake Street" })
-      )
-    ).not.toThrow();
-  });
-
-  it("throws when bespoke is ticked but no address is given", () => {
-    const err = getValidationError(() =>
-      validateBookingPayload(validForm({ bespoke: true, destination: "", customAddress: "" }))
-    );
-    expect(err.field).toBe("customAddress");
-  });
-
-  it("passes bespoke address with no listed destination", () => {
-    expect(() =>
-      validateBookingPayload(
-        validForm({ bespoke: true, destination: "", customAddress: "42 Fake Street" })
-      )
+      validateBookingPayload(validForm({ pickup: "42 Fake Street", dropoff: "Liverpool John Lennon Airport" }))
     ).not.toThrow();
   });
 
