@@ -89,7 +89,12 @@ export async function POST(req: Request) {
   const authHeader = req.headers.get("authorization") ?? "";
   const token = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
   if (!token) return json({ error: "Not authorised." }, 401);
-  const db = createClient(SUPABASE_URL, ANON_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
+  // Send the caller's JWT on every request so the queue_customer_sms RPC runs as
+  // the authenticated operator (that function is not callable by the anon role).
+  const db = createClient(SUPABASE_URL, ANON_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
   const { data: userData, error: userErr } = await db.auth.getUser(token);
   if (userErr || !userData?.user) return json({ error: "Not authorised." }, 401);
 
