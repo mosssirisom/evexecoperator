@@ -233,9 +233,9 @@ const PAYMENT_STATES = [
   { value: "Paid",     color: "border-emerald-400/30 bg-emerald-400/10 text-emerald-600", dot: "bg-emerald-400" },
 ];
 
-// How the customer is paying — surfaced at dispatch so the driver/operator
-// knows whether to take a card machine, chase a payment link, etc.
-const PAYMENT_METHODS = ["Card", "Card machine", "Payment link", "Cash", "Bank transfer"];
+// How the customer is paying — surfaced at dispatch so the operator knows what
+// to expect. EV Exec only takes Cash or Bank Transfer.
+const PAYMENT_METHODS = ["Cash", "Bank Transfer"];
 
 function PaymentMethodPicker({ value, onSelect }) {
   const [pending, setPending] = useState(null);
