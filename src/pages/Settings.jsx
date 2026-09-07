@@ -27,6 +27,7 @@ import { getIntegrationStatus } from "../lib/edgeFunctions";
 import { loadSettings, saveSettings } from "../lib/settings";
 import { useAuditLog } from "../hooks/useAuditLog";
 import { useErrorLog } from "../hooks/useErrorLog";
+import { pushSupported, getPushSubscriptionStatus, subscribeToPush, unsubscribeFromPush } from "../lib/operatorPush";
 
 const SECTIONS = [
   { key: "business", label: "Business", icon: Building2 },
@@ -120,6 +121,87 @@ function BusinessSettings({ state, set }) {
   );
 }
 
+function PushNotificationCard() {
+  const { user } = useAuth();
+  const toast = useToast();
+  const [status, setStatus] = useState("checking"); // checking | unsupported | default | denied | subscribed
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!pushSupported()) {
+      setStatus("unsupported");
+      return;
+    }
+    getPushSubscriptionStatus().then((s) => { if (!cancelled) setStatus(s); });
+    return () => { cancelled = true; };
+  }, []);
+
+  async function handleEnable() {
+    if (!user?.id) return;
+    setBusy(true);
+    try {
+      await subscribeToPush(user.id);
+      setStatus("subscribed");
+      toast({ message: "Push notifications enabled on this device", type: "success" });
+    } catch (err) {
+      toast({ message: err.message || "Could not enable push notifications", type: "error" });
+      setStatus(await getPushSubscriptionStatus());
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDisable() {
+    setBusy(true);
+    try {
+      await unsubscribeFromPush();
+      setStatus("default");
+      toast({ message: "Push notifications disabled on this device", type: "info" });
+    } catch (err) {
+      toast({ message: err.message || "Could not disable push notifications", type: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const description =
+    status === "unsupported" ? "Not supported in this browser."
+    : status === "denied" ? "Blocked — enable notifications for this site in your browser settings."
+    : status === "subscribed" ? "This device will receive a push notification for new bookings."
+    : "Get an instant alert on this device when a new booking comes in.";
+
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4">
+      <div>
+        <p className="text-sm font-medium text-white">Push notifications on this device</p>
+        <p className="mt-0.5 text-xs text-slate-500">{description}</p>
+      </div>
+      {status === "checking" ? (
+        <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-slate-500" />
+      ) : status === "unsupported" || status === "denied" ? null : status === "subscribed" ? (
+        <button
+          type="button"
+          onClick={handleDisable}
+          disabled={busy}
+          className="flex-shrink-0 rounded-xl border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/5 disabled:opacity-60"
+        >
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Disable"}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={handleEnable}
+          disabled={busy}
+          className="flex-shrink-0 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-300 transition hover:bg-amber-400/20 disabled:opacity-60"
+        >
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Enable"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function NotificationSettings({ state, set }) {
   const items = [
     { key: "newBooking", label: "New booking confirmation", description: "Alert when a booking is created" },
@@ -131,6 +213,7 @@ function NotificationSettings({ state, set }) {
   ];
   return (
     <div className="space-y-4">
+      <PushNotificationCard />
       {items.map((n) => (
         <ToggleRow
           key={n.key}
