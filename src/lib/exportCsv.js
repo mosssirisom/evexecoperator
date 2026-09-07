@@ -1,3 +1,5 @@
+import { formatLondonDateText, formatLondonTimeText, toLondonTimeText } from "./londonTime";
+
 /**
  * Converts an array of booking objects into a CSV string and triggers a browser download.
  */
@@ -19,7 +21,11 @@ export function exportBookingsCsv(bookings, filename = "evexec-bookings.csv") {
   };
 
   const rows = bookings.map((b) => {
-    const pickup = b.pickupTime ? new Date(b.pickupTime) : null;
+    // Prefer the verbatim travel_date/travel_time text (safe -- never
+    // re-derived through a timezone-sensitive Date object) over pickupTime,
+    // which is only a fallback for rows that predate travel_date/travel_time.
+    const pickupDate = b.travelDate ? formatLondonDateText(b.travelDate) : (b.pickupTime ? new Date(b.pickupTime).toLocaleDateString("en-GB", { timeZone: "Europe/London" }) : "");
+    const pickupTimeText = b.travelTime ? formatLondonTimeText(b.travelTime) : (b.pickupTime ? toLondonTimeText(b.pickupTime) : "");
     return [
       b.id,
       b.customer,
@@ -30,8 +36,8 @@ export function exportBookingsCsv(bookings, filename = "evexec-bookings.csv") {
       b.destination ?? "",
       b.direction ?? "",
       b.flight !== "—" ? b.flight : "",
-      pickup ? pickup.toLocaleDateString("en-GB") : "",
-      pickup ? pickup.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "",
+      pickupDate,
+      pickupTimeText,
       b.driver,
       b.price,
       b.status,

@@ -1,15 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase, isConfigured } from "../lib/supabase";
 import { logActivity } from "../lib/auditLog";
+import { toLondonTimeText } from "../lib/londonTime";
 
 function shapedCall(row) {
   return {
     id: row.ref,
     caller: row.caller,
-    time: new Date(row.created_at).toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
+    time: toLondonTimeText(row.created_at),
     attempts: row.attempts,
     notes: row.notes ?? "",
     resolved: row.resolved,

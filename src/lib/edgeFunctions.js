@@ -7,6 +7,7 @@
  */
 
 import { supabase, isConfigured } from "./supabase";
+import { formatLondonTimeText, formatLondonDateText, toLondonDateTimeText } from "./londonTime";
 
 async function invoke(fnName, body) {
   if (!isConfigured || !supabase) {
@@ -56,12 +57,16 @@ export function getIntegrationStatus() {
 
 /** Builds a booking confirmation SMS message. */
 export function bookingConfirmationSms(booking) {
-  const time = booking.pickupTime
-    ? new Date(booking.pickupTime).toLocaleString("en-GB", {
-        weekday: "short", day: "numeric", month: "short",
-        hour: "2-digit", minute: "2-digit",
-      })
-    : "TBC";
+  // Prefer the exact travel date/time text as entered -- never re-derive it
+  // from a Date object, which round-trips correctly only if this code runs
+  // in a browser whose timezone happens to match Europe/London at that
+  // moment. Only fall back to pickupTime (explicitly Europe/London-pinned)
+  // when the raw text isn't available on this booking.
+  const time = booking.travelTime
+    ? `${formatLondonTimeText(booking.travelTime)}${booking.travelDate ? ` on ${formatLondonDateText(booking.travelDate)}` : ""}`
+    : booking.pickupTime
+      ? toLondonDateTimeText(booking.pickupTime, { weekday: "short" })
+      : "TBC";
   return (
     `Hi ${booking.customer.split(" ")[0]}, your EV Exec transfer is confirmed.\n` +
     `📍 ${booking.route}\n` +

@@ -561,12 +561,15 @@ export default function LiveDispatch() {
     if (form.phone) {
       const dest = form.destination === "Custom address…" ? form.customAddress : form.destination;
       const driverName = drivers.find((d) => d.id === form.driver)?.name ?? "Unassigned";
-      const pickupTime = form.date && form.time ? new Date(`${form.date}T${form.time}`).toISOString() : null;
       const message = bookingConfirmationSms({
         id: result.ref,
         customer: form.customer,
         route: `${form.airport} → ${dest}`,
-        pickupTime,
+        // Pass through exactly what was typed into the form -- the same
+        // travel_date/travel_time values just saved to the booking row --
+        // rather than a Date object that has to be re-interpreted later.
+        travelDate: form.date || null,
+        travelTime: form.time || null,
         driver: driverName,
       });
       sendSms({ to: form.phone, message, bookingRef: result.ref }).catch(() => {});

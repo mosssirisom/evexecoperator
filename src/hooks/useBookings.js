@@ -12,6 +12,7 @@ import {
   generateBookingRef,
   sanitizeText,
 } from "../lib/validation";
+import { londonWallTimeToUtcIso, formatLondonTimeText, toLondonTimeText } from "../lib/londonTime";
 
 // ─── Row mapper ───────────────────────────────────────────────────────────────
 
@@ -69,13 +70,15 @@ export function shapedBooking(row) {
     airport: row.airport ?? null,
     destination,
     direction,
-    time: pickupTime
-      ? new Date(pickupTime).toLocaleTimeString("en-GB", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "—",
+    // Prefer the raw travel_time text verbatim -- no Date object, no
+    // timezone involved, so this can never drift regardless of which
+    // device/browser timezone is viewing the dashboard. Only fall back to
+    // an explicit Europe/London-pinned conversion of pickup_time when
+    // travel_time itself wasn't recorded on this row.
+    time: row.travel_time ? formatLondonTimeText(row.travel_time) : (pickupTime ? toLondonTimeText(pickupTime) : "—"),
     pickupTime,
+    travelDate: row.travel_date ?? null,
+    travelTime: row.travel_time ?? null,
     driver: row.drivers?.name ?? "Unassigned",
     driverId: row.driver_id ?? row.assigned_driver_id ?? null,
     price: price ? `£${Number(price).toFixed(0)}` : "TBC",
@@ -256,10 +259,13 @@ export function useBookings() {
           ? form.customAddress.trim()
           : form.destination;
 
-      const pickup =
-        form.date && form.time
-          ? new Date(`${form.date}T${form.time}`).toISOString()
-          : null;
+      // travel_date/travel_time store exactly what the operator typed, as
+      // plain text -- the source of truth for anything shown to the
+      // customer or displayed on the dashboard. pickup_time is a derived
+      // timestamptz (needed for range queries/sorting) computed via an
+      // explicit Europe/London-aware conversion, never an ambient-timezone
+      // Date parse, so it can never disagree with travel_date/travel_time.
+      const pickup = londonWallTimeToUtcIso(form.date, form.time);
 
       if (!isConfigured) throw new Error("Database not configured. Please add Supabase credentials.");
 
@@ -293,6 +299,8 @@ export function useBookings() {
           direction:      form.direction,
           airport:        form.airport,
           destination:    dest,
+          travel_date:    form.date || null,
+          travel_time:    form.time || null,
           pickup_time:    pickup,
           driver_id:      driverRow?.id ?? null,
           price:          form.price ?? null,

@@ -1,11 +1,12 @@
 import React, { useEffect } from "react";
 import { X, Printer } from "lucide-react";
+import { formatLondonDateText } from "../lib/londonTime";
 
 function fmt(iso) {
   if (!iso) return "—";
   return new Date(iso).toLocaleString("en-GB", {
     weekday: "short", day: "numeric", month: "long", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
+    hour: "2-digit", minute: "2-digit", timeZone: "Europe/London",
   });
 }
 
@@ -119,7 +120,11 @@ export default function InvoiceModal({ booking, onClose }) {
                     {booking.flight && booking.flight !== "—" && (
                       <p className="mt-0.5 text-xs text-slate-500">Flight: {booking.flight}</p>
                     )}
-                    <p className="mt-0.5 text-xs text-slate-500">Pickup: {fmt(booking.pickupTime)}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Pickup: {booking.travelDate && booking.time !== "—"
+                        ? `${formatLondonDateText(booking.travelDate)} at ${booking.time}`
+                        : fmt(booking.pickupTime)}
+                    </p>
                     <p className="mt-0.5 text-xs text-slate-500">Driver: {booking.driver}</p>
                   </td>
                   <td className="px-5 py-4 text-right font-semibold text-slate-900">

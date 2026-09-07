@@ -8,6 +8,7 @@ import { bookingStatusColor } from "../lib/statusColor";
 import ETACountdown from "./ETACountdown";
 import InvoiceModal from "./InvoiceModal";
 import { sendSms, checkFlight, createPaymentLink, bookingConfirmationSms } from "../lib/edgeFunctions";
+import { formatLondonDateText, toLondonDateTimeText } from "../lib/londonTime";
 
 const STATUSES = [
   "Unassigned", "Dispatched", "En Route",
@@ -527,7 +528,7 @@ export default function BookingDetailDrawer({
                               {flightInfo.estimatedArrival && (
                                 <p className="mt-0.5 text-slate-400">
                                   Est. arrival: {new Date(flightInfo.estimatedArrival).toLocaleString("en-GB", {
-                                    weekday: "short", hour: "2-digit", minute: "2-digit",
+                                    weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London",
                                   })}
                                 </p>
                               )}
@@ -539,12 +540,14 @@ export default function BookingDetailDrawer({
                   </div>
                 )}
                 <Row icon={Clock} label="Pickup time" value={
-                  booking.pickupTime
-                    ? new Date(booking.pickupTime).toLocaleString("en-GB", {
-                        weekday: "short", day: "numeric", month: "short",
-                        hour: "2-digit", minute: "2-digit",
-                      })
-                    : booking.time !== "—" ? booking.time : null
+                  // booking.time is the verbatim travel_time text (safe --
+                  // never re-derived through a timezone-sensitive Date
+                  // object); pair it with the verbatim date when available.
+                  // Only fall back to an explicit Europe/London-pinned
+                  // pickupTime conversion if travel_time wasn't recorded.
+                  booking.time !== "—"
+                    ? (booking.travelDate ? `${formatLondonDateText(booking.travelDate)} at ${booking.time}` : booking.time)
+                    : (booking.pickupTime ? toLondonDateTimeText(booking.pickupTime, { weekday: "short" }) : null)
                 } />
                 <Row icon={PoundSterling} label="Price" value={booking.price} />
                 <div className="flex items-start gap-3">
@@ -656,10 +659,10 @@ export default function BookingDetailDrawer({
             {/* Meta */}
             <div className="border-t border-white/5 pt-4 text-xs text-slate-600 space-y-1">
               {booking.createdAt && (
-                <p>Created {new Date(booking.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+                <p>Created {new Date(booking.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" })}</p>
               )}
               {booking.updatedAt && (
-                <p>Updated {new Date(booking.updatedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+                <p>Updated {new Date(booking.updatedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" })}</p>
               )}
             </div>
           </div>
