@@ -1,59 +1,36 @@
-const CACHE = 'evexec-operator-v1'
+// EV Exec operator — push service worker.
+// Deliberately does no caching (no offline layer), only push handling, so there
+// is never any risk of serving stale app content.
 
-self.addEventListener('install', () => { self.skipWaiting() })
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim())
-  )
-})
+self.addEventListener("push", (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) { data = {}; }
+  const title = data.title || "EV Exec";
+  const options = {
+    body: data.body || "New job request",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    tag: data.tag || undefined,
+    renotify: !!data.tag,
+    data: { url: data.url || "/operator/dispatch" },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
 
-// Network-first, cache fallback -- never intercepts Supabase API calls.
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return
-  if (!event.request.url.startsWith(self.location.origin)) return
-  if (event.request.url.includes('supabase.co')) return
-
-  event.respondWith(
-    fetch(event.request)
-      .then((res) => {
-        if (res.ok) {
-          const clone = res.clone()
-          caches.open(CACHE).then((c) => c.put(event.request, clone))
-        }
-        return res
-      })
-      .catch(() => caches.match(event.request))
-  )
-})
-
-// Show push notification
-self.addEventListener('push', (event) => {
-  const data = event.data?.json() ?? {}
-  event.waitUntil(
-    self.registration.showNotification(data.title ?? 'EV Exec', {
-      body: data.body ?? 'You have an update',
-      icon: '/ev-exec-login-logo.PNG',
-      badge: '/ev-exec-login-logo.PNG',
-      vibrate: [200, 100, 200],
-      tag: data.tag ?? 'evexec-operator',
-      renotify: true,
-      data: { url: data.url ?? '/' },
-    })
-  )
-})
-
-// Open the dashboard on notification tap
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close()
-  const url = event.notification.data?.url ?? '/'
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((cs) => {
-      const open = cs.find((c) => c.url.includes(self.location.origin))
-      if (open) { open.navigate(url); return open.focus() }
-      return clients.openWindow(url)
-    })
-  )
-})
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/operator/dispatch";
+  event.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of all) {
+      if ("focus" in client) {
+        try { await client.navigate(url); } catch (e) { /* ignore */ }
+        return client.focus();
+      }
+    }
+    if (self.clients.openWindow) return self.clients.openWindow(url);
+  })());
+});
