@@ -11,12 +11,13 @@ import {
   LogOut,
   Car,
   BookOpen,
+  Building2,
 } from "lucide-react";
 import { PORTALS } from "../lib/portals";
 import { useAuth } from "../contexts/AuthContext";
 import { isConfigured } from "../lib/supabase";
 
-const navItems = [
+const baseNavItems = [
   { label: "Dashboard", icon: LayoutDashboard, to: "/" },
   { label: "Dispatch", icon: Route, to: "/dispatch" },
   { label: "Drivers", icon: Users, to: "/drivers" },
@@ -25,8 +26,11 @@ const navItems = [
   { label: "Settings", icon: Settings, to: "/settings" },
 ];
 
+const superAdminNavItem = { label: "Platform", icon: Building2, to: "/platform" };
+
 export default function Sidebar() {
-  const { signOut } = useAuth();
+  const { signOut, isSuperAdmin } = useAuth();
+  const navItems = isSuperAdmin ? [...baseNavItems, superAdminNavItem] : baseNavItems;
 
   return (
     <>

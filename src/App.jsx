@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import ErrorBoundary from "./components/ErrorBoundary";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute, { SuperAdminRoute } from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import LiveDispatch from "./pages/LiveDispatch";
@@ -10,6 +10,7 @@ import DriverManagement from "./pages/DriverManagement";
 import AutomatedBookings from "./pages/AutomatedBookings";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
+import PlatformAdmin from "./pages/PlatformAdmin";
 
 export default function App() {
   return (
@@ -24,6 +25,9 @@ export default function App() {
             <Route path="bookings" element={<ErrorBoundary key="bookings"><AutomatedBookings /></ErrorBoundary>} />
             <Route path="analytics" element={<ErrorBoundary key="analytics"><Analytics /></ErrorBoundary>} />
             <Route path="settings" element={<ErrorBoundary key="settings"><Settings /></ErrorBoundary>} />
+            <Route element={<SuperAdminRoute />}>
+              <Route path="platform" element={<ErrorBoundary key="platform"><PlatformAdmin /></ErrorBoundary>} />
+            </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Route>

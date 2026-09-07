@@ -15,6 +15,7 @@ const pageMeta = {
   "/bookings": { label: "Automation", title: "Automated Bookings" },
   "/analytics": { label: "Insights", title: "Analytics" },
   "/settings": { label: "System", title: "Settings" },
+  "/platform": { label: "Platform", title: "Operators" },
 };
 
 function NotificationPopover({ calls, onClose, onNavigate, onResolve, onResolveAll }) {
