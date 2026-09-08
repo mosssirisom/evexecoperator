@@ -403,12 +403,22 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
     const pageH = pdf.internal.pageSize.getHeight();
     const imgW = pageW;
     const imgH = (canvas.height * imgW) / canvas.width;
-    // Slice across pages if the invoice is taller than one A4 page.
+    // Slice across pages if the invoice is taller than one A4 page. The sheet is
+    // pinned to a pixel-based "A4" (794x1123 at 96dpi) for the capture, which
+    // doesn't perfectly match jsPDF's point-based A4 (595.28x841.89pt) -- the
+    // rounding difference is a fraction of a point, but a bare `remaining > 0`
+    // check treats that as a whole extra page's worth of overflow, appending a
+    // near-blank trailing page to every invoice that exactly fills one page
+    // (which is every short invoice, since the sheet has a one-page minimum
+    // height). A 1pt tolerance (imperceptible; real overflow from actual
+    // content is always many points) absorbs the rounding without risking
+    // real content getting cut off.
+    const OVERFLOW_TOLERANCE_PT = 1;
     let remaining = imgH;
     let position = 0;
     pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH);
     remaining -= pageH;
-    while (remaining > 0) {
+    while (remaining > OVERFLOW_TOLERANCE_PT) {
       position -= pageH;
       pdf.addPage();
       pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH);

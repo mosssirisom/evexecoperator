@@ -4,12 +4,12 @@ export const metadata = {
   title: "Payment cancelled | EV Exec",
 };
 
-export default function PaymentCancelledPage({
+export default async function PaymentCancelledPage({
   searchParams,
 }: {
-  searchParams: { ref?: string };
+  searchParams: Promise<{ ref?: string }>;
 }) {
-  const ref = searchParams?.ref;
+  const ref = (await searchParams)?.ref;
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-400/10">
