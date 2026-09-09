@@ -70,6 +70,7 @@ async function isSuperAdmin(userId: string): Promise<boolean> {
 }
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function listTenants() {
   const res = await fetch(
@@ -104,7 +105,7 @@ async function createTenant(params: { slug?: string; name?: string; contactEmail
 }
 
 async function listTenantUsers(tenantId: string) {
-  if (!tenantId) throw new Error("tenantId is required");
+  if (!tenantId || !UUID_RE.test(tenantId)) throw new Error("a valid tenantId is required");
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/tenant_users?tenant_id=eq.${tenantId}&select=id,role,user_id,created_at&order=created_at.asc`,
     { headers: serviceHeaders() }
