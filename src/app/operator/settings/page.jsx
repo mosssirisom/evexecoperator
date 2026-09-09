@@ -20,12 +20,15 @@ import {
   MessageCircle,
   Smartphone,
   BellRing,
+  Building,
 } from "lucide-react";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { isConfigured } from "@/lib/supabase";
 import { useNotificationCenter } from "@/hooks/operator/useNotificationCenter";
 import { isPushSupported, getPushEnabled, enableOperatorPush, disableOperatorPush } from "@/lib/operator/push";
 import { PORTALS } from "@/lib/operator/portals";
+import { useIsSuperAdmin } from "@/hooks/operator/useIsSuperAdmin";
+import PlatformSettings from "@/components/operator/PlatformSettings";
 
 const SECTIONS = [
   { key: "business", label: "Business", icon: Building2 },
@@ -604,6 +607,11 @@ export default function Settings() {
   const [active, setActive] = useState("business");
   const [settings, setSettings] = useState(loadSettings);
   const toast = useOperatorToast();
+  const { isSuperAdmin } = useIsSuperAdmin();
+
+  const sections = isSuperAdmin
+    ? [...SECTIONS, { key: "platform", label: "Platform", icon: Building }]
+    : SECTIONS;
 
   function set(section) {
     return (field) => (value) =>
@@ -636,13 +644,14 @@ export default function Settings() {
     fleet: <FleetSettings state={settings.fleet} set={set("fleet")} />,
     integrations: <IntegrationSettings toast={toast} />,
     security: <SecuritySettings state={settings.security} set={set("security")} />,
+    platform: <PlatformSettings />,
   };
 
   return (
     <div className="p-4 sm:p-6 lg:p-10">
       {/* Mobile: horizontal scrollable tab strip */}
       <div className="mb-6 flex gap-1 overflow-x-auto rounded-2xl border border-slate-100 bg-white p-1 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {SECTIONS.map((s) => {
+        {sections.map((s) => {
           const Icon = s.icon;
           return (
             <button
@@ -665,7 +674,7 @@ export default function Settings() {
         {/* Desktop sidebar nav */}
         <div className="hidden h-fit lg:block">
           <div className="card p-2">
-            {SECTIONS.map((s) => {
+            {sections.map((s) => {
               const Icon = s.icon;
               return (
                 <button
@@ -693,11 +702,11 @@ export default function Settings() {
           <div className="mb-6 sm:mb-8">
             <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Settings</p>
             <h2 className="mt-2 text-2xl font-semibold text-[#0F1B33]">
-              {SECTIONS.find((s) => s.key === active)?.label}
+              {sections.find((s) => s.key === active)?.label}
             </h2>
           </div>
           {sectionContent[active]}
-          {active !== "integrations" && (
+          {active !== "integrations" && active !== "platform" && (
             <div className="mt-8 flex justify-end">
               <button
                 onClick={handleSave}

@@ -771,6 +771,8 @@ export default function BookingDetailDrawer({
               <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-600">Journey</p>
               <div className="space-y-3">
                 <Row icon={MapPin} label="Route" value={booking.route} />
+                <Row icon={MapPin} label="Pickup address" value={booking.pickupLocation || booking.airport || null} />
+                <Row icon={MapPin} label="Drop-off address" value={booking.dropoffAddress || booking.airport || null} />
                 <Row icon={Plane} label="Flight" value={booking.flight !== "—" ? booking.flight : null} />
                 <Row icon={Users} label="Passengers" value={booking.passengers != null ? String(booking.passengers) : null} />
                 <Row icon={Briefcase} label="Bags" value={booking.luggage || null} />
