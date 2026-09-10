@@ -677,19 +677,42 @@ export default function BookingDetailDrawer({
             <RespondPanel booking={booking} onRespond={onRespond} />
           )}
 
-        {/* Confirmed / declined chip once the operator has responded */}
+        {/* Confirmed / declined chip once the operator has responded -- with an
+            immediate way to call/WhatsApp the customer right there, since
+            rejecting doesn't mean the conversation is over (e.g. a driver
+            frees up and the operator wants to offer the job again). */}
         {booking.operatorResponse && (
           <div className="flex-shrink-0 border-b border-slate-100 px-5 py-2.5 sm:px-6">
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                booking.operatorResponse === "accepted"
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-red-100 text-red-700"
-              }`}
-            >
-              {booking.operatorResponse === "accepted" ? <Check className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-              {booking.operatorResponse === "accepted" ? "Accepted" : "Rejected"}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                  booking.operatorResponse === "accepted"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {booking.operatorResponse === "accepted" ? <Check className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                {booking.operatorResponse === "accepted" ? "Accepted" : "Rejected"}
+              </span>
+              {phoneHref && (
+                <a
+                  href={phoneHref}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-400/20"
+                >
+                  <Phone className="h-3 w-3" /> Call customer
+                </a>
+              )}
+              {waHref && (
+                <a
+                  href={waHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-400/20"
+                >
+                  WhatsApp
+                </a>
+              )}
+            </div>
           </div>
         )}
 

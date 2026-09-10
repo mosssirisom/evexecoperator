@@ -19,13 +19,20 @@ import DispatchButton from "@/components/operator/DispatchButton";
 import BookingDetailDrawer from "@/components/operator/BookingDetailDrawer";
 import ETACountdown from "@/components/operator/ETACountdown";
 import {
-  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2, ChevronDown, Check, Car, Plane,
+  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2, ChevronDown, Check, Car, Plane, Phone,
 } from "lucide-react";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { useBookings } from "@/hooks/operator/useBookings";
 import { useDrivers } from "@/hooks/operator/useDrivers";
 import { supabase } from "@/lib/supabase";
 import { bookingStatusColor } from "@/lib/operator/statusColor";
+
+// Builds a tel: href for a stored customer phone, or null if it doesn't look
+// like a usable number (same validation the detail drawer uses).
+function telHref(phone) {
+  const raw = phone?.trim() ?? "";
+  return raw && /^[+\d][\d\s\-().]{4,}$/.test(raw) ? `tel:${raw.replace(/\s/g, "")}` : null;
+}
 
 function driverDot(status) {
   if (status === "Available") return "bg-emerald-400";
@@ -403,6 +410,16 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign, onRespond }) {
           >
             {booking.driver || "Unassigned"}
           </button>
+          {telHref(booking.phone) && (
+            <a
+              href={telHref(booking.phone)}
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`Call ${booking.customer}`}
+              className="flex flex-shrink-0 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10 p-1 text-emerald-600 transition active:scale-95"
+            >
+              <Phone className="h-3 w-3" />
+            </a>
+          )}
           <span
             className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${bookingStatusColor(
               booking.status
@@ -1046,7 +1063,22 @@ function DispatchPageContent() {
                           <span className="font-mono text-xs text-slate-500">{t.id}</span>
                         </div>
                       </td>
-                      <td className="py-4 pr-6 font-medium text-[#0F1B33]">{t.customer}</td>
+                      <td className="py-4 pr-6 font-medium text-[#0F1B33]">
+                        <div className="flex items-center gap-2">
+                          {t.customer}
+                          {telHref(t.phone) && (
+                            <a
+                              href={telHref(t.phone)}
+                              onClick={(e) => e.stopPropagation()}
+                              aria-label={`Call ${t.customer}`}
+                              title={t.phone}
+                              className="flex flex-shrink-0 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10 p-1 text-emerald-600 transition hover:bg-emerald-400/20"
+                            >
+                              <Phone className="h-3 w-3" />
+                            </a>
+                          )}
+                        </div>
+                      </td>
                       <td className="max-w-[180px] truncate py-4 pr-6 text-slate-500">{t.route}</td>
                       <td className="py-4 pr-6 text-[#0F1B33]">{t.flight}</td>
                       <td className="py-4 pr-6">
