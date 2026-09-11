@@ -1,0 +1,1144 @@
+"use client";
+
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useSearchParams } from "next/navigation";
+
+// Delays filtering until the user stops typing, avoiding expensive re-renders on each keystroke
+function useDebounce(value, delay) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
+import BookingModal, { customersFromBookings } from "@/components/operator/BookingModal";
+import StatusActionMenu from "@/components/operator/StatusActionMenu";
+import DispatchButton from "@/components/operator/DispatchButton";
+import BookingDetailDrawer from "@/components/operator/BookingDetailDrawer";
+import ETACountdown from "@/components/operator/ETACountdown";
+import {
+  MapPin, Clock, Filter, Search, X, CalendarClock, List, AlertTriangle, Loader2, ChevronDown, Check, Car, Plane, Phone,
+} from "lucide-react";
+import { useOperatorToast } from "@/components/operator/Toast";
+import { useBookings } from "@/hooks/operator/useBookings";
+import { useDrivers } from "@/hooks/operator/useDrivers";
+import { supabase } from "@/lib/supabase";
+import { bookingStatusColor } from "@/lib/operator/statusColor";
+
+// Builds a tel: href for a stored customer phone, or null if it doesn't look
+// like a usable number (same validation the detail drawer uses).
+function telHref(phone) {
+  const raw = phone?.trim() ?? "";
+  return raw && /^[+\d][\d\s\-().]{4,}$/.test(raw) ? `tel:${raw.replace(/\s/g, "")}` : null;
+}
+
+function driverDot(status) {
+  if (status === "Available") return "bg-emerald-400";
+  if (status === "On Trip") return "bg-amber-400";
+  return "bg-slate-600";
+}
+
+// Renders in a portal so the dropdown escapes the overflow-x-auto table wrapper
+function InlineDriverCell({ bookingId, currentDriverId, drivers, onAssign }) {
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef(null);
+  const dropRef = useRef(null);
+  const current = drivers.find((d) => d.id === currentDriverId);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e) => {
+      if (!btnRef.current?.contains(e.target) && !dropRef.current?.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", h);
+    return () => document.removeEventListener("pointerdown", h);
+  }, [open]);
+
+  const handleOpen = () => {
+    if (pending) return;
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 4, left: r.left });
+    }
+    setOpen((v) => !v);
+  };
+
+  const handleAssign = async (dId) => {
+    setOpen(false);
+    setPending(true);
+    try { await onAssign(bookingId, dId); } finally { setPending(false); }
+  };
+
+  return (
+    <div>
+      <button
+        ref={btnRef}
+        onClick={handleOpen}
+        disabled={pending}
+        className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs transition hover:bg-slate-100 disabled:opacity-50 ${
+          current ? "text-slate-600" : "font-medium text-amber-600 hover:text-amber-600"
+        }`}
+      >
+        {pending ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : current ? (
+          <>
+            <span className={`h-2 w-2 flex-shrink-0 rounded-full ${driverDot(current.status)}`} />
+            {current.name}
+          </>
+        ) : (
+          <span className="rounded-full border border-dashed border-amber-400/40 px-2 py-0.5">
+            + Assign
+          </span>
+        )}
+      </button>
+      {open &&
+        !pending &&
+        createPortal(
+          <div
+            ref={dropRef}
+            className="fixed z-[200] w-56 rounded-2xl border border-slate-200 bg-white py-1 shadow-2xl"
+            style={{ top: pos.top, left: pos.left }}
+          >
+            <button
+              onClick={() => handleAssign(null)}
+              className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-slate-100 ${
+                !currentDriverId ? "text-amber-600" : "text-slate-500"
+              }`}
+            >
+              <span className="h-2 w-2 rounded-full bg-slate-700" />
+              Unassigned
+            </button>
+            {drivers.length > 0 && <div className="mx-4 my-1 border-t border-slate-100" />}
+            {drivers.map((d) => (
+              <button
+                key={d.id}
+                onClick={() => handleAssign(d.id)}
+                className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-slate-100 ${
+                  d.id === currentDriverId ? "text-amber-600" : "text-slate-600"
+                }`}
+              >
+                <span className={`h-2 w-2 flex-shrink-0 rounded-full ${driverDot(d.status)}`} />
+                <span className="flex-1 text-left">{d.name}</span>
+                <span className="text-slate-600">{d.vehicle || d.status}</span>
+              </button>
+            ))}
+          </div>,
+          document.body
+        )}
+    </div>
+  );
+}
+
+const STATUS_FILTERS = [
+  "All",
+  "Unassigned",
+  "Dispatched",
+  "En Route",
+  "Passenger On Board",
+  "Completed",
+  "Cancelled",
+  "Unassigned / Missed Call Recovery",
+];
+
+// ── Schedule view row ─────────────────────────────────────────────────────────
+function ScheduleRow({ booking, onSelect }) {
+  const now = Date.now();
+  const ts = booking.pickupTime ? new Date(booking.pickupTime).getTime() : null;
+  const isPast = ts && ts < now - 30 * 60 * 1000;
+  const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
+
+  return (
+    <button
+      onClick={() => onSelect(booking)}
+      className={`flex w-full items-center gap-4 rounded-2xl border px-4 py-4 text-left transition hover:border-amber-400/20 sm:px-5 ${
+        isActive
+          ? "border-amber-400/20 bg-amber-400/[0.04]"
+          : isPast
+          ? "border-slate-100 bg-slate-50 opacity-50"
+          : "border-slate-100 bg-slate-50"
+      }`}
+    >
+      <div className="w-14 flex-shrink-0 text-center">
+        <p className="text-sm font-semibold text-[#0F1B33]">{booking.time}</p>
+        {booking.pickupTime && <ETACountdown pickupTime={booking.pickupTime} className="text-[10px]" />}
+      </div>
+      <div className="h-8 w-px bg-slate-100" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="truncate text-sm font-medium text-[#0F1B33]">{booking.customer}</p>
+          {booking.priority && <span className="flex-shrink-0 text-xs text-red-600">⚡</span>}
+        </div>
+        <p className="truncate text-xs text-slate-500">{booking.route}</p>
+      </div>
+      <div className="flex-shrink-0 text-right">
+        <p className="text-xs font-semibold text-amber-600">{booking.price}</p>
+        <p className="text-xs text-slate-600">{booking.driver}</p>
+      </div>
+    </button>
+  );
+}
+
+// ── Date grouping helpers ─────────────────────────────────────────────────────
+// Groups the transfer list into date buckets (TODAY / TOMORROW / …) so the
+// mobile list stays scannable. Sorts each bucket by pickup time.
+function ymd(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function dateKeyOf(b) {
+  if (b.travelDate) return b.travelDate;
+  if (b.pickupTime) { const d = new Date(b.pickupTime); if (!isNaN(d)) return ymd(d); }
+  return null;
+}
+function groupLabel(key) {
+  if (!key) return "NO DATE";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const t = new Date(`${key}T00:00:00`);
+  const diff = Math.round((t - today) / 86400000);
+  if (diff === 0) return "TODAY";
+  if (diff === 1) return "TOMORROW";
+  if (diff === -1) return "YESTERDAY";
+  return t.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }).toUpperCase();
+}
+function timeVal(b) {
+  if (b.pickupTime) { const d = new Date(b.pickupTime); if (!isNaN(d)) return d.getTime(); }
+  if (b.time && b.time !== "—") return Number(b.time.replace(":", "")) || Infinity;
+  return Infinity;
+}
+function groupByDate(list) {
+  const map = new Map();
+  for (const b of list) {
+    const k = dateKeyOf(b);
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(b);
+  }
+  const groups = [...map.entries()].map(([key, items]) => ({
+    key,
+    label: groupLabel(key),
+    items: items.sort((a, b) => timeVal(a) - timeVal(b)),
+  }));
+  groups.sort((a, b) => (a.key === null ? 1 : b.key === null ? -1 : a.key < b.key ? -1 : 1));
+  return groups;
+}
+
+// ── Mobile driver bottom-sheet picker ────────────────────────────────────────
+function MobileDriverSheet({ booking, drivers, onAssign, onClose }) {
+  const [pending, setPending] = useState(false);
+
+  const handleSelect = async (driverId) => {
+    if (driverId === booking.driverId) { onClose(); return; }
+    setPending(true);
+    try {
+      await onAssign(booking.id, driverId);
+      onClose();
+    } catch {
+      setPending(false);
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-end sm:hidden">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full rounded-t-[28px] border-t border-slate-200 bg-white">
+        {/* Drag handle */}
+        <div className="flex justify-center pb-1 pt-3">
+          <div className="h-1 w-12 rounded-full bg-slate-200" />
+        </div>
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-amber-600">Assign Driver</p>
+            <p className="mt-0.5 text-sm font-semibold text-[#0F1B33]">{booking.customer}</p>
+          </div>
+          <button onClick={onClose} className="text-slate-500 transition hover:text-[#0F1B33]">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        {/* Driver options */}
+        <div className="max-h-72 overflow-y-auto px-3 py-2">
+          {/* Unassigned */}
+          <button
+            onClick={() => handleSelect(null)}
+            disabled={pending}
+            className={`flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-sm transition ${
+              !booking.driverId ? "bg-amber-400/10 text-amber-600" : "text-slate-500 hover:bg-slate-100"
+            }`}
+          >
+            <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-slate-700" />
+            <span className="flex-1 text-left">Unassigned</span>
+            {!booking.driverId && <Check className="h-4 w-4 flex-shrink-0" />}
+          </button>
+          {/* Drivers */}
+          {drivers.map((d) => {
+            const isCurrent = d.id === booking.driverId;
+            return (
+              <button
+                key={d.id}
+                onClick={() => handleSelect(d.id)}
+                disabled={pending}
+                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-sm transition ${
+                  isCurrent ? "bg-amber-400/10 text-amber-600" : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${driverDot(d.status)}`} />
+                <span className="flex-1 text-left font-medium">{d.name}</span>
+                <span className="text-xs text-slate-600">{d.vehicle || d.status}</span>
+                {isCurrent && <Check className="h-4 w-4 flex-shrink-0 ml-1" />}
+              </button>
+            );
+          })}
+          {pending && (
+            <div className="flex items-center justify-center gap-2 py-4 text-xs text-slate-500">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Assigning…
+            </div>
+          )}
+        </div>
+        {/* iOS safe-area spacer */}
+        <div className="h-8" />
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ── Mobile booking card ───────────────────────────────────────────────────────
+function cardAccent(booking) {
+  if (booking.priority) return "bg-red-500";
+  if (["Dispatched", "En Route", "Passenger On Board"].includes(booking.status)) return "bg-amber-400";
+  if (booking.status === "Completed") return "bg-emerald-400";
+  if (booking.status === "Cancelled") return "bg-slate-700";
+  return "bg-slate-600/50";
+}
+
+function BookingCard({ booking, onSelect, drivers = [], onAssign, onRespond }) {
+  const [driverSheetOpen, setDriverSheetOpen] = useState(false);
+  const [respBusy, setRespBusy] = useState(null);
+  const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
+  const isCancelled = booking.status === "Cancelled";
+  const pendingRequest =
+    booking.source === "website" &&
+    !booking.operatorResponse &&
+    !["Cancelled", "Completed"].includes(booking.status);
+
+  const respond = async (e, decision) => {
+    e.stopPropagation();
+    setRespBusy(decision);
+    try {
+      await onRespond?.(booking.id, decision);
+    } catch {
+      /* error is surfaced by the caller / rolled back in the hook */
+    } finally {
+      setRespBusy(null);
+    }
+  };
+  const statusLabel =
+    booking.status === "Unassigned / Missed Call Recovery" ? "Missed Call" :
+    booking.status === "Passenger On Board" ? "On Board" :
+    booking.status;
+
+  return (
+    <div
+      className={`relative min-w-0 overflow-visible rounded-xl border transition ${
+        pendingRequest
+          ? "border-amber-400/50 bg-amber-400/[0.06]"
+          : booking.priority
+          ? "border-red-500/20 bg-red-500/[0.04]"
+          : isActive
+          ? "border-amber-400/15 bg-amber-400/[0.03]"
+          : "border-slate-100 bg-slate-50"
+      } ${isCancelled ? "opacity-50" : ""}`}
+    >
+      {/* Left accent stripe */}
+      <div className={`absolute left-1.5 top-1.5 bottom-1.5 w-0.5 rounded-full ${cardAccent(booking)}`} />
+
+      {/* Full-card tap target — opens the detail drawer */}
+      <button
+        type="button"
+        onClick={() => onSelect(booking)}
+        className="absolute inset-0 z-0 rounded-xl"
+        aria-label={`View details for ${booking.customer}`}
+      />
+
+      <div className="relative z-10 py-1.5 pl-3.5 pr-3">
+        {/* Row 1 — passenger + price */}
+        <div className="pointer-events-none flex items-baseline gap-2">
+          {booking.priority && (
+            <AlertTriangle className="h-3 w-3 flex-shrink-0 self-center text-red-600" />
+          )}
+          <p className="min-w-0 flex-1 truncate text-sm font-semibold text-[#0F1B33]">
+            {booking.customer}
+          </p>
+          {pendingRequest && (
+            <span className="flex-shrink-0 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-black">
+              New
+            </span>
+          )}
+          <p className="flex-shrink-0 text-sm font-bold text-amber-600">{booking.price}</p>
+        </div>
+
+        {/* Row 2 — route, flight kept secondary */}
+        <div className="pointer-events-none mt-0.5 flex items-center gap-1.5">
+          <p className="min-w-0 flex-1 truncate text-xs text-slate-500">{booking.route}</p>
+          {booking.flight && booking.flight !== "—" && (
+            <span className="flex flex-shrink-0 items-center gap-0.5 text-[10px] text-slate-600">
+              <Plane className="h-2.5 w-2.5" />
+              {booking.flight}
+            </span>
+          )}
+        </div>
+
+        {/* Row 3 — time · driver (tap to assign) · status */}
+        <div className="mt-0.5 flex items-center gap-1.5 text-[11px]">
+          <span className="pointer-events-none flex flex-shrink-0 items-center gap-1 text-slate-500">
+            <Clock className="h-3 w-3 text-slate-600" />
+            {booking.time}
+          </span>
+          <span className="pointer-events-none text-slate-700">·</span>
+          <button
+            onClick={(e) => { e.stopPropagation(); setDriverSheetOpen(true); }}
+            className={`min-w-0 flex-1 truncate text-left transition active:opacity-70 ${
+              booking.driverId ? "text-slate-600" : "font-medium text-amber-600/80"
+            }`}
+          >
+            {booking.driver || "Unassigned"}
+          </button>
+          {telHref(booking.phone) && (
+            <a
+              href={telHref(booking.phone)}
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`Call ${booking.customer}`}
+              className="flex flex-shrink-0 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10 p-1 text-emerald-600 transition active:scale-95"
+            >
+              <Phone className="h-3 w-3" />
+            </a>
+          )}
+          <span
+            className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${bookingStatusColor(
+              booking.status
+            )}`}
+          >
+            {statusLabel}
+          </span>
+        </div>
+
+        {/* Accept / reject for a new website request */}
+        {pendingRequest && (
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={(e) => respond(e, "accepted")}
+              disabled={!!respBusy}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-2 text-xs font-bold text-white transition active:scale-95 disabled:opacity-60"
+            >
+              {respBusy === "accepted" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              Accept
+            </button>
+            <button
+              onClick={(e) => respond(e, "rejected")}
+              disabled={!!respBusy}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-400/40 bg-red-500/10 py-2 text-xs font-bold text-red-600 transition active:scale-95 disabled:opacity-60"
+            >
+              {respBusy === "rejected" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+              Reject
+            </button>
+          </div>
+        )}
+      </div>
+
+      {driverSheetOpen && (
+        <MobileDriverSheet
+          booking={booking}
+          drivers={drivers}
+          onAssign={onAssign}
+          onClose={() => setDriverSheetOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+export default function DispatchPage() {
+  return (
+    <Suspense fallback={null}>
+      <DispatchPageContent />
+    </Suspense>
+  );
+}
+
+function DispatchPageContent() {
+  const searchParams = useSearchParams();
+  const [activeFilter, setActiveFilter] = useState("All");
+  const [search, setSearch] = useState(searchParams.get("q") ?? "");
+  const [view, setView] = useState(
+    searchParams.get("view") === "schedule" ? "schedule" : "board"
+  );
+  const [modalOpen, setModalOpen] = useState(false);
+  const [returnPrefill, setReturnPrefill] = useState(null);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [stickyTop, setStickyTop] = useState(0);
+  const searchRef = useRef(null);
+
+  // Pin the filter bar directly beneath the (variable-height) app header while
+  // scrolling the feed. Measure the header live so it tracks any size change.
+  useEffect(() => {
+    const header = document.querySelector("header");
+    if (!header) return;
+    const update = () => setStickyTop(header.getBoundingClientRect().height);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(header);
+    window.addEventListener("resize", update);
+    return () => { ro.disconnect(); window.removeEventListener("resize", update); };
+  }, []);
+
+  const toast = useOperatorToast();
+  const {
+    bookings: transfers,
+    totalCount,
+    loading,
+    loadingMore,
+    loadMore,
+    error,
+    createBooking,
+    updateStatus,
+    assignDriver,
+    respondToBooking,
+    updateNotes,
+    togglePriority,
+    updatePaymentStatus,
+    updatePaymentMethod,
+    updateBooking,
+    deleteBooking,
+  } = useBookings();
+  const { drivers } = useDrivers();
+
+  const debouncedSearch = useDebounce(search, 200);
+
+  useEffect(() => {
+    if (searchParams.get("view") === "schedule") setView("schedule");
+    const q = searchParams.get("q");
+    if (q != null) setSearch(q);
+  }, [searchParams]);
+
+  // Keyboard shortcuts: N = new booking, / or F = focus search
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+      const tag = document.activeElement?.tagName;
+      const inInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+
+      if (e.key === "n" && !modalOpen && !inInput) {
+        e.preventDefault();
+        setModalOpen(true);
+        return;
+      }
+
+      if ((e.key === "/" || e.key === "f") && !inInput) {
+        e.preventDefault();
+        searchRef.current?.focus();
+        return;
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [modalOpen]);
+
+  const handleStatusUpdate = useCallback(async (id, status) => {
+    try {
+      await updateStatus(id, status);
+      toast({ message: `Status → ${status}`, type: "success" });
+      setSelectedBooking((prev) => (prev?.id === id ? { ...prev, status } : prev));
+    } catch (err) {
+      toast({ message: err?.message ?? "Failed to update status", type: "error" });
+    }
+  }, [updateStatus, toast]);
+
+  const handleRespond = useCallback(async (id, decision) => {
+    // respondToBooking throws only on a DB failure (which it rolls back) — let
+    // that propagate so the drawer panel can show it. Notification issues come
+    // back as { warning } instead.
+    const out = await respondToBooking(id, decision);
+    const verb = decision === "accepted" ? "Accepted" : "Rejected";
+    if (out?.warning) {
+      toast({ message: `${verb}, but ${out.warning}`, type: "error" });
+    } else {
+      toast({
+        message: `${verb} — customer notified${out?.channel ? ` by ${out.channel}` : ""}`,
+        type: "success",
+      });
+    }
+    setSelectedBooking((prev) =>
+      prev?.id === id
+        ? { ...prev, operatorResponse: decision, ...(decision === "rejected" ? { status: "Cancelled" } : {}) }
+        : prev
+    );
+  }, [respondToBooking, toast]);
+
+  const handleDeleteBooking = useCallback(async (id, password) => {
+    // Throws on bad password / failure so the drawer's modal can show the error
+    // and keep itself open; on success we close the drawer.
+    await deleteBooking(id, password);
+    toast({ message: `Booking ${id} deleted`, type: "success" });
+    setSelectedBooking(null);
+  }, [deleteBooking, toast]);
+
+  const handleAssignDriver = useCallback(async (id, driverId) => {
+    const driver = drivers.find((d) => d.id === driverId);
+    try {
+      await assignDriver(id, driverId, driver?.name ?? null);
+      toast({ message: driver ? `Assigned to ${driver.name}` : "Driver unassigned", type: "success" });
+      setSelectedBooking((prev) => {
+        if (prev?.id !== id) return prev;
+        return { ...prev, driverId, driver: driver?.name ?? "Unassigned" };
+      });
+    } catch (err) {
+      toast({ message: err?.message ?? "Failed to assign driver", type: "error" });
+    }
+  }, [assignDriver, drivers, toast]);
+
+  const handleUpdateNotes = useCallback(async (id, notes) => {
+    await updateNotes(id, notes);
+    setSelectedBooking((prev) => (prev?.id === id ? { ...prev, notes } : prev));
+  }, [updateNotes]);
+
+  const handleTogglePriority = useCallback(async (id) => {
+    try {
+      await togglePriority(id);
+      setSelectedBooking((prev) => {
+        if (prev?.id !== id) return prev;
+        return { ...prev, priority: !prev.priority };
+      });
+    } catch (err) {
+      toast({ message: err?.message ?? "Failed to update priority", type: "error" });
+    }
+  }, [togglePriority, toast]);
+
+  const handleCreateBooking = useCallback(async (form) => {
+    const result = await createBooking(form);
+    toast({
+      message: result.returnRef
+        ? `Booking ${result.ref} + return ${result.returnRef} created`
+        : `Booking ${result.ref} created`,
+      type: "success",
+    });
+    return result;
+  }, [createBooking, toast]);
+
+  const handleUpdatePaymentStatus = useCallback(async (id, ps) => {
+    try {
+      await updatePaymentStatus(id, ps);
+      setSelectedBooking((prev) => (prev?.id === id ? { ...prev, paymentStatus: ps } : prev));
+    } catch (err) {
+      toast({ message: err?.message ?? "Failed to update payment status", type: "error" });
+    }
+  }, [updatePaymentStatus, toast]);
+
+  const handleUpdatePaymentMethod = useCallback(async (id, method) => {
+    try {
+      await updatePaymentMethod(id, method);
+      setSelectedBooking((prev) => (prev?.id === id ? { ...prev, paymentMethod: method } : prev));
+      toast({ message: method ? `Payment method: ${method}` : "Payment method cleared", type: "success" });
+    } catch (err) {
+      toast({ message: err?.message ?? "Failed to update payment method", type: "error" });
+    }
+  }, [updatePaymentMethod, toast]);
+
+  const handleUpdateBooking = useCallback(async (id, fields) => {
+    try {
+      await updateBooking(id, fields);
+      setSelectedBooking((prev) => (prev?.id === id ? { ...prev, ...fields } : prev));
+      toast({ message: "Booking updated", type: "success" });
+    } catch (err) {
+      toast({ message: err?.message ?? "Failed to update booking", type: "error" });
+      throw err;
+    }
+  }, [updateBooking, toast]);
+
+  const handleSendPaymentLink = useCallback(async (id) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        toast({ message: "Please sign in again to send a payment link.", type: "error" });
+        return;
+      }
+      const res = await fetch("/api/payment-link", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ref: id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({ message: data?.error ?? "Could not create payment link.", type: "error" });
+        return;
+      }
+      // Reflect the method locally so the badge/chip update immediately.
+      await updatePaymentMethod(id, "Payment link").catch(() => {});
+      setSelectedBooking((prev) => (prev?.id === id ? { ...prev, paymentMethod: "Payment link" } : prev));
+      toast({
+        message: data?.sent ? "Stripe payment link texted to the customer." : "Payment link created.",
+        type: "success",
+      });
+    } catch (err) {
+      toast({ message: err?.message ?? "Could not create payment link.", type: "error" });
+    }
+  }, [updatePaymentMethod, toast]);
+
+  const handleCreateReturn = useCallback((booking) => {
+    const rawPrice = booking.price !== "TBC" ? booking.price.replace(/[^0-9.]/g, "") : "";
+    // Return leg = the reverse trip: original drop-off becomes the new pickup.
+    const origPickup = booking.pickupLocation || booking.airport || "";
+    const origDropoff = booking.dropoffAddress || booking.destination || booking.airport || "";
+    setReturnPrefill({
+      customer: booking.customer ?? "",
+      phone:    booking.phone ?? "",
+      email:    booking.email ?? "",
+      flight:   "",
+      pickup:   origDropoff,
+      dropoff:  origPickup,
+      date:     "",
+      time:     "",
+      driver:   "",
+      price:    rawPrice,
+      notes:    "",
+    });
+    setSelectedBooking(null);
+    setModalOpen(true);
+  }, []);
+
+  const filtered = useMemo(() => {
+    let list = transfers;
+    if (activeFilter !== "All") list = list.filter((t) => t.status === activeFilter);
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase();
+      list = list.filter(
+        (t) =>
+          t.customer.toLowerCase().includes(q) ||
+          t.flight.toLowerCase().includes(q) ||
+          t.id.toLowerCase().includes(q) ||
+          t.driver.toLowerCase().includes(q) ||
+          t.route.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [transfers, activeFilter, debouncedSearch]);
+
+  const schedule = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return transfers
+      .filter((t) => {
+        if (!t.pickupTime) return false;
+        const d = new Date(t.pickupTime);
+        return d >= today && d < tomorrow;
+      })
+      .sort((a, b) => new Date(a.pickupTime) - new Date(b.pickupTime));
+  }, [transfers]);
+
+  const stats = useMemo(
+    () => ({
+      active: transfers.filter((t) =>
+        ["Dispatched", "En Route", "Passenger On Board"].includes(t.status)
+      ).length,
+      completed: transfers.filter((t) => t.status === "Completed").length,
+      pending: transfers.filter(
+        (t) =>
+          t.status === "Unassigned / Missed Call Recovery" ||
+          (t.status === "Unassigned" && t.priority)
+      ).length,
+    }),
+    [transfers]
+  );
+
+  const liveSelectedBooking = useMemo(() => {
+    if (!selectedBooking) return null;
+    return transfers.find((t) => t.id === selectedBooking.id) ?? selectedBooking;
+  }, [selectedBooking, transfers]);
+
+  const customers = useMemo(() => customersFromBookings(transfers), [transfers]);
+
+  return (
+    <>
+      <BookingModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setReturnPrefill(null); }}
+        onSubmit={handleCreateBooking}
+        initialValues={returnPrefill}
+        customers={customers}
+      />
+
+      {liveSelectedBooking && (
+        <BookingDetailDrawer
+          booking={liveSelectedBooking}
+          drivers={drivers}
+          onClose={() => setSelectedBooking(null)}
+          onRespond={handleRespond}
+          onUpdateStatus={handleStatusUpdate}
+          onAssignDriver={handleAssignDriver}
+          onUpdateNotes={handleUpdateNotes}
+          onTogglePriority={handleTogglePriority}
+          onUpdatePaymentStatus={handleUpdatePaymentStatus}
+          onUpdatePaymentMethod={handleUpdatePaymentMethod}
+          onSendPaymentLink={handleSendPaymentLink}
+          onUpdateBooking={handleUpdateBooking}
+          onCreateReturn={handleCreateReturn}
+          onDelete={handleDeleteBooking}
+        />
+      )}
+
+      <div className="grid gap-2 p-2 sm:gap-6 sm:p-6 lg:p-10">
+        {error && (
+          <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-600">
+            Failed to load transfers: {error}
+          </div>
+        )}
+
+        {/* Stats — one slim row on mobile so the booking list starts higher;
+            full stat cards on desktop */}
+        <div className="flex items-center justify-around gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2 sm:hidden">
+          {[
+            { label: "Active", value: stats.active, color: "text-amber-600", dot: "bg-amber-400" },
+            { label: "Completed", value: stats.completed, color: "text-emerald-600", dot: "bg-emerald-400" },
+            { label: "Attention", value: stats.pending, color: "text-red-600", dot: "bg-red-400" },
+          ].map((s) => (
+            <div key={s.label} className="flex items-center gap-1.5">
+              <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${s.dot}`} />
+              <span className={`text-base font-bold leading-none ${s.color}`}>{s.value}</span>
+              <span className="text-[11px] text-slate-500">{s.label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="hidden grid-cols-3 gap-4 sm:grid">
+          {[
+            { label: "Active", value: stats.active, color: "text-amber-600" },
+            { label: "Completed", value: stats.completed, color: "text-emerald-600" },
+            { label: "Attention", value: stats.pending, color: "text-red-600" },
+          ].map((s) => (
+            <div key={s.label} className="card flex items-center gap-5 p-5">
+              <p className={`text-4xl font-bold ${s.color}`}>{s.value}</p>
+              <p className="text-sm text-slate-500">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* View toggle (New Booking lives as the + in the top-right header) */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-1 rounded-2xl border border-slate-200 p-1">
+            <button
+              onClick={() => setView("board")}
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition sm:px-4 sm:py-2.5 ${
+                view === "board"
+                  ? "bg-amber-400/10 text-amber-600"
+                  : "text-slate-500 hover:text-slate-600"
+              }`}
+            >
+              <List className="h-4 w-4" />
+              Board
+              {activeFilter !== "All" && filtered.length > 0 && (
+                <span className="rounded-full bg-amber-400/20 px-1.5 text-xs text-amber-600">
+                  {filtered.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setView("schedule")}
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition sm:px-4 sm:py-2.5 ${
+                view === "schedule"
+                  ? "bg-amber-400/10 text-amber-600"
+                  : "text-slate-500 hover:text-slate-600"
+              }`}
+            >
+              <CalendarClock className="h-4 w-4" />
+              <span className="hidden sm:inline">Today's </span>Schedule
+              {schedule.length > 0 && (
+                <span className="rounded-full bg-amber-400/20 px-1.5 text-xs text-amber-600">
+                  {schedule.length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {view === "schedule" ? (
+          /* ── Schedule view ──────────────────────────────────────────────── */
+          <div className="card p-4 sm:p-6">
+            <div className="mb-5">
+              <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Today</p>
+              <h2 className="mt-2 text-2xl font-semibold text-[#0F1B33]">Schedule</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {schedule.length === 0
+                  ? "No pickups scheduled for today"
+                  : `${schedule.length} pickup${schedule.length > 1 ? "s" : ""} today`}
+              </p>
+            </div>
+            <div className="space-y-3">
+              {schedule.map((b) => (
+                <ScheduleRow key={b.id} booking={b} onSelect={setSelectedBooking} />
+              ))}
+              {schedule.length === 0 && (
+                <p className="py-12 text-center text-sm text-slate-600">
+                  No pickups with a scheduled time for today.
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* ── Board view ─────────────────────────────────────────────────── */
+          <div className="min-w-0 p-0 sm:p-6">
+            {/* Header block is sticky on mobile so the filter row stays pinned
+                below the app header while the feed scrolls; static on desktop. */}
+            <div
+              style={{ top: stickyTop }}
+              className="sticky z-30 mb-2 flex min-w-0 flex-col gap-2 bg-white/95 py-2 backdrop-blur-md lg:static lg:mb-4 lg:flex-row lg:items-center lg:justify-between lg:gap-3 lg:bg-transparent lg:py-0 lg:backdrop-blur-none"
+            >
+              {/* Heading — hidden on mobile to save vertical space */}
+              <div className="hidden sm:block">
+                <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Dispatch Board</p>
+                <h2 className="mt-1.5 text-2xl font-semibold text-[#0F1B33]">All Transfers</h2>
+              </div>
+
+              {/* Search + filter row */}
+              <div className="flex min-w-0 flex-col gap-2 sm:gap-3">
+                {/* Search input — always shown on desktop; toggled on mobile */}
+                <div className={`relative ${searchOpen ? "block" : "hidden"} sm:block`}>
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" />
+                  <input
+                    ref={searchRef}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search customer, flight, ref… (/)"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-9 text-sm text-[#0F1B33] placeholder:text-slate-400 outline-none transition focus:border-amber-400/30 sm:py-3 lg:w-72"
+                  />
+                  {search && (
+                    <button
+                      onClick={() => setSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#0F1B33]"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Status filter chips — horizontally scrollable — plus mobile search toggle */}
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <Filter className="h-3 w-3 flex-shrink-0 text-slate-600 sm:h-3.5 sm:w-3.5 sm:text-slate-500" />
+                  <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:gap-1.5">
+                    {STATUS_FILTERS.map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setActiveFilter(f)}
+                        className={`flex-shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition sm:px-3 sm:py-1.5 sm:text-xs ${
+                          activeFilter === f
+                            ? "border-amber-400/40 bg-amber-400/10 text-amber-600"
+                            : "border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-600"
+                        }`}
+                      >
+                        {f === "Unassigned / Missed Call Recovery" ? "Missed Call" : f}
+                      </button>
+                    ))}
+                  </div>
+                  {activeFilter !== "All" && (
+                    <button
+                      onClick={() => setActiveFilter("All")}
+                      className="flex-shrink-0 text-slate-600 hover:text-[#0F1B33] transition"
+                      title="Clear filter"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {/* Mobile-only search toggle button */}
+                  <button
+                    onClick={() => {
+                      setSearchOpen((v) => {
+                        const next = !v;
+                        if (!next) setSearch("");
+                        else setTimeout(() => searchRef.current?.focus(), 0);
+                        return next;
+                      });
+                    }}
+                    aria-label={searchOpen ? "Close search" : "Search"}
+                    className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border transition active:bg-slate-100 sm:hidden ${
+                      searchOpen || search
+                        ? "border-amber-400/40 bg-amber-400/10 text-amber-600"
+                        : "border-slate-200 text-slate-500"
+                    }`}
+                  >
+                    {searchOpen ? <X className="h-3.5 w-3.5" /> : <Search className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile + tablet card layout — grouped by date, extra bottom padding
+                so the floating "New Booking" button never covers the last card */}
+            <div className="grid min-w-0 gap-2 pb-24 lg:hidden lg:pb-0">
+              {loading && transfers.length === 0
+                ? [1, 2, 3].map((i) => (
+                    <div key={i} className="animate-pulse rounded-xl border border-slate-100 bg-slate-50 p-3">
+                      <div className="h-4 w-1/3 rounded-full bg-slate-50" />
+                      <div className="mt-3 h-3 w-2/3 rounded-full bg-slate-50" />
+                    </div>
+                  ))
+                : groupByDate(filtered).map((g) => (
+                    <div key={g.key ?? "no-date"} className="grid min-w-0 gap-1">
+                      <p className="px-0.5 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-600/80">
+                        {g.label}
+                        <span className="ml-1.5 text-slate-600">· {g.items.length}</span>
+                      </p>
+                      {g.items.map((t) => (
+                        <BookingCard
+                          key={t.id}
+                          booking={t}
+                          onSelect={setSelectedBooking}
+                          drivers={drivers}
+                          onAssign={handleAssignDriver}
+                          onRespond={handleRespond}
+                        />
+                      ))}
+                    </div>
+                  ))}
+              {!loading && filtered.length === 0 && (
+                <p className="py-8 text-center text-sm text-slate-600">
+                  {debouncedSearch ? `No transfers match "${debouncedSearch}"` : "No transfers match this filter."}
+                </p>
+              )}
+            </div>
+
+            {/* Desktop table layout */}
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-left">
+                    {["Job ID", "Customer", "Route", "Flight", "Pickup", "ETA", "Driver", "Price", "Status", ""].map(
+                      (h) => (
+                        <th
+                          key={h}
+                          className="pb-4 pr-6 text-[10px] font-normal uppercase tracking-[0.2em] text-slate-600"
+                        >
+                          {h}
+                        </th>
+                      )
+                    )}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.03]">
+                  {loading &&
+                    transfers.length === 0 &&
+                    [1, 2, 3, 4].map((i) => (
+                      <tr key={i} className="animate-pulse">
+                        {[...Array(10)].map((_, j) => (
+                          <td key={j} className="py-4 pr-6">
+                            <div
+                              className="h-3 rounded-full bg-slate-50"
+                              style={{ width: `${50 + j * 5}%` }}
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  {filtered.map((t) => (
+                    <tr
+                      key={t.id}
+                      onClick={() => setSelectedBooking(t)}
+                      className={`cursor-pointer transition-colors ${
+                        t.priority ? "bg-red-500/[0.03]" : "hover:bg-slate-50"
+                      } ${selectedBooking?.id === t.id ? "bg-amber-400/[0.04]" : ""}`}
+                    >
+                      <td className="py-4 pr-6">
+                        <div className="flex items-center gap-1.5">
+                          {t.priority && (
+                            <AlertTriangle className="h-3 w-3 flex-shrink-0 text-red-600" />
+                          )}
+                          <span className="font-mono text-xs text-slate-500">{t.id}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 pr-6 font-medium text-[#0F1B33]">
+                        <div className="flex items-center gap-2">
+                          {t.customer}
+                          {telHref(t.phone) && (
+                            <a
+                              href={telHref(t.phone)}
+                              onClick={(e) => e.stopPropagation()}
+                              aria-label={`Call ${t.customer}`}
+                              title={t.phone}
+                              className="flex flex-shrink-0 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10 p-1 text-emerald-600 transition hover:bg-emerald-400/20"
+                            >
+                              <Phone className="h-3 w-3" />
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                      <td className="max-w-[180px] truncate py-4 pr-6 text-slate-500">{t.route}</td>
+                      <td className="py-4 pr-6 text-[#0F1B33]">{t.flight}</td>
+                      <td className="py-4 pr-6">
+                        <div className="flex items-center gap-1.5 text-[#0F1B33]">
+                          <Clock className="h-3.5 w-3.5 text-slate-500" />
+                          {t.time}
+                        </div>
+                      </td>
+                      <td className="py-4 pr-6">
+                        <ETACountdown pickupTime={t.pickupTime} />
+                      </td>
+                      <td className="py-4 pr-6" onClick={(e) => e.stopPropagation()}>
+                        <InlineDriverCell
+                          bookingId={t.id}
+                          currentDriverId={t.driverId}
+                          drivers={drivers}
+                          onAssign={handleAssignDriver}
+                        />
+                      </td>
+                      <td className="py-4 pr-6 font-semibold text-amber-600">{t.price}</td>
+                      <td className="py-4 pr-6" onClick={(e) => e.stopPropagation()}>
+                        <StatusActionMenu
+                          bookingId={t.id}
+                          currentStatus={t.status}
+                          onUpdate={handleStatusUpdate}
+                        />
+                      </td>
+                      <td className="py-4" onClick={(e) => e.stopPropagation()}>
+                        <DispatchButton booking={t} driverName={t.driver} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!loading && filtered.length === 0 && (
+                <p className="py-10 text-center text-sm text-slate-600">
+                  {debouncedSearch ? `No transfers match "${debouncedSearch}"` : "No transfers match this filter."}
+                </p>
+              )}
+            </div>
+
+            {/* Load more — shown on both mobile and desktop when more pages exist */}
+            {totalCount > transfers.length && !debouncedSearch && activeFilter === "All" && (
+              <div className="mt-4 flex items-center justify-center gap-4 border-t border-slate-100 pt-4">
+                <p className="text-xs text-slate-600">
+                  Showing {transfers.length} of {totalCount} bookings
+                </p>
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs text-slate-500 transition hover:border-amber-400/20 hover:text-amber-600 disabled:opacity-50"
+                >
+                  {loadingMore ? "Loading…" : "Load more"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+    </>
+  );
+}
