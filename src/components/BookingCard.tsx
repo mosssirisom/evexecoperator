@@ -138,7 +138,9 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
         })()}
 
         <div className="flex items-center justify-between">
-          <span className="text-xs text-slate-500">{booking.payment_status ?? "Unpaid"}</span>
+          <span className={`text-xs font-medium ${booking.payment_status === "Paid" ? "text-emerald-600" : "text-slate-500"}`}>
+            {booking.payment_status ?? "Unpaid"}{booking.payment_method ? ` · ${booking.payment_method}` : " · method not set"}
+          </span>
           <span className="text-sm font-semibold text-amber-600">{booking.quoted_price != null ? `£${Number(booking.quoted_price).toFixed(0)}` : "TBC"}</span>
         </div>
 
@@ -218,6 +220,8 @@ function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: (
     quoted_price: booking.quoted_price != null ? String(booking.quoted_price) : "",
     notes: booking.notes ?? booking.operator_note ?? "",
     priority: Boolean(booking.priority),
+    payment_status: booking.payment_status ?? "Unpaid",
+    payment_method: booking.payment_method ?? "",
   });
 
   const set = (key: string, value: string | boolean) => setForm((f) => ({ ...f, [key]: value }));
@@ -243,6 +247,8 @@ function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: (
       quoted_price: form.quoted_price ? Number(form.quoted_price) : null,
       notes: form.notes.trim() || null,
       priority: form.priority,
+      payment_status: form.payment_status,
+      payment_method: form.payment_method || null,
     };
 
     const { error: updateError } = await supabase.from("bookings").update(payload).eq("ref", booking.ref);
@@ -285,6 +291,33 @@ function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: (
             <Field label="Bags" value={form.luggage} onChange={(v) => set("luggage", v)} />
           </div>
           <Field label="Price (£)" type="number" value={form.quoted_price} onChange={(v) => set("quoted_price", v)} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-xs text-slate-500">Payment status</label>
+              <select
+                value={form.payment_status}
+                onChange={(e) => set("payment_status", e.target.value)}
+                className={editInputCls}
+              >
+                <option value="Unpaid">Unpaid</option>
+                <option value="Invoiced">Invoiced</option>
+                <option value="Paid">Paid</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-slate-500">Payment method (driver sees this)</label>
+              <select
+                value={form.payment_method}
+                onChange={(e) => set("payment_method", e.target.value)}
+                className={editInputCls}
+              >
+                <option value="">Not set — TBC</option>
+                <option value="Cash">Cash</option>
+                <option value="Card">Card</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+              </select>
+            </div>
+          </div>
           <div>
             <label className="mb-1 block text-xs text-slate-500">Notes</label>
             <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={3} className={editInputCls} />
