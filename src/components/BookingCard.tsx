@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { Clock, MapPin, Phone, ChevronDown, ChevronUp, MessageSquare, Star, AlertCircle, Bell, AlertTriangle, Trash2, Users, Briefcase, RotateCcw, Pencil, X, ShieldCheck, Camera } from "lucide-react";
 import type { DbBooking, DbDriver, BookingStatus, DbDriverLocation, DbJobProof, JobProofKind } from "@/lib/database.types";
-import { STATUS_NEXT_PRIMARY, STATUS_NEXT_LABEL } from "@/lib/database.types";
+import { STATUS_NEXT_PRIMARY, STATUS_NEXT_LABEL, reverseTarget, reverseLabel } from "@/lib/database.types";
 import type { BookingNotificationStatus } from "@/hooks/useNotifications";
 import { supabase } from "@/lib/supabase";
 import StatusBadge from "./StatusBadge";
@@ -64,6 +64,8 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
   const time = booking.travel_time?.slice(0, 5) ?? "—";
   const nextStatus = STATUS_NEXT_PRIMARY[booking.status];
   const nextLabel = STATUS_NEXT_LABEL[booking.status];
+  const undoStatus = reverseTarget(booking.status);
+  const undoLabel = reverseLabel(booking.status);
   const pickup = booking.pickup_location || booking.airport || booking.direction || "—";
   const dropoff = booking.dropoff_address || booking.destination || booking.airport || "—";
   const route = `${short(pickup)} → ${short(dropoff)}`;
@@ -192,7 +194,25 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
           </div>
         )}
 
-        {nextStatus && nextLabel && <button onClick={() => onStatusChange(booking.ref, nextStatus)} className="w-full mt-1 py-2 rounded-xl text-xs font-semibold bg-gold/10 text-amber-600 border border-gold/25 hover:bg-gold/20 hover:border-gold/40 active:scale-[0.98] transition-all">{nextLabel}</button>}
+        {(nextStatus || undoStatus) && (
+          <div className="flex items-center gap-2 mt-1">
+            {nextStatus && nextLabel && (
+              <button type="button" onClick={() => onStatusChange(booking.ref, nextStatus)} className="flex-1 py-2 rounded-xl text-xs font-semibold bg-gold/10 text-amber-600 border border-gold/25 hover:bg-gold/20 hover:border-gold/40 active:scale-[0.98] transition-all">
+                {nextLabel}
+              </button>
+            )}
+            {undoStatus && undoLabel && (
+              <button
+                type="button"
+                onClick={() => onStatusChange(booking.ref, undoStatus)}
+                title="Operator correction — reverses this job one step. Drivers can't undo their own progress."
+                className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-slate-500 border border-slate-200 bg-white transition-all hover:text-red-600 hover:border-red-300 hover:bg-red-50 active:scale-[0.98] ${nextStatus ? "px-3" : "flex-1"}`}
+              >
+                <RotateCcw size={12} /> {undoLabel}
+              </button>
+            )}
+          </div>
+        )}
 
         {booking.status === "Unassigned / Missed Call Recovery" && <div className="flex items-center gap-1.5 text-xs text-orange-600 bg-orange-100 px-3 py-1.5 rounded-lg"><AlertCircle size={11} /> Missed call recovery — assign driver urgently</div>}
       </div>

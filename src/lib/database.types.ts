@@ -295,3 +295,27 @@ export const STATUS_NEXT_LABEL: Record<BookingStatus, string | null> = {
   "Completed": null,
   "Cancelled": null,
 };
+
+// Operator-only correction: reverse a job one step, e.g. an accidental tap of
+// "Mark En Route". The driver app has no equivalent control -- forward
+// progression there is the driver's job. These edges are already permitted
+// by the database's enforce_booking_status_transition trigger (see
+// STATUS_TRANSITIONS above), this just exposes them as a one-step undo.
+const STATUS_REVERSE: Partial<Record<BookingStatus, BookingStatus>> = {
+  "Dispatched": "Unassigned",
+  "En Route": "Dispatched",
+  "Passenger On Board": "En Route",
+  "Completed": "Passenger On Board",
+  "Cancelled": "Unassigned",
+};
+
+export function reverseTarget(status: BookingStatus): BookingStatus | null {
+  return STATUS_REVERSE[status] ?? null;
+}
+
+export function reverseLabel(status: BookingStatus): string | null {
+  const to = reverseTarget(status);
+  if (!to) return null;
+  if (status === "Cancelled") return "Reinstate job";
+  return `Undo → ${to}`;
+}
