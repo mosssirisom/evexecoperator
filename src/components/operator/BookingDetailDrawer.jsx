@@ -233,9 +233,11 @@ const PAYMENT_STATES = [
   { value: "Paid",     color: "border-emerald-400/30 bg-emerald-400/10 text-emerald-600", dot: "bg-emerald-400" },
 ];
 
-// How the customer is paying — surfaced at dispatch so the operator knows what
-// to expect. EV Exec only takes Cash or Bank Transfer.
-const PAYMENT_METHODS = ["Cash", "Bank Transfer"];
+// How the customer is paying — surfaced at dispatch so the driver knows what
+// to expect. "Card" is normally set automatically when a Stripe payment link
+// is paid, but is offered here too so the operator can record it manually
+// (e.g. the customer paid by card in person, or over the phone).
+const PAYMENT_METHODS = ["Cash", "Card", "Bank Transfer"];
 
 function PaymentMethodPicker({ value, onSelect }) {
   const [pending, setPending] = useState(null);
@@ -334,7 +336,7 @@ function EditField({ label, icon: Icon, children }) {
 
 // Edit an existing booking's core details (passengers, bags, time, addresses…).
 // Seeds from the booking, saves only what changed.
-function BookingEditForm({ booking, onSave, onCancel }) {
+function BookingEditForm({ booking, onSave, onCancel, onUpdatePaymentStatus, onUpdatePaymentMethod }) {
   const initial = useMemo(
     () => ({
       customer: booking.customer ?? "",
@@ -429,6 +431,23 @@ function BookingEditForm({ booking, onSave, onCancel }) {
           <input className={editInputCls} value={form.price} onChange={set("price")} inputMode="decimal" placeholder="0.00" />
         </EditField>
       </div>
+
+      {/* Payment — tells the driver whether to collect cash or the customer
+          has already paid, instead of leaving it unset and defaulting to
+          "TBC" in the driver app. Changes here apply immediately, same as
+          the other one-tap controls elsewhere in the drawer. */}
+      <EditField label="Payment status" icon={PoundSterling}>
+        <PaymentBadge
+          paymentStatus={booking.paymentStatus ?? "Unpaid"}
+          onUpdate={onUpdatePaymentStatus}
+        />
+      </EditField>
+      <EditField label="Payment method (what the driver sees)" icon={CreditCard}>
+        <PaymentMethodPicker
+          value={booking.paymentMethod ?? null}
+          onSelect={onUpdatePaymentMethod}
+        />
+      </EditField>
 
       {err && (
         <p className="rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-600">{err}</p>
@@ -735,6 +754,8 @@ export default function BookingDetailDrawer({
               booking={booking}
               onSave={handleSaveEdit}
               onCancel={() => setEditMode(false)}
+              onUpdatePaymentStatus={(ps) => onUpdatePaymentStatus?.(booking.id, ps)}
+              onUpdatePaymentMethod={(m) => onUpdatePaymentMethod?.(booking.id, m)}
             />
           ) : (
           <div className="space-y-6 px-5 py-5 sm:px-6">
