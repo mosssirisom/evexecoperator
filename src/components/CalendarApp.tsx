@@ -10,6 +10,7 @@ import {
   History,
   Inbox,
   LayoutList,
+  Pencil,
   Search,
   ShieldCheck,
   Trash2,
@@ -18,7 +19,7 @@ import {
   WifiOff,
   X,
 } from "lucide-react";
-import type { DbBooking, BookingStatus, DbQuoteRequest } from "@/lib/database.types";
+import type { DbBooking, BookingStatus, DbQuoteRequest, DbDriver } from "@/lib/database.types";
 import { QUOTE_REQUEST_STATUS, CONTACT_MESSAGE_STATUS, STATUS_TRANSITIONS } from "@/lib/database.types";
 import { useBookings } from "@/hooks/useBookings";
 import { useDrivers } from "@/hooks/useDrivers";
@@ -73,7 +74,7 @@ export function CalendarApp({ embedded = false }: { embedded?: boolean }) {
 
 function Dashboard({ onSignOut, embedded = false }: { onSignOut: () => void; embedded?: boolean }) {
   const { bookings, loading, error, updateStatus, assignDriver, createBooking, deleteBooking } = useBookings();
-  const { drivers } = useDrivers();
+  const { drivers, updateDriver } = useDrivers();
   const { locations: driverLocations } = useDriverLocations();
   const { proofs: jobProofs } = useJobProofs();
   const { quoteRequests, setStatus: setQuoteStatus } = useQuoteRequests();
@@ -128,6 +129,18 @@ function Dashboard({ onSignOut, embedded = false }: { onSignOut: () => void; emb
   const [dangerTarget, setDangerTarget] = useState<DbBooking | null>(null);
   const [dangerPassword, setDangerPassword] = useState("");
   const [dangerBusy, setDangerBusy] = useState(false);
+  const [editingDriver, setEditingDriver] = useState<DbDriver | null>(null);
+
+  const handleSaveDriver = async (fields: Pick<DbDriver, "name" | "phone" | "email" | "vehicle" | "plate">) => {
+    if (!editingDriver) return;
+    try {
+      await updateDriver(editingDriver.id, fields);
+      showToast(`${fields.name} updated`, "success");
+      setEditingDriver(null);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to update driver", "error");
+    }
+  };
 
   const inboxCount = useMemo(() => {
     const newQuotes = quoteRequests.filter((q) => !q.status || q.status === "new").length;
@@ -362,7 +375,7 @@ function Dashboard({ onSignOut, embedded = false }: { onSignOut: () => void; emb
             {activeTab === "inbox" && <InboxTab quoteRequests={quoteRequests} missedCalls={missedCalls} contactMessages={contactMessages} onDismissQuote={handleDismissQuote} onConvertQuote={handleConvertQuote} onToggleMissedCall={handleToggleMissedCall} onToggleContactMessage={handleToggleContactMessage} />}
             {activeTab === "activity" && <AuditLogTab entries={auditLogEntries} />}
             {activeTab === "fleet" && (
-              <div className="space-y-3"><h2 className="text-lg font-bold text-slate-800">Fleet</h2>{drivers.map((d) => { const active = bookings.filter((b) => b.driver_id === d.id && !["Completed", "Cancelled"].includes(b.status)).length; const completed = bookings.filter((b) => b.driver_id === d.id && b.status === "Completed").length; const revenue = bookings.filter((b) => b.driver_id === d.id && b.status === "Completed").reduce((s, b) => s + (b.quoted_price ?? 0), 0); const today = format(new Date(), "yyyy-MM-dd"); const offToday = unavailableDriverIds(today).has(d.id); const upcomingDaysOff = unavailableDates.filter((u) => u.driver_id === d.id && u.date >= today).length; return <div key={d.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-card"><div className="flex items-start gap-3"><div className="w-10 h-10 rounded-full bg-slate-100 border border-gold/20 flex items-center justify-center text-sm font-bold text-amber-600 shrink-0">{d.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}</div><div className="flex-1 min-w-0"><p className="font-semibold text-slate-800 text-sm">{d.name}</p><p className="text-xs text-slate-500 mt-0.5">{d.vehicle ?? "—"}</p>{d.plate && <p className="text-xs text-slate-600 font-mono mt-0.5">{d.plate}</p>}</div><div className="flex flex-col items-end gap-1 shrink-0"><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${d.status === "active" || d.status === "Available" ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>{d.status ?? "—"}</span><DriverLiveBadge location={driverLocations[d.id]} />{offToday && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-600">Off today</span>}{active > 0 && <span className="text-xs text-amber-600 font-medium">{active} active</span>}</div></div>{upcomingDaysOff > 0 && <p className="text-[10px] text-slate-500 mt-2">{upcomingDaysOff} upcoming day{upcomingDaysOff === 1 ? "" : "s"} off booked</p>}<div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-100"><div className="text-center"><div className="text-sm font-bold text-slate-700">{completed}</div><div className="text-[10px] text-slate-600 mt-0.5">Completed</div></div><div className="text-center"><div className="text-sm font-bold text-amber-600">£{revenue.toLocaleString()}</div><div className="text-[10px] text-slate-600 mt-0.5">Revenue</div></div></div></div>; })}<div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 space-y-2 shadow-card"><p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">EV Exec Ecosystem</p>{[{ label: "EV Exec Main Site", href: "https://evexec.co.uk" }, { label: "Driver App", href: "https://evexecdriverapp.vercel.app" }, { label: "Operator Portal", href: "https://evexecoperator.vercel.app" }].map((link) => <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-100 hover:border-gold/20 transition-all group"><span className="text-sm text-slate-600 group-hover:text-amber-600 transition-colors">{link.label}</span><ExternalLink size={13} className="text-slate-600 group-hover:text-amber-600/70 transition-colors" /></a>)}</div></div>
+              <div className="space-y-3"><h2 className="text-lg font-bold text-slate-800">Fleet</h2>{drivers.map((d) => { const active = bookings.filter((b) => b.driver_id === d.id && !["Completed", "Cancelled"].includes(b.status)).length; const completed = bookings.filter((b) => b.driver_id === d.id && b.status === "Completed").length; const revenue = bookings.filter((b) => b.driver_id === d.id && b.status === "Completed").reduce((s, b) => s + (b.quoted_price ?? 0), 0); const today = format(new Date(), "yyyy-MM-dd"); const offToday = unavailableDriverIds(today).has(d.id); const upcomingDaysOff = unavailableDates.filter((u) => u.driver_id === d.id && u.date >= today).length; return <div key={d.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-card"><div className="flex items-start gap-3"><div className="w-10 h-10 rounded-full bg-slate-100 border border-gold/20 flex items-center justify-center text-sm font-bold text-amber-600 shrink-0">{d.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}</div><div className="flex-1 min-w-0"><p className="font-semibold text-slate-800 text-sm">{d.name}</p><p className="text-xs text-slate-500 mt-0.5">{d.vehicle ?? "—"}</p>{d.plate && <p className="text-xs text-slate-600 font-mono mt-0.5">{d.plate}</p>}</div><div className="flex flex-col items-end gap-1 shrink-0"><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${d.status === "active" || d.status === "Available" ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>{d.status ?? "—"}</span><DriverLiveBadge location={driverLocations[d.id]} />{offToday && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-600">Off today</span>}{active > 0 && <span className="text-xs text-amber-600 font-medium">{active} active</span>}<button type="button" onClick={() => setEditingDriver(d)} className="flex items-center gap-1 text-xs text-slate-500 hover:text-amber-600 transition-colors mt-1"><Pencil size={11} /> Edit</button></div></div>{upcomingDaysOff > 0 && <p className="text-[10px] text-slate-500 mt-2">{upcomingDaysOff} upcoming day{upcomingDaysOff === 1 ? "" : "s"} off booked</p>}<div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-100"><div className="text-center"><div className="text-sm font-bold text-slate-700">{completed}</div><div className="text-[10px] text-slate-600 mt-0.5">Completed</div></div><div className="text-center"><div className="text-sm font-bold text-amber-600">£{revenue.toLocaleString()}</div><div className="text-[10px] text-slate-600 mt-0.5">Revenue</div></div></div></div>; })}<div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 space-y-2 shadow-card"><p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">EV Exec Ecosystem</p>{[{ label: "EV Exec Main Site", href: "https://evexec.co.uk" }, { label: "Driver App", href: "https://evexecdriverapp.vercel.app" }, { label: "Operator Portal", href: "https://evexecoperator.vercel.app" }].map((link) => <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-100 hover:border-gold/20 transition-all group"><span className="text-sm text-slate-600 group-hover:text-amber-600 transition-colors">{link.label}</span><ExternalLink size={13} className="text-slate-600 group-hover:text-amber-600/70 transition-colors" /></a>)}</div></div>
             )}
           </div>
         </main>
@@ -370,6 +383,7 @@ function Dashboard({ onSignOut, embedded = false }: { onSignOut: () => void; emb
 
       {showAddModal && <AddBookingModal drivers={drivers} defaultDate={selectedDate ?? new Date()} prefill={quotePrefill?.prefill} onSave={handleAddBooking} onClose={() => { setAdd(false); setQuotePrefill(null); }} />}
       {dangerTarget && <PasswordConfirmModal booking={dangerTarget} password={dangerPassword} busy={dangerBusy} onPasswordChange={setDangerPassword} onCancel={closeDangerFlow} onConfirm={confirmDangerAction} />}
+      {editingDriver && <EditDriverModal driver={editingDriver} onClose={() => setEditingDriver(null)} onSave={handleSaveDriver} />}
     </div>
   );
 }
@@ -391,6 +405,77 @@ function PasswordConfirmModal({ booking, password, busy, onPasswordChange, onCan
           <button type="button" onClick={onConfirm} disabled={busy || !password.trim()} className="flex-1 rounded-2xl border border-red-400/30 bg-red-500/15 px-4 py-3 text-sm font-semibold text-red-700 hover:bg-red-500/25 disabled:opacity-50">{busy ? "Verifying…" : "Remove job"}</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function EditDriverModal({ driver, onClose, onSave }: { driver: DbDriver; onClose: () => void; onSave: (fields: Pick<DbDriver, "name" | "phone" | "email" | "vehicle" | "plate">) => Promise<void>; }) {
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    name: driver.name ?? "",
+    phone: driver.phone ?? "",
+    email: driver.email ?? "",
+    vehicle: driver.vehicle ?? "",
+    plate: driver.plate ?? "",
+  });
+  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    setSaving(true);
+    try {
+      await onSave({
+        name: form.name.trim(),
+        phone: form.phone.trim() || null,
+        email: form.email.trim() || null,
+        vehicle: form.vehicle.trim() || null,
+        plate: form.plate.trim() || null,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+      <form onSubmit={handleSave} className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-[#0F1B33]">Edit driver</h2>
+          <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-[#0F1B33]"><X size={16} /></button>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-xs text-slate-500">Full name</label>
+            <input value={form.name} onChange={set("name")} required autoFocus className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-gold/50" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-xs text-slate-500">Phone</label>
+              <input value={form.phone} onChange={set("phone")} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-gold/50" />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-slate-500">Email</label>
+              <input type="email" value={form.email} onChange={set("email")} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-gold/50" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-xs text-slate-500">Vehicle</label>
+              <input value={form.vehicle} onChange={set("vehicle")} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-gold/50" />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-slate-500">Plate</label>
+              <input value={form.plate} onChange={set("plate")} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-gold/50" />
+            </div>
+          </div>
+        </div>
+        <div className="mt-5 flex gap-3">
+          <button type="button" onClick={onClose} disabled={saving} className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 hover:border-slate-300 disabled:opacity-50">Cancel</button>
+          <button type="submit" disabled={saving || !form.name.trim()} className="flex-1 rounded-2xl bg-gold-gradient px-4 py-3 text-sm font-bold text-navy-900 disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button>
+        </div>
+      </form>
     </div>
   );
 }

@@ -51,5 +51,18 @@ export function useDrivers() {
     };
   }, [fetch]);
 
-  return { drivers, loading };
+  const updateDriver = useCallback(
+    async (id: string, fields: Partial<Pick<DbDriver, "name" | "phone" | "email" | "vehicle" | "plate">>) => {
+      const snapshot = drivers;
+      setDrivers((prev) => prev.map((d) => (d.id === id ? { ...d, ...fields } : d)));
+      const { error } = await supabase.from("drivers").update(fields).eq("id", id);
+      if (error) {
+        setDrivers(snapshot);
+        throw new Error(error.message);
+      }
+    },
+    [drivers]
+  );
+
+  return { drivers, loading, updateDriver };
 }
