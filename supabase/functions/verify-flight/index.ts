@@ -30,10 +30,11 @@
  *     overrideReason?: string,
  *   }
  *
- * Called with a staff member's own JWT (operator UI, "Verify Flight" button)
- * or with the service-role key directly (the daily day-before re-verify job
- * in evexec's cron) -- either is accepted; a plain anon-key call with no
- * staff membership is rejected.
+ * Called with a staff member's own JWT (operator UI, "Verify Flight" button),
+ * the assigned driver's own JWT (driver app, refresh button on their own
+ * job), or the service-role key directly (the daily day-before re-verify
+ * job in evexec's cron) -- any of these is accepted; a plain anon-key call
+ * with no staff/driver relationship to the booking is rejected.
  *
  * Response: { ok: boolean, verification?: {...}, cached?: boolean, error?: string }
  */
@@ -100,6 +101,25 @@ async function isStaffForTenant(userId: string, tenantId: string): Promise<boole
   );
 }
 
+// Mirrors the driver_select_flight_verifications RLS policy: a driver may
+// trigger a check only for a booking actually assigned to them.
+async function isAssignedDriver(
+  callerId: string,
+  callerEmail: string | null,
+  assignedDriverId: string | null
+): Promise<boolean> {
+  if (!assignedDriverId) return false;
+  if (assignedDriverId === callerId) return true;
+  if (!callerEmail) return false;
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/drivers?id=eq.${assignedDriverId}&email=eq.${encodeURIComponent(callerEmail)}&select=id`,
+    { headers: serviceHeaders() }
+  );
+  if (!res.ok) return false;
+  const rows = await res.json();
+  return rows.length > 0;
+}
+
 interface BookingRow {
   id: string;
   tenant_id: string;
@@ -112,11 +132,12 @@ interface BookingRow {
   return_airport: string | null;
   return_date: string | null;
   return_time: string | null;
+  assigned_driver_id: string | null;
 }
 
 async function getBooking(bookingId: string): Promise<BookingRow | null> {
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/bookings?id=eq.${bookingId}&select=id,tenant_id,journey_type,flight_number,airport,travel_date,travel_time,return_flight,return_airport,return_date,return_time&limit=1`,
+    `${SUPABASE_URL}/rest/v1/bookings?id=eq.${bookingId}&select=id,tenant_id,journey_type,flight_number,airport,travel_date,travel_time,return_flight,return_airport,return_date,return_time,assigned_driver_id&limit=1`,
     { headers: serviceHeaders() }
   );
   if (!res.ok) return null;
@@ -194,8 +215,9 @@ Deno.serve(async (req) => {
   if (!booking) return json({ ok: false, error: "Booking not found" }, 404);
 
   // Auth: accept the service-role key directly (the evexec cron job calling
-  // server-to-server) or a staff member's own JWT. Reject everyone else --
-  // this writes to the DB and calls a metered third-party API.
+  // server-to-server), a staff member's own JWT, or the driver actually
+  // assigned to this booking (so they can re-check their own job). Reject
+  // everyone else -- this writes to the DB and calls a metered third-party API.
   const authHeader = req.headers.get("authorization");
   const isServiceCall = authHeader === `Bearer ${SERVICE_ROLE_KEY}`;
   let verifiedById: string | null = null;
@@ -205,7 +227,10 @@ Deno.serve(async (req) => {
     const caller = await getCaller(authHeader);
     if (!caller) return json({ ok: false, error: "Unauthorized" }, 401);
     const staff = await isStaffForTenant(caller.id, booking.tenant_id);
-    if (!staff) return json({ ok: false, error: "Forbidden" }, 403);
+    if (!staff) {
+      const driver = await isAssignedDriver(caller.id, caller.email, booking.assigned_driver_id);
+      if (!driver) return json({ ok: false, error: "Forbidden" }, 403);
+    }
     verifiedById = caller.id;
     verifiedByName = caller.email;
   } else {
