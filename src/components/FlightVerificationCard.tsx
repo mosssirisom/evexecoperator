@@ -105,7 +105,7 @@ export default function FlightVerificationCard({
             )}
             {verification.recommended_pickup && (
               <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Recommended pickup</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Estimated arrival</p>
                 <p className="mt-0.5 font-medium text-[#0F1B33]">{formatFlightDateTime(verification.recommended_pickup)}</p>
               </div>
             )}
