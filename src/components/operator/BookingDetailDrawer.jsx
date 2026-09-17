@@ -9,6 +9,7 @@ import {
 import { bookingStatusColor } from "@/lib/operator/statusColor";
 import { reverseTarget, reverseLabel } from "@/lib/operator/statusFlow";
 import ETACountdown from "./ETACountdown";
+import FlightVerificationCard from "@/components/FlightVerificationCard";
 
 function Row({ icon: Icon, label, value, muted }) {
   if (!value) return null;
@@ -431,6 +432,20 @@ function BookingEditForm({ booking, onSave, onCancel, onUpdatePaymentStatus, onU
           <input className={editInputCls} value={form.price} onChange={set("price")} inputMode="decimal" placeholder="0.00" />
         </EditField>
       </div>
+
+      {form.flight && (
+        <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+          Save changes first, then use Flight verification below to check the saved flight number against live schedule data.
+        </p>
+      )}
+      {booking.flight && booking.flight !== "—" && (
+        <FlightVerificationCard
+          bookingId={booking.dbId}
+          flightNumberInput={booking.flight}
+          airportInput={booking.airport}
+          journeyType={booking.journeyType}
+        />
+      )}
 
       {/* Payment — tells the driver whether to collect cash or the customer
           has already paid, instead of leaving it unset and defaulting to
@@ -875,6 +890,19 @@ export default function BookingDetailDrawer({
                 </div>
               </div>
             </div>
+
+            {/* Flight verification -- AeroDataBox-checked flight data, kept
+                separate from whatever the customer typed (see FlightVerificationCard). */}
+            {booking.flight && booking.flight !== "—" && (
+              <div>
+                <FlightVerificationCard
+                  bookingId={booking.dbId}
+                  flightNumberInput={booking.flight}
+                  airportInput={booking.airport}
+                  journeyType={booking.journeyType}
+                />
+              </div>
+            )}
 
             {/* Return journey (customer booked a return on the same request) */}
             {booking.returnJourney && (

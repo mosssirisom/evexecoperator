@@ -21,14 +21,16 @@ import {
   Smartphone,
   BellRing,
   Building,
+  Plane,
 } from "lucide-react";
 import { useOperatorToast } from "@/components/operator/Toast";
-import { isConfigured } from "@/lib/supabase";
+import { isConfigured, supabase } from "@/lib/supabase";
 import { useNotificationCenter } from "@/hooks/operator/useNotificationCenter";
 import { isPushSupported, getPushEnabled, enableOperatorPush, disableOperatorPush } from "@/lib/operator/push";
 import { PORTALS } from "@/lib/operator/portals";
 import { useIsSuperAdmin } from "@/hooks/operator/useIsSuperAdmin";
 import PlatformSettings from "@/components/operator/PlatformSettings";
+import { fetchPickupBufferMinutes, setPickupBufferMinutes } from "@/lib/operator/flightVerification";
 
 const SECTIONS = [
   { key: "business", label: "Business", icon: Building2 },
@@ -443,6 +445,104 @@ function IntegrationItem({ name, description, connected, onAction, actionLabel }
   );
 }
 
+function FlightVerificationSettings({ toast }) {
+  const [aeroConfigured, setAeroConfigured] = useState(null); // null = checking
+  const [buffer, setBuffer] = useState("45");
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.functions
+      .invoke("integration-status")
+      .then(({ data }) => {
+        if (!cancelled) setAeroConfigured(Boolean(data?.integrations?.aerodatabox));
+      })
+      .catch(() => {
+        if (!cancelled) setAeroConfigured(false);
+      });
+    fetchPickupBufferMinutes()
+      .then((mins) => {
+        if (!cancelled) setBuffer(String(mins));
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function saveBuffer() {
+    const mins = Math.max(0, Math.min(240, Number.parseInt(buffer, 10) || 0));
+    setSaving(true);
+    try {
+      await setPickupBufferMinutes(mins);
+      setBuffer(String(mins));
+      toast({ message: `Recommended pickup buffer set to ${mins} minutes`, type: "success" });
+    } catch (err) {
+      toast({ message: err.message || "Failed to save buffer", type: "error" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <p className="mb-4 text-xs uppercase tracking-[0.28em] text-amber-600">Flight Verification</p>
+      <div className="space-y-4">
+        <IntegrationItem
+          name="AeroDataBox"
+          description="Verifies flight number, schedule and airports for airport bookings"
+          connected={aeroConfigured === true}
+          actionLabel={aeroConfigured === null ? "Checking…" : aeroConfigured ? "Live" : "Not configured"}
+          onAction={() =>
+            toast({
+              message: aeroConfigured
+                ? "AeroDataBox is live -- flight verification is checking real schedule data"
+                : "Add AERODATABOX_API_KEY as a Supabase Edge Function secret to enable live verification",
+              type: aeroConfigured ? "success" : "info",
+            })
+          }
+        />
+        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+          <div className="flex items-start gap-3">
+            <Plane className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-600" />
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-[#0F1B33]">Recommended pickup buffer</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Minutes added to a verified flight&apos;s arrival time to suggest a pickup time for airport arrivals.
+                This never changes a customer&apos;s own requested pickup time -- it&apos;s a suggestion the operator can
+                compare it against.
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  max="240"
+                  value={buffer}
+                  onChange={(e) => setBuffer(e.target.value)}
+                  disabled={!loaded}
+                  className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-[#0F1B33] outline-none focus:border-amber-400/40"
+                />
+                <span className="text-xs text-slate-500">minutes</span>
+                <button
+                  type="button"
+                  onClick={saveBuffer}
+                  disabled={saving || !loaded}
+                  className="ml-2 rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-black transition hover:bg-amber-400 disabled:opacity-50"
+                >
+                  {saving ? "Saving…" : "Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function IntegrationSettings({ toast }) {
   return (
     <div className="space-y-8">
@@ -509,6 +609,8 @@ function IntegrationSettings({ toast }) {
           />
         </div>
       </div>
+
+      <FlightVerificationSettings toast={toast} />
     </div>
   );
 }

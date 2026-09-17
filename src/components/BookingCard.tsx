@@ -11,6 +11,7 @@ import StatusBadge from "./StatusBadge";
 import DriverDropdown from "./DriverDropdown";
 import DriverLiveBadge from "./DriverLiveBadge";
 import JobOfferBadge from "./JobOfferBadge";
+import FlightVerificationCard from "./FlightVerificationCard";
 
 const NOTIFICATION_TYPE_LABELS: Record<string, string> = {
   confirmation: "Confirmation",
@@ -306,6 +307,14 @@ function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: (
           <Field label="Airport" value={form.airport} onChange={(v) => set("airport", v)} />
           <Field label="Drop-off address" value={form.dropoff_address} onChange={(v) => set("dropoff_address", v)} />
           <Field label="Flight number" value={form.flight_number} onChange={(v) => set("flight_number", v)} />
+          {booking.flight_number && (
+            <FlightVerificationCard
+              bookingId={booking.id}
+              flightNumberInput={booking.flight_number}
+              airportInput={booking.airport}
+              journeyType={booking.journey_type}
+            />
+          )}
           <div className="grid grid-cols-2 gap-2">
             <Field label="Passengers" type="number" value={form.passengers} onChange={(v) => set("passengers", v)} min={1} />
             <Field label="Bags" value={form.luggage} onChange={(v) => set("luggage", v)} />
