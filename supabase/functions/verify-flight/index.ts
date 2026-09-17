@@ -124,16 +124,6 @@ async function getBooking(bookingId: string): Promise<BookingRow | null> {
   return rows[0] ?? null;
 }
 
-async function getBufferMinutes(tenantId: string): Promise<number> {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/flight_verification_settings?tenant_id=eq.${tenantId}&select=pickup_buffer_minutes&limit=1`,
-    { headers: serviceHeaders() }
-  );
-  if (!res.ok) return 45;
-  const rows = await res.json();
-  return rows[0]?.pickup_buffer_minutes ?? 45;
-}
-
 interface StoredVerification {
   flight_number: string;
   flight_date: string;
@@ -265,7 +255,6 @@ Deno.serve(async (req) => {
     }
   }
 
-  const bufferMinutes = await getBufferMinutes(booking.tenant_id);
   const customerPickupIso = ukLocalToUtcIso(flightDateRaw, customerTimeRaw);
 
   const outcome = buildVerificationResult(
@@ -274,7 +263,6 @@ Deno.serve(async (req) => {
       departureAirportInput: direction === "departure" ? airportRaw : null,
       arrivalAirportInput: direction === "arrival" ? airportRaw : null,
       customerPickupIso,
-      bufferMinutes,
       previous: previousRow
         ? { scheduledArrival: previousRow.scheduled_arrival, scheduledDeparture: previousRow.scheduled_departure }
         : null,
@@ -305,7 +293,7 @@ Deno.serve(async (req) => {
     actual_departure: outcome.actualDeparture,
     actual_arrival: outcome.actualArrival,
     recommended_pickup: outcome.recommendedPickup,
-    buffer_minutes_used: outcome.bufferMinutesUsed,
+    buffer_minutes_used: null,
     raw_response: rawResponse ?? null,
     source,
     verified_by: verifiedById,

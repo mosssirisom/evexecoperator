@@ -35,7 +35,6 @@ describe("A. correct flight and date", () => {
         departureAirportInput: "Manchester",
         arrivalAirportInput: "London Heathrow",
         customerPickupIso: "2026-08-26T10:20:00Z", // 5 min after scheduled arrival -- normal
-        bufferMinutes: 45,
       },
       baFlight(),
       false
@@ -43,7 +42,7 @@ describe("A. correct flight and date", () => {
     expect(out.result).toBe("verified");
     expect(out.severity).toBe("green");
     expect(out.issues).toEqual(["Flight verified."]);
-    expect(out.recommendedPickup).toBe("2026-08-26T11:00:00.000Z");
+    expect(out.recommendedPickup).toBe("2026-08-26T10:15:00Z");
   });
 });
 
@@ -52,7 +51,7 @@ describe("A. correct flight and date", () => {
 describe("B. incorrect flight number", () => {
   it("reports a red not-operating mismatch when the API finds no such flight", () => {
     const out = buildVerificationResult(
-      { direction: "arrival", departureAirportInput: null, arrivalAirportInput: "Manchester", customerPickupIso: null, bufferMinutes: 45 },
+      { direction: "arrival", departureAirportInput: null, arrivalAirportInput: "Manchester", customerPickupIso: null },
       null,
       false
     );
@@ -68,7 +67,7 @@ describe("B. incorrect flight number", () => {
 describe("C. flight operates on a different date than entered", () => {
   it("treats a date with no matching flight the same as an unknown flight number", () => {
     const out = buildVerificationResult(
-      { direction: "departure", departureAirportInput: "Liverpool", arrivalAirportInput: null, customerPickupIso: null, bufferMinutes: 45 },
+      { direction: "departure", departureAirportInput: "Liverpool", arrivalAirportInput: null, customerPickupIso: null },
       null,
       false
     );
@@ -98,13 +97,13 @@ describe("D. cross-midnight arrival", () => {
       },
     });
     const out = buildVerificationResult(
-      { direction: "arrival", departureAirportInput: "Manchester", arrivalAirportInput: "Orlando", customerPickupIso: null, bufferMinutes: 60 },
+      { direction: "arrival", departureAirportInput: "Manchester", arrivalAirportInput: "Orlando", customerPickupIso: null },
       overnight,
       false
     );
     expect(out.scheduledArrival).toBe("2026-08-27T01:05:00Z");
     expect(out.scheduledArrival?.slice(0, 10)).not.toBe(out.scheduledDeparture?.slice(0, 10));
-    expect(out.recommendedPickup).toBe("2026-08-27T02:05:00.000Z");
+    expect(out.recommendedPickup).toBe("2026-08-27T01:05:00Z");
   });
 });
 
@@ -118,7 +117,6 @@ describe("E. customer pickup time differs from flight arrival", () => {
         departureAirportInput: "Manchester",
         arrivalAirportInput: "London Heathrow",
         customerPickupIso: "2026-08-26T11:15:00Z", // 60 min after scheduled arrival 10:15
-        bufferMinutes: 45,
       },
       baFlight(),
       false
@@ -134,7 +132,6 @@ describe("E. customer pickup time differs from flight arrival", () => {
         departureAirportInput: "Manchester",
         arrivalAirportInput: "London Heathrow",
         customerPickupIso: "2026-08-26T10:25:00Z", // 10 min after -- normal deplaning time
-        bufferMinutes: 45,
       },
       baFlight(),
       false
@@ -148,7 +145,7 @@ describe("E. customer pickup time differs from flight arrival", () => {
 describe("F. airport mismatch", () => {
   it("flags red when the booking's arrival airport doesn't match the flight", () => {
     const out = buildVerificationResult(
-      { direction: "arrival", departureAirportInput: "Manchester", arrivalAirportInput: "Liverpool", customerPickupIso: null, bufferMinutes: 45 },
+      { direction: "arrival", departureAirportInput: "Manchester", arrivalAirportInput: "Liverpool", customerPickupIso: null },
       baFlight(),
       false
     );
@@ -158,7 +155,7 @@ describe("F. airport mismatch", () => {
 
   it("flags red when the departure airport doesn't match", () => {
     const out = buildVerificationResult(
-      { direction: "departure", departureAirportInput: "Liverpool", arrivalAirportInput: null, customerPickupIso: null, bufferMinutes: 45 },
+      { direction: "departure", departureAirportInput: "Liverpool", arrivalAirportInput: null, customerPickupIso: null },
       baFlight(),
       false
     );
@@ -178,7 +175,7 @@ describe("F. airport mismatch", () => {
 describe("G. AeroDataBox unavailable", () => {
   it("returns an honest unavailable error, never a fabricated verified result", () => {
     const out = buildVerificationResult(
-      { direction: "arrival", departureAirportInput: "Manchester", arrivalAirportInput: "London Heathrow", customerPickupIso: null, bufferMinutes: 45 },
+      { direction: "arrival", departureAirportInput: "Manchester", arrivalAirportInput: "London Heathrow", customerPickupIso: null },
       baFlight(), // even if a flight object were somehow constructed, apiFailed wins
       true
     );
@@ -199,7 +196,6 @@ describe("H. flight information has changed since last check", () => {
         departureAirportInput: "Manchester",
         arrivalAirportInput: "London Heathrow",
         customerPickupIso: null,
-        bufferMinutes: 45,
         previous: { scheduledArrival: "2026-08-26T09:45:00Z", scheduledDeparture: "2026-08-26T09:00:00Z" },
       },
       baFlight(),
@@ -220,7 +216,6 @@ describe("I. re-verification finds no change", () => {
         departureAirportInput: "Manchester",
         arrivalAirportInput: "London Heathrow",
         customerPickupIso: null,
-        bufferMinutes: 45,
         previous: { scheduledArrival: "2026-08-26T10:15:00Z", scheduledDeparture: "2026-08-26T09:00:00Z" },
       },
       baFlight(),
@@ -239,7 +234,7 @@ describe("I. re-verification finds no change", () => {
 describe("J. manual override never mutates the underlying verification result", () => {
   it("keeps reporting the true severity regardless of what the caller does with it afterwards", () => {
     const out = buildVerificationResult(
-      { direction: "arrival", departureAirportInput: "Manchester", arrivalAirportInput: "Liverpool", customerPickupIso: null, bufferMinutes: 45 },
+      { direction: "arrival", departureAirportInput: "Manchester", arrivalAirportInput: "Liverpool", customerPickupIso: null },
       baFlight(),
       false
     );

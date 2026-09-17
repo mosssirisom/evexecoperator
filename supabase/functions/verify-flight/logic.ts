@@ -34,8 +34,6 @@ export interface VerifyInput {
   arrivalAirportInput: string | null;
   /** Combined travel_date + travel_time as an ISO string, or null if unset. */
   customerPickupIso: string | null;
-  /** Minutes to add to the verified arrival time for the recommended pickup. */
-  bufferMinutes: number;
   previous?: PreviousVerification | null;
 }
 
@@ -52,8 +50,8 @@ export interface VerifyOutcome {
   estimatedArrival: string | null;
   actualDeparture: string | null;
   actualArrival: string | null;
+  /** The flight's own actual/estimated/scheduled landing time -- no buffer applied. */
   recommendedPickup: string | null;
-  bufferMinutesUsed: number | null;
 }
 
 // Minimum-viable alias table for the UK regionals and common leisure/
@@ -164,7 +162,6 @@ const UNAVAILABLE: VerifyOutcome = {
   actualDeparture: null,
   actualArrival: null,
   recommendedPickup: null,
-  bufferMinutesUsed: null,
 };
 
 const NOT_OPERATING: VerifyOutcome = {
@@ -181,7 +178,6 @@ const NOT_OPERATING: VerifyOutcome = {
   actualDeparture: null,
   actualArrival: null,
   recommendedPickup: null,
-  bufferMinutesUsed: null,
 };
 
 /** The threshold below which a customer-time vs flight-time gap is not worth
@@ -241,11 +237,10 @@ export function buildVerificationResult(
 
   if (!issues.length) issues.push("Flight verified.");
 
-  // Recommended pickup only applies to arrivals (Requirement 5's own scope).
-  let recommendedPickup: string | null = null;
-  if (input.direction === "arrival" && relevantBest) {
-    recommendedPickup = new Date(new Date(relevantBest).getTime() + input.bufferMinutes * 60000).toISOString();
-  }
+  // Recommended pickup is the flight's own landing time (actual, else
+  // estimated, else scheduled) -- no buffer added. Arrivals only
+  // (Requirement 5's own scope; a departure has no "pickup" to recommend).
+  const recommendedPickup: string | null = input.direction === "arrival" ? relevantBest : null;
 
   return {
     result,
@@ -261,6 +256,5 @@ export function buildVerificationResult(
     actualDeparture: dep.actualUtc,
     actualArrival: arr.actualUtc,
     recommendedPickup,
-    bufferMinutesUsed: input.direction === "arrival" ? input.bufferMinutes : null,
   };
 }

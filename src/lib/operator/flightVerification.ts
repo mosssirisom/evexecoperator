@@ -73,22 +73,3 @@ export async function runFlightVerification(bookingId: string, opts: VerifyOptio
   if (!data?.ok) throw new Error(data?.error || "Verification failed");
   return data.verification as FlightVerification;
 }
-
-export async function fetchPickupBufferMinutes(tenantId?: string): Promise<number> {
-  let query = supabase.from("flight_verification_settings").select("pickup_buffer_minutes").limit(1);
-  if (tenantId) query = query.eq("tenant_id", tenantId);
-  const { data, error } = await query;
-  if (error || !data?.length) return 45;
-  return data[0].pickup_buffer_minutes ?? 45;
-}
-
-export async function setPickupBufferMinutes(minutes: number): Promise<void> {
-  const { data: settings } = await supabase.from("flight_verification_settings").select("tenant_id").limit(1);
-  const tenantId = settings?.[0]?.tenant_id;
-  if (!tenantId) throw new Error("No tenant settings row found");
-  const { error } = await supabase
-    .from("flight_verification_settings")
-    .update({ pickup_buffer_minutes: minutes, updated_at: new Date().toISOString() })
-    .eq("tenant_id", tenantId);
-  if (error) throw new Error(error.message);
-}
