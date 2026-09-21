@@ -17,7 +17,13 @@ export function timeToMinutes(time: string | null): number | null {
 // return trip, contact method) is folded into the notes for the operator
 // to review.
 export function quoteToPrefill(quote: DbQuoteRequest): BookingPrefill {
-  const pickup = quote.airport ?? quote.pickup_location ?? undefined;
+  // The quote form only ever collects a plain pickup + drop-off (no separate
+  // airport field is set on quote_requests in practice) -- carry those
+  // straight over as literal text. Which side is the airport gets detected
+  // from the text itself when the operator turns this into a booking, the
+  // same way AddBookingModal / the Dispatch board's BookingModal do.
+  const pickup = quote.pickup_location ?? quote.airport ?? undefined;
+  const dropoff = quote.destination ?? undefined;
 
   const noteParts: string[] = [];
   if (quote.passengers) noteParts.push(`${quote.passengers} passenger${quote.passengers !== 1 ? "s" : ""}`);
@@ -38,13 +44,12 @@ export function quoteToPrefill(quote: DbQuoteRequest): BookingPrefill {
   const prefill: BookingPrefill = {
     customer_name: quote.customer_name,
     customer_phone: quote.phone,
-    direction: quote.airport ? "Airport → Destination" : "Point to Point",
   };
   if (quote.email) prefill.customer_email = quote.email;
   if (quote.pickup_date) prefill.travel_date = quote.pickup_date;
   if (quote.pickup_time) prefill.travel_time = quote.pickup_time.slice(0, 5);
-  if (pickup) prefill.airport = pickup;
-  if (quote.destination) prefill.dropoff_address = quote.destination;
+  if (pickup) prefill.pickup = pickup;
+  if (dropoff) prefill.dropoff = dropoff;
   if (quote.flight_number) prefill.flight_number = quote.flight_number;
   if (noteParts.length) prefill.notes = noteParts.join(" · ");
 
