@@ -324,6 +324,10 @@ function PaymentBadge({ paymentStatus, onUpdate }) {
 const editInputCls =
   "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#0F1B33] placeholder:text-slate-400 outline-none transition focus:border-amber-400/40";
 
+// Same airport detection used by the Dispatch board and the website's
+// booking form -- whichever side reads as an airport, is the airport.
+const looksLikeAirport = (s) => /\bairport\b|\([A-Za-z]{3}\)/.test(s || "");
+
 function EditField({ label, icon: Icon, children }) {
   return (
     <div>
@@ -348,7 +352,6 @@ function BookingEditForm({ booking, onSave, onCancel, onUpdatePaymentStatus, onU
       travelDate: booking.travelDate ?? "",
       time: booking.time && booking.time !== "—" ? booking.time : "",
       pickupLocation: booking.pickupLocation ?? "",
-      airport: booking.airport && booking.airport !== "—" ? booking.airport : "",
       dropoffAddress: booking.dropoffAddress ?? booking.destination ?? "",
       flight: booking.flight && booking.flight !== "—" ? booking.flight : "",
       price: booking.price && booking.price !== "TBC" ? booking.price.replace(/[^0-9.]/g, "") : "",
@@ -366,6 +369,21 @@ function BookingEditForm({ booking, onSave, onCancel, onUpdatePaymentStatus, onU
     for (const k of Object.keys(initial)) {
       if (form[k] !== initial[k]) changed[k] = form[k].trim() === "" ? null : form[k].trim();
     }
+
+    // There's no separate "Airport" field to edit -- whichever of pickup /
+    // drop-off reads as an airport IS the airport, the same detection the
+    // Dispatch board and website booking form already use. Keep the
+    // underlying airport column (used for pricing and flight verification)
+    // in sync with that whenever the route changes, instead of exposing it
+    // as a third, independently-editable field that can drift out of sync.
+    if ("pickupLocation" in changed || "dropoffAddress" in changed) {
+      const pickup = form.pickupLocation.trim();
+      const dropoff = form.dropoffAddress.trim();
+      const derivedAirport = looksLikeAirport(pickup) ? pickup : looksLikeAirport(dropoff) ? dropoff : null;
+      const currentAirport = booking.airport && booking.airport !== "—" ? booking.airport : null;
+      if (derivedAirport !== currentAirport) changed.airport = derivedAirport;
+    }
+
     if (Object.keys(changed).length === 0) {
       onCancel();
       return;
@@ -414,14 +432,11 @@ function BookingEditForm({ booking, onSave, onCancel, onUpdatePaymentStatus, onU
         </EditField>
       </div>
 
-      <EditField label="Pickup location" icon={MapPin}>
-        <input className={editInputCls} value={form.pickupLocation} onChange={set("pickupLocation")} placeholder="Pickup address" />
-      </EditField>
-      <EditField label="Airport" icon={Plane}>
-        <input className={editInputCls} value={form.airport} onChange={set("airport")} placeholder="e.g. Manchester T2" />
+      <EditField label="Pickup address" icon={MapPin}>
+        <input className={editInputCls} value={form.pickupLocation} onChange={set("pickupLocation")} placeholder="e.g. Manchester Airport (T2), or a full address" />
       </EditField>
       <EditField label="Drop-off address" icon={MapPin}>
-        <input className={editInputCls} value={form.dropoffAddress} onChange={set("dropoffAddress")} placeholder="Destination address" />
+        <input className={editInputCls} value={form.dropoffAddress} onChange={set("dropoffAddress")} placeholder="e.g. a full address, or Manchester Airport" />
       </EditField>
 
       <div className="grid grid-cols-2 gap-3">
