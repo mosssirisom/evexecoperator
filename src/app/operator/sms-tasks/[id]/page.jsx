@@ -112,7 +112,12 @@ export default function OperatorSmsTaskPage() {
   const when = [longDate(booking?.travel_date), booking?.travel_time ? booking.travel_time.slice(0, 5) : null]
     .filter(Boolean)
     .join(" at ");
-  const kindLabel = task.kind === "confirmation" ? "Booking Confirmation" : "Journey Unavailable";
+  const KIND_LABEL = {
+    confirmation: "Booking Confirmation",
+    rejection: "Journey Unavailable",
+    cancellation: "Booking Cancelled",
+  };
+  const kindLabel = KIND_LABEL[task.kind] || "Customer Update";
 
   const smsHref = `sms:${task.customer_phone}?body=${encodeURIComponent(task.message)}`;
   const isSent = task.status === "sent";
