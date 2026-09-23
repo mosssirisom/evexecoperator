@@ -667,10 +667,15 @@ function DispatchPageContent() {
       // Reflect the method locally so the badge/chip update immediately.
       await updatePaymentMethod(id, "Payment link").catch(() => {});
       setSelectedBooking((prev) => (prev?.id === id ? { ...prev, paymentMethod: "Payment link" } : prev));
-      toast({
-        message: data?.sent ? "Stripe payment link texted to the customer." : "Payment link created.",
-        type: "success",
-      });
+      if (data?.channel === "email") {
+        toast({ message: "Payment link emailed to the customer.", type: "success" });
+      } else if (data?.smsHref) {
+        // No email on file -- open the pre-filled text for the operator to send themselves.
+        toast({ message: "No email on file -- opening a text to send the link yourself.", type: "success" });
+        window.location.href = data.smsHref;
+      } else {
+        toast({ message: "Payment link created.", type: "success" });
+      }
     } catch (err) {
       toast({ message: err?.message ?? "Could not create payment link.", type: "error" });
     }

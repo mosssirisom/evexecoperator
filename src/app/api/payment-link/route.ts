@@ -1,12 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Generates a Stripe payment link for a booking and texts it to the customer.
-//
-// Runs server-side because it needs the Stripe secret key and the Supabase
-// service-role key (to write the notification_queue row that the SMS processor
-// already drains). Gated to authenticated operators: the browser sends its
-// Supabase access token as a Bearer header and we verify it before doing
-// anything chargeable.
+// Generates a Stripe payment link for a booking and delivers it to the
+// customer -- email if they have one on file (sent right here, no Twilio),
+// or an sms: two-tap link for the operator to send themselves if not (this
+// action is already operator-initiated and synchronous, so there's no need
+// to push-notify them of something they just did -- the frontend opens the
+// Messages composer directly from the response).
 //
 // Required env (set in Vercel project settings):
 //   STRIPE_SECRET_KEY            — sk_live_… / sk_test_…
@@ -14,6 +13,8 @@ import { createClient } from "@supabase/supabase-js";
 //   NEXT_PUBLIC_SUPABASE_URL     — already configured for the client
 // Optional:
 //   NEXT_PUBLIC_SITE_URL         — base for Stripe success/cancel redirects
+//   RESEND_API_KEY               — re_… (falls back to the SMS deep-link path if unset)
+//   INVOICE_FROM / INVOICE_REPLY_TO — reused from send-invoice's convention
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,12 +23,54 @@ const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://evexecoperator.vercel.app";
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const FROM = process.env.INVOICE_FROM ?? "EV Exec <book@evexec.co.uk>";
+const REPLY_TO = process.env.INVOICE_REPLY_TO ?? "book@evexec.co.uk";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "content-type": "application/json" },
   });
+}
+
+const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+const esc = (s: string) => String(s).replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c] as string));
+
+function paymentLinkEmailHtml(name: string, ref: string, amount: string, url: string): string {
+  return `<!doctype html><html lang="en"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">
+  <style>:root{color-scheme:light;supported-color-schemes:light}</style>
+  </head>
+  <body style="margin:0;background:#E9EBF2;padding:24px 12px;font-family:Arial,Helvetica,sans-serif;color:#0f1b33">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#E9EBF2" style="background:#E9EBF2">
+    <tr><td align="center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e2e5ee">
+      <tr><td bgcolor="#0B132B" style="background:#0B132B;padding:22px 28px">
+        <div style="color:#d7a23f;font-size:20px;font-weight:800;letter-spacing:.22em">EV EXEC</div>
+        <div style="color:#9aa3b2;font-size:10px;letter-spacing:.28em;margin-top:4px">PREMIUM AIRPORT TRANSFERS</div>
+      </td></tr>
+      <tr><td bgcolor="#C9A550" style="background:#C9A550;height:4px;line-height:4px;font-size:0">&nbsp;</td></tr>
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:26px 28px">
+        <p style="margin:0 0 14px;font-size:15px;color:#0f1b33">Hi ${esc(name) || "there"},</p>
+        <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#475569">
+          Please use the link below to complete payment for your EV Exec airport transfer (Ref ${esc(ref)}).
+        </p>
+        <p style="margin:0 0 20px">
+          <a href="${url}" style="display:inline-block;background:linear-gradient(135deg,#f1c56a,#d5a538 55%,#a97918);color:#020813;font-weight:700;font-size:14px;padding:12px 24px;border-radius:8px;text-decoration:none">
+            ${amount ? `Pay ${esc(amount)}` : "Complete Payment"}
+          </a>
+        </p>
+        <p style="margin:0;font-size:14px;color:#475569">Kind regards,<br/>The EV Exec Team</p>
+      </td></tr>
+      <tr><td bgcolor="#0B132B" style="background:#0B132B;padding:14px 28px;color:#9aa3b2;font-size:11px">
+        EV Exec · Blackpool, FY2 0FD · 07721 070370 · book@evexec.co.uk · evexec.co.uk
+      </td></tr>
+    </table>
+    </td></tr>
+    </table>
+  </body></html>`;
 }
 
 export async function POST(req: Request) {
@@ -119,36 +162,43 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── Persist + enqueue the SMS the processor already delivers ────────────────
+  // ── Persist, then deliver: email if we have one (no Twilio), else a two-tap
+  // sms: deep link for the operator to send themselves ─────────────────────
   await admin
     .from("bookings")
     .update({ stripe_session_id: session.id, payment_method: "Payment link" })
     .eq("id", booking.id);
 
   const name = (booking.customer_name ?? "").trim() || "there";
+  const amountLabel = `£${amount.toFixed(2)}`;
+
+  if (customerEmail && isEmail(customerEmail) && RESEND_API_KEY) {
+    const resendRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: FROM,
+        to: customerEmail,
+        reply_to: REPLY_TO,
+        subject: `Complete payment for your EV Exec transfer (Ref ${booking.ref})`,
+        html: paymentLinkEmailHtml(name, booking.ref, amountLabel, session.url),
+      }),
+    });
+
+    if (resendRes.ok) {
+      return json({ url: session.url, sent: true, channel: "email" });
+    }
+    // Email failed -- fall through to the sms: deep-link fallback below so
+    // the operator still has a way to get the link to the customer.
+  }
+
   const body =
     `EV Exec: Hi ${name}, please complete payment for your airport transfer ` +
     `(Ref ${booking.ref}): ${session.url}`;
+  const smsHref = `sms:${phone}?body=${encodeURIComponent(body)}`;
 
-  const { error: qErr } = await admin.from("notification_queue").insert({
-    booking_id: booking.id,
-    type: "payment_link",
-    channel: "sms",
-    recipient: phone,
-    body,
-    status: "pending",
-    attempts: 0,
-    next_attempt_at: new Date().toISOString(),
-  });
-
-  if (qErr) {
-    // The link exists and the booking is updated; surface that the text failed
-    // so the operator can copy the link manually.
-    return json(
-      { url: session.url, sent: false, error: "Link created but the text could not be queued." },
-      207
-    );
-  }
-
-  return json({ url: session.url, sent: true });
+  return json({ url: session.url, sent: false, channel: "sms", smsHref });
 }
