@@ -839,7 +839,7 @@ export default function BookingDetailDrawer({
                 <div className="space-y-3">
                   <Row icon={RotateCcw} label="Return route" value={booking.returnRoute} />
                   <Row icon={Plane} label="Return flight" value={booking.returnFlight && booking.returnFlight !== "—" ? booking.returnFlight : null} />
-                  <Row icon={Calendar} label="Return date" value={booking.returnDate ? new Date(booking.returnDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : null} />
+                  <Row icon={Calendar} label="Return date" value={booking.returnDate ? new Date(booking.returnDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }) : null} />
                   <Row icon={Clock} label="Return time" value={booking.returnTime ? booking.returnTime.slice(0, 5) : null} />
                 </div>
               </div>

@@ -54,7 +54,10 @@ function short(value: string | null | undefined) {
 
 function displayDate(value: string | null | undefined) {
   if (!value) return null;
-  return new Date(value).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  // value is a plain YYYY-MM-DD travel/return date with no time component,
+  // so it parses as UTC midnight -- format in UTC too, or a non-UTC server/
+  // browser timezone silently shows the previous calendar day.
+  return new Date(value).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 }
 
 export default function BookingCard({ booking, drivers, notification, unavailableDriverIds, onStatusChange, onDriverAssign, onDangerAction, onViewReturn, driverLocation, proofs }: Props) {
