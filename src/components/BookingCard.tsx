@@ -4,19 +4,24 @@ import { useState, type ReactNode } from "react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { Clock, MapPin, Phone, ChevronDown, ChevronUp, MessageSquare, Star, AlertCircle, Bell, AlertTriangle, Trash2, Users, Briefcase, RotateCcw, Pencil, X, ShieldCheck, Camera } from "lucide-react";
 import type { DbBooking, DbDriver, BookingStatus, DbDriverLocation, DbJobProof, JobProofKind } from "@/lib/database.types";
-import { STATUS_NEXT_PRIMARY, STATUS_NEXT_LABEL } from "@/lib/database.types";
+import { STATUS_NEXT_PRIMARY, STATUS_NEXT_LABEL, reverseTarget, reverseLabel } from "@/lib/database.types";
 import type { BookingNotificationStatus } from "@/hooks/useNotifications";
 import { supabase } from "@/lib/supabase";
 import StatusBadge from "./StatusBadge";
 import DriverDropdown from "./DriverDropdown";
 import DriverLiveBadge from "./DriverLiveBadge";
 import JobOfferBadge from "./JobOfferBadge";
+import FlightVerificationCard from "./FlightVerificationCard";
 
 const NOTIFICATION_TYPE_LABELS: Record<string, string> = {
   confirmation: "Confirmation",
   reminder_24h: "24h reminder",
   received: "Booking received",
 };
+
+// Same airport detection used by the Dispatch board and website booking
+// form -- whichever side reads as an airport, is the airport.
+const looksLikeAirport = (s: string | null) => /\bairport\b|\([A-Za-z]{3}\)/.test(s || "");
 
 interface Props {
   booking: DbBooking;
@@ -67,6 +72,8 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
   const time = booking.travel_time?.slice(0, 5) ?? "—";
   const nextStatus = STATUS_NEXT_PRIMARY[booking.status];
   const nextLabel = STATUS_NEXT_LABEL[booking.status];
+  const undoStatus = reverseTarget(booking.status);
+  const undoLabel = reverseLabel(booking.status);
   const pickup = booking.pickup_location || booking.airport || booking.direction || "—";
   const dropoff = booking.dropoff_address || booking.destination || booking.airport || "—";
   const route = `${short(pickup)} → ${short(dropoff)}`;
@@ -102,7 +109,6 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
         <div className="rounded-xl border border-slate-100 bg-slate-100 p-3 space-y-2">
           <DetailRow label="Pick up" value={pickup} strong />
           <DetailRow label="Drop off" value={dropoff} strong />
-          {booking.airport && <DetailRow label="Airport" value={booking.airport} />}
           {booking.flight_number && <DetailRow label="Flight" value={booking.flight_number} />}
         </div>
 
@@ -141,7 +147,9 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
         })()}
 
         <div className="flex items-center justify-between">
-          <span className="text-xs text-slate-500">{booking.payment_status ?? "Unpaid"}</span>
+          <span className={`text-xs font-medium ${booking.payment_status === "Paid" ? "text-emerald-600" : "text-slate-500"}`}>
+            {booking.payment_status ?? "Unpaid"}{booking.payment_method ? ` · ${booking.payment_method}` : " · method not set"}
+          </span>
           <span className="text-sm font-semibold text-amber-600">{booking.quoted_price != null ? `£${Number(booking.quoted_price).toFixed(0)}` : "TBC"}</span>
         </div>
 
@@ -193,7 +201,25 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
           </div>
         )}
 
-        {nextStatus && nextLabel && <button onClick={() => onStatusChange(booking.ref, nextStatus)} className="w-full mt-1 py-2 rounded-xl text-xs font-semibold bg-gold/10 text-amber-600 border border-gold/25 hover:bg-gold/20 hover:border-gold/40 active:scale-[0.98] transition-all">{nextLabel}</button>}
+        {(nextStatus || undoStatus) && (
+          <div className="flex items-center gap-2 mt-1">
+            {nextStatus && nextLabel && (
+              <button type="button" onClick={() => onStatusChange(booking.ref, nextStatus)} className="flex-1 py-2 rounded-xl text-xs font-semibold bg-gold/10 text-amber-600 border border-gold/25 hover:bg-gold/20 hover:border-gold/40 active:scale-[0.98] transition-all">
+                {nextLabel}
+              </button>
+            )}
+            {undoStatus && undoLabel && (
+              <button
+                type="button"
+                onClick={() => onStatusChange(booking.ref, undoStatus)}
+                title="Operator correction — reverses this job one step. Drivers can't undo their own progress."
+                className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-slate-500 border border-slate-200 bg-white transition-all hover:text-red-600 hover:border-red-300 hover:bg-red-50 active:scale-[0.98] ${nextStatus ? "px-3" : "flex-1"}`}
+              >
+                <RotateCcw size={12} /> {undoLabel}
+              </button>
+            )}
+          </div>
+        )}
 
         {booking.status === "Unassigned / Missed Call Recovery" && <div className="flex items-center gap-1.5 text-xs text-orange-600 bg-orange-100 px-3 py-1.5 rounded-lg"><AlertCircle size={11} /> Missed call recovery — assign driver urgently</div>}
       </div>
@@ -213,7 +239,6 @@ function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: (
     customer_phone: booking.customer_phone ?? "",
     customer_email: booking.customer_email ?? "",
     pickup_location: booking.pickup_location ?? "",
-    airport: booking.airport ?? "",
     dropoff_address: booking.dropoff_address ?? "",
     flight_number: booking.flight_number ?? "",
     passengers: booking.passengers != null ? String(booking.passengers) : "1",
@@ -221,6 +246,8 @@ function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: (
     quoted_price: booking.quoted_price != null ? String(booking.quoted_price) : "",
     notes: booking.notes ?? booking.operator_note ?? "",
     priority: Boolean(booking.priority),
+    payment_status: booking.payment_status ?? "Unpaid",
+    payment_method: booking.payment_method ?? "",
   });
 
   const set = (key: string, value: string | boolean) => setForm((f) => ({ ...f, [key]: value }));
@@ -230,6 +257,16 @@ function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: (
     setSaving(true);
     setError(null);
     const passengers = Math.max(1, Number.parseInt(form.passengers, 10) || 1);
+    const pickup_location = form.pickup_location.trim() || null;
+    const dropoff_address = form.dropoff_address.trim() || null;
+    // No separate "Airport" field -- whichever of pickup/drop-off reads as
+    // an airport is the airport, same detection used everywhere else this
+    // is entered (Dispatch board, website, Calendar's New Transfer).
+    const airport = looksLikeAirport(pickup_location)
+      ? pickup_location
+      : looksLikeAirport(dropoff_address)
+      ? dropoff_address
+      : null;
     const payload = {
       travel_date: form.travel_date || null,
       travel_time: form.travel_time ? `${form.travel_time}:00` : null,
@@ -237,15 +274,17 @@ function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: (
       customer_name: form.customer_name.trim(),
       customer_phone: form.customer_phone.trim() || null,
       customer_email: form.customer_email.trim() || null,
-      pickup_location: form.pickup_location.trim() || null,
-      airport: form.airport.trim() || null,
-      dropoff_address: form.dropoff_address.trim() || null,
+      pickup_location,
+      airport,
+      dropoff_address,
       flight_number: form.flight_number.trim() || null,
       passengers,
       luggage: form.luggage.trim() || null,
       quoted_price: form.quoted_price ? Number(form.quoted_price) : null,
       notes: form.notes.trim() || null,
       priority: form.priority,
+      payment_status: form.payment_status,
+      payment_method: form.payment_method || null,
     };
 
     const { error: updateError } = await supabase.from("bookings").update(payload).eq("ref", booking.ref);
@@ -280,14 +319,48 @@ function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: (
             <Field label="Email" value={form.customer_email} onChange={(v) => set("customer_email", v)} />
           </div>
           <Field label="Pickup address" value={form.pickup_location} onChange={(v) => set("pickup_location", v)} />
-          <Field label="Airport" value={form.airport} onChange={(v) => set("airport", v)} />
           <Field label="Drop-off address" value={form.dropoff_address} onChange={(v) => set("dropoff_address", v)} />
           <Field label="Flight number" value={form.flight_number} onChange={(v) => set("flight_number", v)} />
+          {booking.flight_number && (
+            <FlightVerificationCard
+              bookingId={booking.id}
+              flightNumberInput={booking.flight_number}
+              airportInput={booking.airport}
+              journeyType={booking.journey_type}
+            />
+          )}
           <div className="grid grid-cols-2 gap-2">
             <Field label="Passengers" type="number" value={form.passengers} onChange={(v) => set("passengers", v)} min={1} />
             <Field label="Bags" value={form.luggage} onChange={(v) => set("luggage", v)} />
           </div>
           <Field label="Price (£)" type="number" value={form.quoted_price} onChange={(v) => set("quoted_price", v)} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-xs text-slate-500">Payment status</label>
+              <select
+                value={form.payment_status}
+                onChange={(e) => set("payment_status", e.target.value)}
+                className={editInputCls}
+              >
+                <option value="Unpaid">Unpaid</option>
+                <option value="Invoiced">Invoiced</option>
+                <option value="Paid">Paid</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-slate-500">Payment method (driver sees this)</label>
+              <select
+                value={form.payment_method}
+                onChange={(e) => set("payment_method", e.target.value)}
+                className={editInputCls}
+              >
+                <option value="">Not set — TBC</option>
+                <option value="Cash">Cash</option>
+                <option value="Card">Card</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+              </select>
+            </div>
+          </div>
           <div>
             <label className="mb-1 block text-xs text-slate-500">Notes</label>
             <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={3} className={editInputCls} />

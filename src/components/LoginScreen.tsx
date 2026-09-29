@@ -31,7 +31,7 @@ export default function LoginScreen({ onSignIn }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-[#E9EBF2] flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-[#020813] flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -42,7 +42,7 @@ export default function LoginScreen({ onSignIn }: Props) {
             style={{ maxWidth: "260px", objectFit: "contain" }}
           />
           <p
-            className="text-slate-500 font-medium uppercase mt-1 tracking-widest"
+            className="text-white/50 font-medium uppercase mt-1 tracking-widest"
             style={{ fontSize: "clamp(0.6rem, 1.5vw, 0.7rem)", letterSpacing: "0.22em" }}
           >
             Operator Portal

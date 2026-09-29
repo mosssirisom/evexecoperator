@@ -23,7 +23,7 @@ import {
   Building,
 } from "lucide-react";
 import { useOperatorToast } from "@/components/operator/Toast";
-import { isConfigured } from "@/lib/supabase";
+import { isConfigured, supabase } from "@/lib/supabase";
 import { useNotificationCenter } from "@/hooks/operator/useNotificationCenter";
 import { isPushSupported, getPushEnabled, enableOperatorPush, disableOperatorPush } from "@/lib/operator/push";
 import { PORTALS } from "@/lib/operator/portals";
@@ -443,6 +443,47 @@ function IntegrationItem({ name, description, connected, onAction, actionLabel }
   );
 }
 
+function FlightVerificationSettings({ toast }) {
+  const [aeroConfigured, setAeroConfigured] = useState(null); // null = checking
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.functions
+      .invoke("integration-status")
+      .then(({ data }) => {
+        if (!cancelled) setAeroConfigured(Boolean(data?.integrations?.aerodatabox));
+      })
+      .catch(() => {
+        if (!cancelled) setAeroConfigured(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <div>
+      <p className="mb-4 text-xs uppercase tracking-[0.28em] text-amber-600">Flight Verification</p>
+      <div className="space-y-4">
+        <IntegrationItem
+          name="AeroDataBox"
+          description="Verifies flight number, schedule and airports for airport bookings. Recommended pickup is the flight's own landing time."
+          connected={aeroConfigured === true}
+          actionLabel={aeroConfigured === null ? "Checking…" : aeroConfigured ? "Live" : "Not configured"}
+          onAction={() =>
+            toast({
+              message: aeroConfigured
+                ? "AeroDataBox is live -- flight verification is checking real schedule data"
+                : "Add AERODATABOX_API_KEY as a Supabase Edge Function secret to enable live verification",
+              type: aeroConfigured ? "success" : "info",
+            })
+          }
+        />
+      </div>
+    </div>
+  );
+}
+
 function IntegrationSettings({ toast }) {
   return (
     <div className="space-y-8">
@@ -509,6 +550,8 @@ function IntegrationSettings({ toast }) {
           />
         </div>
       </div>
+
+      <FlightVerificationSettings toast={toast} />
     </div>
   );
 }

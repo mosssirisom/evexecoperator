@@ -13,14 +13,21 @@ export interface BookingPrefill {
   customer_email?: string;
   travel_date?: string;
   travel_time?: string;
-  airport?: string;
-  dropoff_address?: string;
-  direction?: string;
+  pickup?: string;
+  dropoff?: string;
   flight_number?: string;
   passengers?: number;
   luggage?: string;
   notes?: string;
 }
+
+// True when a location reads as an airport (has "airport" or a 3-letter
+// code) -- same detection used by the Dispatch board's booking form, so a
+// job entered here and one entered there are recorded identically. Keeping
+// this as the one thing that decides "which side is the airport" (instead
+// of a separate operator-picked direction) is what stops pickup / airport /
+// drop-off from drifting out of sync with each other.
+const looksLikeAirport = (s: string) => /\bairport\b|\([A-Za-z]{3}\)/.test(s || "");
 
 interface Props {
   drivers: DbDriver[];
@@ -29,12 +36,6 @@ interface Props {
   onSave: (data: NewBooking) => Promise<void>;
   onClose: () => void;
 }
-
-const DIRECTIONS = [
-  "Airport → Destination",
-  "Destination → Airport",
-  "Point to Point",
-];
 
 const BAG_OPTIONS = ["None", "1 piece", "2 pieces", "3 pieces", "4 pieces", "5+ pieces", "Golf clubs", "Bike box", "Custom"];
 
@@ -49,9 +50,8 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
     customer_name: prefill?.customer_name ?? "",
     customer_phone: prefill?.customer_phone ?? "",
     customer_email: prefill?.customer_email ?? "",
-    airport: prefill?.airport ?? "",
-    dropoff_address: prefill?.dropoff_address ?? "",
-    direction: prefill?.direction ?? DIRECTIONS[0],
+    pickup: prefill?.pickup ?? "",
+    dropoff: prefill?.dropoff ?? "",
     flight_number: prefill?.flight_number ?? "",
     passengers: prefill?.passengers ? String(prefill.passengers) : "1",
     luggage: prefill?.luggage ?? "",
@@ -80,6 +80,19 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
       const passengerCount = Math.max(1, Number.parseInt(form.passengers, 10) || 1);
       const luggageValue = form.luggagePreset === "Custom" ? form.luggage.trim() : form.luggagePreset || form.luggage.trim();
 
+      // pickup_location and dropoff_address always hold the literal, entered
+      // route -- whichever end is the airport is detected from the text
+      // itself, never from a separate field. journey_type and direction are
+      // just derived labels for that same detection, kept in sync with it so
+      // they can never disagree with what's actually shown to the customer.
+      const pickup = form.pickup.trim();
+      const dropoff = form.dropoff.trim();
+      const pickupIsAirport = looksLikeAirport(pickup);
+      const dropoffIsAirport = !pickupIsAirport && looksLikeAirport(dropoff);
+      const airportSide = pickupIsAirport ? pickup : dropoffIsAirport ? dropoff : null;
+      const journeyType = pickupIsAirport ? "From Airport" : dropoffIsAirport ? "To Airport" : null;
+      const direction = pickupIsAirport ? "Airport → Destination" : dropoffIsAirport ? "Destination → Airport" : "Point to Point";
+
       const data: NewBooking = {
         travel_date: form.travel_date || null,
         travel_time: form.travel_time ? `${form.travel_time}:00` : null,
@@ -87,9 +100,11 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
         customer_name: form.customer_name,
         customer_phone: form.customer_phone || null,
         customer_email: form.customer_email || null,
-        airport: form.airport || null,
-        dropoff_address: form.dropoff_address || null,
-        direction: form.direction || null,
+        pickup_location: pickup || null,
+        dropoff_address: dropoff || null,
+        airport: airportSide,
+        journey_type: journeyType,
+        direction,
         flight_number: form.flight_number || null,
         passengers: passengerCount,
         luggage: luggageValue || null,
@@ -150,14 +165,8 @@ export default function AddBookingModal({ drivers, defaultDate, prefill, onSave,
           <section>
             <SectionLabel icon={MapPin} label="Route" />
             <div className="space-y-2 mt-2">
-              <div>
-                <label className="text-xs text-slate-500 mb-1 block">Direction</label>
-                <select value={form.direction} onChange={(e) => set("direction", e.target.value)} className={inputCls}>
-                  {DIRECTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-              <Input placeholder="Airport / pickup address *" value={form.airport} onChange={(v) => set("airport", v)} required />
-              <Input placeholder="Drop-off address *" value={form.dropoff_address} onChange={(v) => set("dropoff_address", v)} required />
+              <Input placeholder="Pickup: Manchester Airport (MAN), or a full address *" value={form.pickup} onChange={(v) => set("pickup", v)} required />
+              <Input placeholder="Drop-off: full address, or an airport *" value={form.dropoff} onChange={(v) => set("dropoff", v)} required />
             </div>
           </section>
 

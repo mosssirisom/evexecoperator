@@ -31,6 +31,7 @@ export function shapedBooking(row) {
 
   return {
     id: row.ref,
+    dbId: row.id,
     customer: row.customer_name,
     phone: row.customer_phone ?? null,
     email: row.customer_email ?? null,

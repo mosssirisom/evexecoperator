@@ -60,17 +60,15 @@ describe("quoteToPrefill", () => {
     expect(prefill.customer_email).toBe("jane@example.com");
   });
 
-  it("uses 'Airport → Destination' direction when an airport is set, with airport as pickup", () => {
+  it("uses the quote's airport as the literal pickup when no pickup_location is set", () => {
     const prefill = quoteToPrefill(makeQuote({ airport: "Heathrow", destination: "Central London" }));
-    expect(prefill.direction).toBe("Airport → Destination");
-    expect(prefill.airport).toBe("Heathrow");
-    expect(prefill.dropoff_address).toBe("Central London");
+    expect(prefill.pickup).toBe("Heathrow");
+    expect(prefill.dropoff).toBe("Central London");
   });
 
-  it("falls back to pickup_location and 'Point to Point' when no airport is set", () => {
+  it("uses pickup_location as the literal pickup when set", () => {
     const prefill = quoteToPrefill(makeQuote({ pickup_location: "Home address" }));
-    expect(prefill.direction).toBe("Point to Point");
-    expect(prefill.airport).toBe("Home address");
+    expect(prefill.pickup).toBe("Home address");
   });
 
   it("copies travel date/time and trims seconds from pickup_time", () => {

@@ -9,6 +9,7 @@ import {
 import { bookingStatusColor } from "@/lib/operator/statusColor";
 import { reverseTarget, reverseLabel } from "@/lib/operator/statusFlow";
 import ETACountdown from "./ETACountdown";
+import FlightVerificationCard from "@/components/FlightVerificationCard";
 
 function Row({ icon: Icon, label, value, muted }) {
   if (!value) return null;
@@ -233,9 +234,11 @@ const PAYMENT_STATES = [
   { value: "Paid",     color: "border-emerald-400/30 bg-emerald-400/10 text-emerald-600", dot: "bg-emerald-400" },
 ];
 
-// How the customer is paying — surfaced at dispatch so the operator knows what
-// to expect. EV Exec only takes Cash or Bank Transfer.
-const PAYMENT_METHODS = ["Cash", "Bank Transfer"];
+// How the customer is paying — surfaced at dispatch so the driver knows what
+// to expect. "Card" is normally set automatically when a Stripe payment link
+// is paid, but is offered here too so the operator can record it manually
+// (e.g. the customer paid by card in person, or over the phone).
+const PAYMENT_METHODS = ["Cash", "Card", "Bank Transfer"];
 
 function PaymentMethodPicker({ value, onSelect }) {
   const [pending, setPending] = useState(null);
@@ -321,6 +324,10 @@ function PaymentBadge({ paymentStatus, onUpdate }) {
 const editInputCls =
   "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#0F1B33] placeholder:text-slate-400 outline-none transition focus:border-amber-400/40";
 
+// Same airport detection used by the Dispatch board and the website's
+// booking form -- whichever side reads as an airport, is the airport.
+const looksLikeAirport = (s) => /\bairport\b|\([A-Za-z]{3}\)/.test(s || "");
+
 function EditField({ label, icon: Icon, children }) {
   return (
     <div>
@@ -334,7 +341,7 @@ function EditField({ label, icon: Icon, children }) {
 
 // Edit an existing booking's core details (passengers, bags, time, addresses…).
 // Seeds from the booking, saves only what changed.
-function BookingEditForm({ booking, onSave, onCancel }) {
+function BookingEditForm({ booking, onSave, onCancel, onUpdatePaymentStatus, onUpdatePaymentMethod }) {
   const initial = useMemo(
     () => ({
       customer: booking.customer ?? "",
@@ -345,7 +352,6 @@ function BookingEditForm({ booking, onSave, onCancel }) {
       travelDate: booking.travelDate ?? "",
       time: booking.time && booking.time !== "—" ? booking.time : "",
       pickupLocation: booking.pickupLocation ?? "",
-      airport: booking.airport && booking.airport !== "—" ? booking.airport : "",
       dropoffAddress: booking.dropoffAddress ?? booking.destination ?? "",
       flight: booking.flight && booking.flight !== "—" ? booking.flight : "",
       price: booking.price && booking.price !== "TBC" ? booking.price.replace(/[^0-9.]/g, "") : "",
@@ -363,6 +369,21 @@ function BookingEditForm({ booking, onSave, onCancel }) {
     for (const k of Object.keys(initial)) {
       if (form[k] !== initial[k]) changed[k] = form[k].trim() === "" ? null : form[k].trim();
     }
+
+    // There's no separate "Airport" field to edit -- whichever of pickup /
+    // drop-off reads as an airport IS the airport, the same detection the
+    // Dispatch board and website booking form already use. Keep the
+    // underlying airport column (used for pricing and flight verification)
+    // in sync with that whenever the route changes, instead of exposing it
+    // as a third, independently-editable field that can drift out of sync.
+    if ("pickupLocation" in changed || "dropoffAddress" in changed) {
+      const pickup = form.pickupLocation.trim();
+      const dropoff = form.dropoffAddress.trim();
+      const derivedAirport = looksLikeAirport(pickup) ? pickup : looksLikeAirport(dropoff) ? dropoff : null;
+      const currentAirport = booking.airport && booking.airport !== "—" ? booking.airport : null;
+      if (derivedAirport !== currentAirport) changed.airport = derivedAirport;
+    }
+
     if (Object.keys(changed).length === 0) {
       onCancel();
       return;
@@ -411,14 +432,11 @@ function BookingEditForm({ booking, onSave, onCancel }) {
         </EditField>
       </div>
 
-      <EditField label="Pickup location" icon={MapPin}>
-        <input className={editInputCls} value={form.pickupLocation} onChange={set("pickupLocation")} placeholder="Pickup address" />
-      </EditField>
-      <EditField label="Airport" icon={Plane}>
-        <input className={editInputCls} value={form.airport} onChange={set("airport")} placeholder="e.g. Manchester T2" />
+      <EditField label="Pickup address" icon={MapPin}>
+        <input className={editInputCls} value={form.pickupLocation} onChange={set("pickupLocation")} placeholder="e.g. Manchester Airport (T2), or a full address" />
       </EditField>
       <EditField label="Drop-off address" icon={MapPin}>
-        <input className={editInputCls} value={form.dropoffAddress} onChange={set("dropoffAddress")} placeholder="Destination address" />
+        <input className={editInputCls} value={form.dropoffAddress} onChange={set("dropoffAddress")} placeholder="e.g. a full address, or Manchester Airport" />
       </EditField>
 
       <div className="grid grid-cols-2 gap-3">
@@ -429,6 +447,37 @@ function BookingEditForm({ booking, onSave, onCancel }) {
           <input className={editInputCls} value={form.price} onChange={set("price")} inputMode="decimal" placeholder="0.00" />
         </EditField>
       </div>
+
+      {form.flight && (
+        <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+          Save changes first, then use Flight verification below to check the saved flight number against live schedule data.
+        </p>
+      )}
+      {booking.flight && booking.flight !== "—" && (
+        <FlightVerificationCard
+          bookingId={booking.dbId}
+          flightNumberInput={booking.flight}
+          airportInput={booking.airport}
+          journeyType={booking.journeyType}
+        />
+      )}
+
+      {/* Payment — tells the driver whether to collect cash or the customer
+          has already paid, instead of leaving it unset and defaulting to
+          "TBC" in the driver app. Changes here apply immediately, same as
+          the other one-tap controls elsewhere in the drawer. */}
+      <EditField label="Payment status" icon={PoundSterling}>
+        <PaymentBadge
+          paymentStatus={booking.paymentStatus ?? "Unpaid"}
+          onUpdate={onUpdatePaymentStatus}
+        />
+      </EditField>
+      <EditField label="Payment method (what the driver sees)" icon={CreditCard}>
+        <PaymentMethodPicker
+          value={booking.paymentMethod ?? null}
+          onSelect={onUpdatePaymentMethod}
+        />
+      </EditField>
 
       {err && (
         <p className="rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-600">{err}</p>
@@ -677,19 +726,42 @@ export default function BookingDetailDrawer({
             <RespondPanel booking={booking} onRespond={onRespond} />
           )}
 
-        {/* Confirmed / declined chip once the operator has responded */}
+        {/* Confirmed / declined chip once the operator has responded -- with an
+            immediate way to call/WhatsApp the customer right there, since
+            rejecting doesn't mean the conversation is over (e.g. a driver
+            frees up and the operator wants to offer the job again). */}
         {booking.operatorResponse && (
           <div className="flex-shrink-0 border-b border-slate-100 px-5 py-2.5 sm:px-6">
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                booking.operatorResponse === "accepted"
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-red-100 text-red-700"
-              }`}
-            >
-              {booking.operatorResponse === "accepted" ? <Check className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-              {booking.operatorResponse === "accepted" ? "Accepted" : "Rejected"}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                  booking.operatorResponse === "accepted"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {booking.operatorResponse === "accepted" ? <Check className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                {booking.operatorResponse === "accepted" ? "Accepted" : "Rejected"}
+              </span>
+              {phoneHref && (
+                <a
+                  href={phoneHref}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-400/20"
+                >
+                  <Phone className="h-3 w-3" /> Call customer
+                </a>
+              )}
+              {waHref && (
+                <a
+                  href={waHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-400/20"
+                >
+                  WhatsApp
+                </a>
+              )}
+            </div>
           </div>
         )}
 
@@ -712,6 +784,8 @@ export default function BookingDetailDrawer({
               booking={booking}
               onSave={handleSaveEdit}
               onCancel={() => setEditMode(false)}
+              onUpdatePaymentStatus={(ps) => onUpdatePaymentStatus?.(booking.id, ps)}
+              onUpdatePaymentMethod={(m) => onUpdatePaymentMethod?.(booking.id, m)}
             />
           ) : (
           <div className="space-y-6 px-5 py-5 sm:px-6">
@@ -831,6 +905,19 @@ export default function BookingDetailDrawer({
                 </div>
               </div>
             </div>
+
+            {/* Flight verification -- AeroDataBox-checked flight data, kept
+                separate from whatever the customer typed (see FlightVerificationCard). */}
+            {booking.flight && booking.flight !== "—" && (
+              <div>
+                <FlightVerificationCard
+                  bookingId={booking.dbId}
+                  flightNumberInput={booking.flight}
+                  airportInput={booking.airport}
+                  journeyType={booking.journeyType}
+                />
+              </div>
+            )}
 
             {/* Return journey (customer booked a return on the same request) */}
             {booking.returnJourney && (
