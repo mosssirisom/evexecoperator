@@ -247,10 +247,10 @@ export function useBookings() {
       if (!res.ok || out?.ok === false) {
         return { decision, channel, warning: out?.error ?? "Customer could not be notified." };
       }
+      return { decision, channel, paymentLink: out?.paymentLink ?? null };
     } catch {
       return { decision, channel: null, warning: "Decision saved, but the customer notification failed to send." };
     }
-    return { decision, channel };
   }, []);
 
   const createBooking = useCallback(

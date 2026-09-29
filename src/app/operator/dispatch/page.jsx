@@ -571,9 +571,17 @@ function DispatchPageContent() {
     if (out?.warning) {
       toast({ message: `${verb}, but ${out.warning}`, type: "error" });
     } else {
+      const pl = out?.paymentLink;
+      const paymentNote = !pl
+        ? ""
+        : pl.ok && pl.channel === "email"
+        ? " · payment link emailed"
+        : pl.ok && pl.channel === "sms"
+        ? " · payment link ready — send it from the booking (no email on file)"
+        : ` · payment link not sent (${pl.error ?? "unknown error"})`;
       toast({
-        message: `${verb} — customer notified${out?.channel ? ` by ${out.channel}` : ""}`,
-        type: "success",
+        message: `${verb} — customer notified${out?.channel ? ` by ${out.channel}` : ""}${paymentNote}`,
+        type: pl && !pl.ok ? "error" : "success",
       });
     }
     setSelectedBooking((prev) =>

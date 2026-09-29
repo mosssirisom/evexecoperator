@@ -1,16 +1,30 @@
 import { createClient } from "@supabase/supabase-js";
+import { bookingNeedsPaymentLink, createAndSendPaymentLink } from "@/lib/paymentLink";
 
 // Notifies a customer that the operator has ACCEPTED or REJECTED their website
 // booking. Email first (via Resend), SMS fallback (enqueued for the external
 // notification processor) if the email can't be sent or there's no address.
 //
-// No service-role key needed: the caller's token is verified with the anon key,
-// and the SMS fallback is written through the queue_customer_sms RPC.
+// On acceptance, also auto-triggers a Stripe payment link (via the same
+// createAndSendPaymentLink() helper the manual "Send Payment Link" button
+// uses) unless the booking is already paid or already has a payment method
+// recorded. This used to require a second, separate manual click after
+// Accept -- easy to forget, and the actual gap a real customer hit (accepted
+// with no payment link ever sent). Payment-link failures are surfaced in the
+// response but never block the acceptance itself from succeeding.
+//
+// This route's own accept/reject notice needs no service-role key (the
+// caller's token is verified with the anon key, and the SMS fallback is
+// written through the queue_customer_sms RPC) -- the payment-link helper
+// uses its own self-contained service-role client internally.
 //
 // Env (Vercel project settings):
 //   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY — already set
 //   RESEND_API_KEY  — re_… (verify evexec.co.uk in Resend); optional, falls back to SMS
 //   INVOICE_FROM / INVOICE_REPLY_TO — reused as the sender / reply-to
+//   STRIPE_SECRET_KEY, SUPABASE_SERVICE_ROLE_KEY — needed for the auto payment
+//   link (see src/lib/paymentLink.ts); if unset, acceptance still succeeds and
+//   the payment link is simply skipped (paymentLink.ok === false in the response)
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -164,5 +178,22 @@ export async function POST(req: Request) {
         : "No email or phone on file for this customer.",
     }, 200);
   }
-  return json({ ok: true, channel, emailed, smsQueued });
+
+  // ── Auto payment link on acceptance ─────────────────────────────────────────
+  let paymentLink: { ok: boolean; channel?: "email" | "sms"; error?: string } | null = null;
+  if (accepted && ref) {
+    const { data: paymentRow } = await db
+      .from("bookings")
+      .select("payment_status, payment_method")
+      .eq("ref", ref)
+      .single();
+    if (paymentRow && bookingNeedsPaymentLink(paymentRow)) {
+      const result = await createAndSendPaymentLink(ref);
+      paymentLink = result.ok
+        ? { ok: true, channel: result.channel }
+        : { ok: false, error: result.error };
+    }
+  }
+
+  return json({ ok: true, channel, emailed, smsQueued, paymentLink });
 }
