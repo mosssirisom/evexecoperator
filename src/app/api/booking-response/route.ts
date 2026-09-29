@@ -1,9 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { bookingNeedsPaymentLink, createAndSendPaymentLink } from "@/lib/paymentLink";
+import { handOffSmsToOperator } from "@/lib/operatorSmsHandoff";
 
 // Notifies a customer that the operator has ACCEPTED or REJECTED their website
-// booking. Email first (via Resend), SMS fallback (enqueued for the external
-// notification processor) if the email can't be sent or there's no address.
+// booking. Email first (via Resend). If there's no email on file (or it
+// fails), the SMS is handed off to staff via the two-tap system instead of
+// a direct Twilio send -- see src/lib/operatorSmsHandoff.ts.
 //
 // On acceptance, also auto-triggers a Stripe payment link (via the same
 // createAndSendPaymentLink() helper the manual "Send Payment Link" button
@@ -13,18 +15,14 @@ import { bookingNeedsPaymentLink, createAndSendPaymentLink } from "@/lib/payment
 // with no payment link ever sent). Payment-link failures are surfaced in the
 // response but never block the acceptance itself from succeeding.
 //
-// This route's own accept/reject notice needs no service-role key (the
-// caller's token is verified with the anon key, and the SMS fallback is
-// written through the queue_customer_sms RPC) -- the payment-link helper
-// uses its own self-contained service-role client internally.
-//
 // Env (Vercel project settings):
 //   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY — already set
 //   RESEND_API_KEY  — re_… (verify evexec.co.uk in Resend); optional, falls back to SMS
 //   INVOICE_FROM / INVOICE_REPLY_TO — reused as the sender / reply-to
 //   STRIPE_SECRET_KEY, SUPABASE_SERVICE_ROLE_KEY — needed for the auto payment
-//   link (see src/lib/paymentLink.ts); if unset, acceptance still succeeds and
-//   the payment link is simply skipped (paymentLink.ok === false in the response)
+//   link (see src/lib/paymentLink.ts) and the two-tap SMS handoff (see
+//   src/lib/operatorSmsHandoff.ts); if unset, acceptance still succeeds and
+//   those steps are simply skipped/reported as failed in the response
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -103,8 +101,8 @@ export async function POST(req: Request) {
   const authHeader = req.headers.get("authorization") ?? "";
   const token = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
   if (!token) return json({ error: "Not authorised." }, 401);
-  // Send the caller's JWT on every request so the queue_customer_sms RPC runs as
-  // the authenticated operator (that function is not callable by the anon role).
+  // Send the caller's JWT on every request so bookings reads/writes below run
+  // as the authenticated operator, scoped by RLS.
   const db = createClient(SUPABASE_URL, ANON_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
     global: { headers: { Authorization: `Bearer ${token}` } },
@@ -131,6 +129,15 @@ export async function POST(req: Request) {
   const smsText = accepted
     ? `EV Exec: Good news ${name || "there"}, your airport transfer${whenText ? ` (${whenText})` : ""} is confirmed. Ref ${ref}. We'll send driver details nearer the time.`
     : `EV Exec: Hi ${name || "there"}, unfortunately we can't cover your transfer${whenText ? ` (${whenText})` : ""} (Ref ${ref}). Please contact us to discuss alternatives — 07721 070370.`;
+
+  // Resolve the booking row once: its id is needed for the two-tap SMS
+  // handoff (both decisions), and payment_status/payment_method for the
+  // auto-payment-link skip check (acceptance only).
+  const { data: bookingRow } = await db
+    .from("bookings")
+    .select("id, payment_status, payment_method")
+    .eq("ref", ref)
+    .single();
 
   // ── Email first ────────────────────────────────────────────────────────────
   let emailed = false;
@@ -159,13 +166,17 @@ export async function POST(req: Request) {
     }
   }
 
-  // ── SMS fallback ───────────────────────────────────────────────────────────
+  // ── SMS fallback (two-tap handoff, no Twilio) ───────────────────────────────
   let smsQueued = false;
-  if (!emailed && phone) {
-    const { error: smsErr } = await db.rpc("queue_customer_sms", {
-      p_ref: ref, p_recipient: phone, p_body: smsText, p_type: `operator_${decision}`,
-    });
-    smsQueued = !smsErr;
+  if (!emailed && phone && bookingRow?.id) {
+    const result = await handOffSmsToOperator(
+      bookingRow.id,
+      accepted ? "confirmation" : "rejection",
+      name,
+      phone,
+      smsText
+    );
+    smsQueued = result.ok;
   }
 
   const channel = emailed ? "email" : smsQueued ? "sms" : null;
@@ -181,18 +192,11 @@ export async function POST(req: Request) {
 
   // ── Auto payment link on acceptance ─────────────────────────────────────────
   let paymentLink: { ok: boolean; channel?: "email" | "sms"; error?: string } | null = null;
-  if (accepted && ref) {
-    const { data: paymentRow } = await db
-      .from("bookings")
-      .select("payment_status, payment_method")
-      .eq("ref", ref)
-      .single();
-    if (paymentRow && bookingNeedsPaymentLink(paymentRow)) {
-      const result = await createAndSendPaymentLink(ref);
-      paymentLink = result.ok
-        ? { ok: true, channel: result.channel }
-        : { ok: false, error: result.error };
-    }
+  if (accepted && bookingRow && bookingNeedsPaymentLink(bookingRow)) {
+    const result = await createAndSendPaymentLink(ref);
+    paymentLink = result.ok
+      ? { ok: true, channel: result.channel }
+      : { ok: false, error: result.error };
   }
 
   return json({ ok: true, channel, emailed, smsQueued, paymentLink });
