@@ -219,3 +219,17 @@ Two brand styles still coexist deliberately, not yet unified: the SQL-triggered 
 Every other previously-tracked or newly-found Twilio site in the system is now converted to two-tap or removed.
 
 **Also not yet applied to production**: both new migrations in this update (branded emails here, `completed` reminder type in `evexecdriverapp`) — same Supabase access blocker.
+
+## Update — 2026-09-30: one universal email brand, everywhere (user asked for a single style, not three)
+
+Follow-up to the audit above: told explicitly "Has to be One universal style" rather than leaving evexec's dark theme, this repo's periwinkle theme, and the newly-branded-but-still-different SQL template coexisting. Picked `evexec/lib/emailLayout.js` as canonical — it's the actual customer-facing site's own brand (dark `#020813` card, gold `#d5a538` accent bar, logo at top, footer below the card), and already the most widely-used template in the whole system by a wide margin.
+
+**This repo**: new `src/lib/emailLayout.ts` replicates evexec's shell byte-for-byte (same colors, same markup structure, same `emailRow`/`refBadgeHtml` label-value-row and reference-badge conventions). `booking-response`, `payment-link`, and `send-invoice` all now use it instead of their inline periwinkle HTML.
+
+**SQL side**: `evexec_notification_email()`'s signature changed from `(pill, pill_bg, pill_fg, lead, rows, footnote)` to `(title, accent, accent_text, lead, rows, footnote)`, directly mirroring `emailLayout({title, body, accent, accentText})`. evexec's own emails have no inline status pill — they convey status through the accent-bar title and color alone (gold for a positive/informational notice, gray `#374151` for cancelled/unavailable) — so the pill concept is dropped rather than kept as a fourth style. Every call site (`received`, `status_update`, `driver_allocated`, `driver_reminder_24h`, `reminder_24h`) updated to match. Migration: `20260930090000_unify_email_brand_with_evexec.sql`. `search_path` explicitly pinned in the new function definitions rather than assumed to survive `CREATE OR REPLACE` from the earlier `036_pin_search_path_email_helpers.sql` `ALTER FUNCTION`.
+
+**`evexecdriverapp`**: two more separate light-themed designs found and converted the same way — `_shared/email.ts`'s driver reminder/cancellation/update emails, and `_shared/notify.ts`'s attestation-engine fallback template — plus `send-journey-receipt`'s own two templates (already found in the earlier audit but not yet unified). New `_shared/emailLayout.ts` there mirrors this repo's own `src/lib/emailLayout.ts` exactly. Also fixed a real bug found in the process: every one of those four driver-facing templates linked `${APP_URL}/logo.png`, which has never existed (only `/public/images/ev-exec-logo.jpg` does) — the EV Exec logo has likely been a broken image in every driver-facing email ever sent. All now use the correct URL.
+
+**Not touched, deliberately**: `evexec`'s own dashboard email templates (`lib/emailLayout.js` itself, `lib/format.js`'s `emailJourneyHtml`/`refBadgeHtml`) — these ARE the canonical source being matched, not something needing conversion. Whether `evexec`'s dashboard accept flow (`api/operator/index.js`) is still actively used by staff remains unconfirmed from a prior update; irrelevant to this pass either way since its template is already correct.
+
+**Not yet applied to production**: the SQL migration above — same Supabase access blocker as the rest of this session (scoped to an unrelated project, not `yoltkmhtxwluqxxpewbl`).
