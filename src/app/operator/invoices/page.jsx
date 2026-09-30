@@ -134,6 +134,9 @@ function InvoiceModal({ open, onClose, onCreate }) {
   const [expenses, setExpenses] = useState([]);
   const [expensesLoading, setExpensesLoading] = useState(false);
   const [includedExpenseIds, setIncludedExpenseIds] = useState(() => new Set());
+  // Bumped on every load/clear so a slow response for a previously-selected
+  // job can't land after the operator has switched to a different one.
+  const expenseReqRef = useRef(0);
 
   useEffect(() => {
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
@@ -166,7 +169,7 @@ function InvoiceModal({ open, onClose, onCreate }) {
     setItems([{ ...blankItem }]); setVatRate(0); setIssueDate(today()); setDueDate("");
     setNotes(""); setErr(null);
     setSelectedBooking(null); setBookingQuery(""); setBookingResults([]);
-    setExpenses([]); setIncludedExpenseIds(new Set());
+    discardExpenses();
   };
 
   const setJ = (key, val) => setJourney((prev) => ({ ...prev, [key]: val }));
@@ -176,7 +179,8 @@ function InvoiceModal({ open, onClose, onCreate }) {
   // client read — see /api/booking-expenses). Best-effort: a failure just
   // leaves the checklist empty rather than blocking invoice creation.
   const loadExpenses = async (b) => {
-    if (!b?.dbId) { setExpenses([]); return; }
+    const reqId = ++expenseReqRef.current;
+    if (!b?.dbId) { setExpenses([]); setExpensesLoading(false); return; }
     setExpensesLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -184,12 +188,20 @@ function InvoiceModal({ open, onClose, onCreate }) {
         headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
       });
       const data = await res.json().catch(() => ({}));
+      if (reqId !== expenseReqRef.current) return;
       setExpenses(res.ok && Array.isArray(data?.expenses) ? data.expenses : []);
     } catch {
-      setExpenses([]);
+      if (reqId === expenseReqRef.current) setExpenses([]);
     } finally {
-      setExpensesLoading(false);
+      if (reqId === expenseReqRef.current) setExpensesLoading(false);
     }
+  };
+
+  const discardExpenses = () => {
+    expenseReqRef.current++;
+    setExpenses([]);
+    setIncludedExpenseIds(new Set());
+    setExpensesLoading(false);
   };
 
   const toggleExpense = (id) => {
@@ -241,8 +253,7 @@ function InvoiceModal({ open, onClose, onCreate }) {
     setBookingRef("");
     setBookingQuery("");
     setBookingResults([]);
-    setExpenses([]);
-    setIncludedExpenseIds(new Set());
+    discardExpenses();
   };
 
   const setItem = (i, key, val) =>
