@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useMemo, useRef, useState, useCallback } from "react";
+import React, { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import {
   FileText, Plus, X, Printer, Trash2, Check, Send, CircleDollarSign, Clock,
-  MapPin, Plane, Users, Briefcase, Car, CalendarClock, ImageDown,
+  MapPin, Plane, Users, Briefcase, Car, CalendarClock, ImageDown, Search,
   Calendar, CreditCard, Gem, Phone, Mail, Globe, Loader2,
 } from "lucide-react";
 import { useInvoices, computeTotals } from "@/hooks/operator/useInvoices";
-import { useBookings } from "@/hooks/operator/useBookings";
+import { shapedBooking } from "@/hooks/operator/useBookings";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { EV_EXEC_LOGO } from "@/lib/operator/brandLogo";
 import { supabase } from "@/lib/supabase";
@@ -35,6 +35,7 @@ const DEFAULT_TERMS = "Payment is due within 15 days of invoice date.\nBank Tran
 
 const money = (n) => `£${(Number(n) || 0).toFixed(2)}`;
 const today = () => new Date().toISOString().slice(0, 10);
+const isValidEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || "").trim());
 
 function statusChip(status) {
   switch (status) {
@@ -101,7 +102,7 @@ function InvoiceLogo() {
 }
 
 /* ─── Create-invoice modal ──────────────────────────────────────────────── */
-function InvoiceModal({ open, onClose, onCreate, bookings }) {
+function InvoiceModal({ open, onClose, onCreate }) {
   const blankItem = { description: "", quantity: 1, unit_price: "" };
   const emptyJourney = { pickup: "", dropoff: "", date: "", time: "", flight: "", passengers: "", luggage: "", vehicle: "", returnDate: "", returnTime: "" };
   const [customer, setCustomer] = useState("");
@@ -115,23 +116,58 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
   const [issueDate, setIssueDate] = useState(today());
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState(null); // null | "draft" | "send"
   const [err, setErr] = useState(null);
+  const busy = pending !== null;
+
+  // Job search — a live Supabase lookup rather than a flat pre-loaded list, so
+  // staff can find any job (not just whichever page happened to load already).
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [bookingQuery, setBookingQuery] = useState("");
+  const [bookingResults, setBookingResults] = useState([]);
+  const [searchingBookings, setSearchingBookings] = useState(false);
+  const searchTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    const q = bookingQuery.trim();
+    if (q.length < 2) { setBookingResults([]); setSearchingBookings(false); return; }
+    setSearchingBookings(true);
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        // Quote the pattern so a comma/parenthesis in the search text can't
+        // break PostgREST's .or() filter grammar.
+        const pattern = `"%${q.replace(/"/g, '\\"')}%"`;
+        const cols = ["ref", "customer_name", "customer_email", "customer_phone", "pickup_location", "dropoff_address"];
+        const { data, error } = await supabase
+          .from("bookings")
+          .select("*, drivers!driver_id(name)")
+          .or(cols.map((c) => `${c}.ilike.${pattern}`).join(","))
+          .order("travel_date", { ascending: false })
+          .limit(15);
+        if (!error) setBookingResults((data || []).map(shapedBooking));
+      } finally {
+        setSearchingBookings(false);
+      }
+    }, 300);
+    return () => clearTimeout(searchTimerRef.current);
+  }, [bookingQuery]);
 
   const reset = () => {
     setCustomer(""); setEmail(""); setPhone(""); setAddress(""); setBookingRef("");
     setJourney({ ...emptyJourney });
     setItems([{ ...blankItem }]); setVatRate(0); setIssueDate(today()); setDueDate("");
     setNotes(""); setErr(null);
+    setSelectedBooking(null); setBookingQuery(""); setBookingResults([]);
   };
 
   const setJ = (key, val) => setJourney((prev) => ({ ...prev, [key]: val }));
 
-  const prefillFromBooking = (ref) => {
-    setBookingRef(ref);
-    if (!ref) { setJourney({ ...emptyJourney }); return; }
-    const b = bookings.find((x) => x.id === ref);
-    if (!b) return;
+  const applyBooking = (b) => {
+    setSelectedBooking(b);
+    setBookingQuery("");
+    setBookingResults([]);
+    setBookingRef(b.id);
     setCustomer(b.customer || "");
     setPhone(b.phone && b.phone !== "—" ? b.phone : "");
     setEmail(b.email && b.email !== "—" ? b.email : "");
@@ -159,6 +195,13 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
     setItems(seeded);
   };
 
+  const clearSelectedBooking = () => {
+    setSelectedBooking(null);
+    setBookingRef("");
+    setBookingQuery("");
+    setBookingResults([]);
+  };
+
   const setItem = (i, key, val) =>
     setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, [key]: val } : it)));
   const addItem = () => setItems((prev) => [...prev, { ...blankItem }]);
@@ -166,12 +209,15 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
 
   const totals = useMemo(() => computeTotals(items, vatRate), [items, vatRate]);
 
-  const submit = async () => {
+  const submit = async (autoSend) => {
     if (!customer.trim()) { setErr("Customer name is required."); return; }
     if (!items.some((it) => it.description.trim() && Number(it.unit_price) > 0)) {
       setErr("Add at least one line item with a description and amount."); return;
     }
-    setBusy(true); setErr(null);
+    if (autoSend && !isValidEmail(email)) {
+      setErr("Add a valid customer email to create and send in one step, or save as a draft instead."); return;
+    }
+    setPending(autoSend ? "send" : "draft"); setErr(null);
     try {
       const cleanItems = items
         .filter((it) => it.description.trim())
@@ -183,12 +229,13 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
         customer, email, phone, address, bookingRef: bookingRef || null,
         journey: cleanJourney,
         lineItems: cleanItems, vatRate, issueDate, dueDate: dueDate || null, notes, status: "Draft",
-      });
+      }, autoSend);
       reset();
       onClose();
     } catch (e) {
       setErr(e?.message ?? "Failed to create invoice.");
-      setBusy(false);
+    } finally {
+      setPending(null);
     }
   };
 
@@ -205,18 +252,63 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          {bookings.length > 0 && (
-            <div>
-              <p className={labelCls}>Prefill from booking</p>
-              <select value={bookingRef} onChange={(e) => prefillFromBooking(e.target.value)} className={inputCls}>
-                <option value="">— none (manual) —</option>
-                {bookings.slice(0, 60).map((b) => (
-                  <option key={b.id} value={b.id}>{b.id} · {b.customer} · {b.price}</option>
-                ))}
-              </select>
-              <p className="mt-1 text-[10px] text-slate-600">Pulls in the customer, journey and price — you can edit anything below.</p>
-            </div>
-          )}
+          <div>
+            <p className={labelCls}>Find a job to invoice</p>
+            {selectedBooking ? (
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-400/40 bg-amber-400/5 px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-[#0F1B33]">
+                    {selectedBooking.customer} <span className="text-slate-400">· {selectedBooking.id}</span>
+                  </p>
+                  <p className="truncate text-xs text-slate-500">
+                    {selectedBooking.route}{selectedBooking.travelDate ? ` · ${selectedBooking.travelDate}` : ""} · {selectedBooking.price}
+                  </p>
+                </div>
+                <button onClick={clearSelectedBooking} className="flex-shrink-0 text-slate-500 hover:text-red-600" title="Search a different job">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={bookingQuery}
+                    onChange={(e) => setBookingQuery(e.target.value)}
+                    className={inputCls + " pl-9 pr-9"}
+                    placeholder="Search by customer, booking ref, phone or route…"
+                  />
+                  {searchingBookings && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />}
+                </div>
+                {bookingQuery.trim().length >= 2 && (
+                  <div className="mt-1.5 max-h-52 space-y-1 overflow-y-auto">
+                    {bookingResults.length === 0 && !searchingBookings ? (
+                      <p className="px-1 py-2 text-xs text-slate-500">No matching jobs found.</p>
+                    ) : (
+                      bookingResults.map((b) => (
+                        <button
+                          key={b.dbId ?? b.id}
+                          onClick={() => applyBooking(b)}
+                          className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-left transition hover:border-amber-400/30 hover:bg-amber-400/5"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-[#0F1B33]">
+                              {b.customer} <span className="text-slate-400">· {b.id}</span>
+                            </p>
+                            <p className="truncate text-xs text-slate-500">
+                              {b.route}{b.travelDate ? ` · ${b.travelDate}` : ""} · {b.price}
+                            </p>
+                          </div>
+                          <span className="flex-shrink-0 rounded-full border border-slate-200 px-2 py-0.5 text-[10px] text-slate-500">{b.status}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+            <p className="mt-1 text-[10px] text-slate-600">Pulls in the customer, journey and price — you can edit anything below, or leave blank to enter everything manually.</p>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
@@ -335,11 +427,17 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
           {err && <p className="rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-600">{err}</p>}
         </div>
 
-        <div className="flex flex-shrink-0 gap-2 border-t border-slate-100 px-5 py-4">
-          <button onClick={onClose} disabled={busy} className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-semibold text-slate-600 hover:border-slate-300 disabled:opacity-50">Cancel</button>
-          <button onClick={submit} disabled={busy} className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-amber-500 py-3 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-60">
-            {busy ? "Creating…" : "Create Invoice"}
-          </button>
+        <div className="flex flex-shrink-0 flex-col gap-2 border-t border-slate-100 px-5 py-4">
+          <div className="flex gap-2">
+            <button onClick={() => submit(false)} disabled={busy} className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-semibold text-slate-600 hover:border-slate-300 disabled:opacity-50">
+              {pending === "draft" ? "Saving…" : "Save Draft"}
+            </button>
+            <button onClick={() => submit(true)} disabled={busy} className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-amber-500 py-3 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-60">
+              {pending === "send" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {pending === "send" ? "Sending…" : "Create & Send"}
+            </button>
+          </div>
+          <button onClick={onClose} disabled={busy} className="py-1 text-center text-xs text-slate-500 hover:text-slate-600 disabled:opacity-50">Cancel</button>
         </div>
       </div>
     </div>
@@ -347,7 +445,7 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
 }
 
 /* ─── Printable invoice — EV Exec navy & gold template ──────────────────── */
-function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
+function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed, autoSend }) {
   const inv = invoice;
   const jLines = journeyLines(inv.journey);
   const terms = (inv.notes && inv.notes.trim()) || DEFAULT_TERMS;
@@ -356,6 +454,7 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
   const [sending, setSending] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [savingImg, setSavingImg] = useState(false);
+  const autoSentRef = useRef(false);
   const toast = useOperatorToast();
 
   // Render the on-screen invoice to a true A4 PDF (jsPDF). Browser print on
@@ -499,7 +598,7 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
   // Render the on-screen invoice to a PDF, then post it to the API route which
   // emails it to the customer via Resend.
   const emailToCustomer = useCallback(async () => {
-    if (!inv.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inv.email)) {
+    if (!isValidEmail(inv.email)) {
       toast({ message: "This invoice has no valid customer email. Add one via the booking, or resend after editing.", type: "error" });
       return;
     }
@@ -513,10 +612,7 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
       const res = await fetch("/api/send-invoice", {
         method: "POST",
         headers: { "content-type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
-        body: JSON.stringify({
-          invoiceId: inv.id, to: inv.email, customerName: inv.customer,
-          number: inv.number, total: money(inv.total), pdfBase64,
-        }),
+        body: JSON.stringify({ invoiceId: inv.id, pdfBase64 }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Failed to send the invoice.");
@@ -529,6 +625,17 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
       setSending(false);
     }
   }, [inv, toast, onEmailed, buildPdf]);
+
+  // "Create & Send" from the New Invoice modal opens straight into this preview
+  // with autoSend set — fire the same send once the sheet has actually mounted
+  // (buildPdf needs sheetRef), rather than duplicating the PDF/email logic.
+  useEffect(() => {
+    if (autoSend && !autoSentRef.current) {
+      autoSentRef.current = true;
+      emailToCustomer();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSend]);
 
   return (
     <div className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm">
@@ -749,10 +856,10 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
 /* ─── Page ──────────────────────────────────────────────────────────────── */
 export default function InvoicesPage() {
   const { invoices, loading, createInvoice, updateStatus, deleteInvoice } = useInvoices();
-  const { bookings } = useBookings();
   const toast = useOperatorToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [preview, setPreview] = useState(null);
+  const [autoSendPreview, setAutoSendPreview] = useState(false);
   const [filter, setFilter] = useState("All");
 
   const stats = useMemo(() => {
@@ -767,9 +874,10 @@ export default function InvoicesPage() {
     [invoices, filter]
   );
 
-  const handleCreate = useCallback(async (form) => {
+  const handleCreate = useCallback(async (form, autoSend) => {
     const inv = await createInvoice(form);
     toast({ message: `Invoice ${inv.number} created`, type: "success" });
+    setAutoSendPreview(!!autoSend);
     setPreview(inv);
     return inv;
   }, [createInvoice, toast]);
@@ -895,16 +1003,18 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      <InvoiceModal open={modalOpen} onClose={() => setModalOpen(false)} onCreate={handleCreate} bookings={bookings} />
+      <InvoiceModal open={modalOpen} onClose={() => setModalOpen(false)} onCreate={handleCreate} />
       {preview && (
         <InvoicePreview
           invoice={preview}
-          onClose={() => setPreview(null)}
+          onClose={() => { setPreview(null); setAutoSendPreview(false); }}
           onStatus={handleStatus}
           onDelete={handleDelete}
+          autoSend={autoSendPreview}
           onEmailed={(id) => {
             updateStatus(id, "Sent").catch(() => {});
             setPreview((p) => (p?.id === id ? { ...p, status: "Sent" } : p));
+            setAutoSendPreview(false);
           }}
         />
       )}

@@ -4,9 +4,20 @@ import { emailLayout, emailLead, emailRow, emailFootnote } from "@/lib/emailLayo
 // Emails an invoice PDF to the customer via Resend.
 //
 // The browser renders the on-screen invoice to a PDF and posts it here as
-// base64; this route verifies the caller is a signed-in operator, then hands
-// the PDF to Resend as an attachment on a short branded email. Kept server-side
-// so the Resend API key never reaches the client.
+// base64; this route verifies the caller is signed-in AND staff for the
+// specific tenant that owns the invoice (by re-fetching the invoice row
+// through an RLS-scoped client built from the caller's own JWT — the
+// `staff_all_invoices` policy already restricts that read to
+// `private.staff_for_tenant(tenant_id)`, so a row coming back at all IS the
+// authorization check), then hands the PDF to Resend as an attachment on a
+// short branded email. Kept server-side so the Resend API key never reaches
+// the client.
+//
+// The recipient/name/number/total are read from that same DB row rather than
+// trusted from the client payload, and the invoice is flipped to "Sent"
+// here (not left to a separate, unguarded client-side write) once Resend
+// confirms the send — so a send can never leave the invoice silently stuck
+// on "Draft".
 //
 // Required env (set in Vercel project settings):
 //   RESEND_API_KEY               — re_… from resend.com (Domains → Add domain, verify evexec.co.uk)
@@ -72,27 +83,46 @@ export async function POST(req: Request) {
   const { data: userData, error: userErr } = await db.auth.getUser(token);
   if (userErr || !userData?.user) return json({ error: "Not authorised." }, 401);
 
-  // ── Parse + validate the payload ───────────────────────────────────────────
-  let body: {
-    to?: string; customerName?: string; number?: string; total?: string;
-    pdfBase64?: string; invoiceId?: string;
-  };
+  // ── Parse the payload ───────────────────────────────────────────────────────
+  let body: { pdfBase64?: string; invoiceId?: string };
   try {
     body = await req.json();
   } catch {
     return json({ error: "Invalid request body." }, 400);
   }
 
-  const to = (body.to ?? "").trim();
-  const number = (body.number ?? "").trim() || "Invoice";
-  const total = (body.total ?? "").trim();
-  const name = (body.customerName ?? "").trim();
+  const invoiceId = (body.invoiceId ?? "").trim();
   const pdfBase64 = (body.pdfBase64 ?? "").replace(/^data:.*;base64,/, "").trim();
 
-  if (!isEmail(to)) return json({ error: "This invoice has no valid customer email address." }, 422);
+  if (!invoiceId) return json({ error: "Missing invoice." }, 400);
   if (!pdfBase64) return json({ error: "Could not build the invoice PDF." }, 422);
   // Guard against oversized attachments (Resend caps ~40MB; keep well under).
   if (pdfBase64.length > 8_000_000) return json({ error: "The invoice PDF is too large to email." }, 422);
+
+  // ── Re-fetch the invoice through an RLS-scoped client (the caller's own JWT,
+  //    not the service role) — `staff_all_invoices` only returns rows where
+  //    `private.staff_for_tenant(tenant_id)` holds, so getting a row back at
+  //    all *is* the tenant/staff authorization check. This also gives us the
+  //    authoritative recipient/name/number/total instead of trusting whatever
+  //    the client happened to send. ──────────────────────────────────────────
+  const scoped = createClient(SUPABASE_URL, ANON_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+  const { data: invoice, error: invoiceErr } = await scoped
+    .from("invoices")
+    .select("id, invoice_number, customer_name, customer_email, total, status")
+    .eq("id", invoiceId)
+    .maybeSingle();
+  if (invoiceErr) return json({ error: "Could not look up the invoice." }, 500);
+  if (!invoice) return json({ error: "Invoice not found, or you don't have access to it." }, 403);
+
+  const to = (invoice.customer_email ?? "").trim();
+  const number = invoice.invoice_number || "Invoice";
+  const total = `£${Number(invoice.total ?? 0).toFixed(2)}`;
+  const name = invoice.customer_name ?? "";
+
+  if (!isEmail(to)) return json({ error: "This invoice has no valid customer email address." }, 422);
 
   // ── Send via Resend ────────────────────────────────────────────────────────
   const filename = `${number.replace(/[^A-Za-z0-9_-]+/g, "-")}.pdf`;
@@ -123,5 +153,12 @@ export async function POST(req: Request) {
     return json({ error: `Email provider rejected the send${detail ? `: ${detail}` : "."}` }, 502);
   }
 
-  return json({ ok: true });
+  // Flip Draft → Sent here, tied to the send actually succeeding, rather than
+  // leaving it to a second, independent client-side write. Never overwrite a
+  // Paid or Void invoice that happened to be re-sent.
+  if (invoice.status !== "Paid" && invoice.status !== "Void") {
+    await scoped.from("invoices").update({ status: "Sent" }).eq("id", invoiceId);
+  }
+
+  return json({ ok: true, status: invoice.status === "Paid" || invoice.status === "Void" ? invoice.status : "Sent" });
 }
