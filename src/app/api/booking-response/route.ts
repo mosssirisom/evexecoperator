@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { bookingNeedsPaymentLink, createAndSendPaymentLink } from "@/lib/paymentLink";
 import { handOffSmsToOperator } from "@/lib/operatorSmsHandoff";
+import { emailLayout, emailLead, emailFootnote, emailRefBadge, emailRow } from "@/lib/emailLayout";
 
 // Notifies a customer that the operator has ACCEPTED or REJECTED their website
 // booking. Email first (via Resend). If there's no email on file (or it
@@ -37,61 +38,28 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-const esc = (s: string) => String(s).replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c] as string));
 
+// Same shell/palette as every other customer email in the system (evexec's
+// accept/reject/cancel emails, this repo's payment-link and invoice emails):
+// gold accent for a confirmed booking, gray for one that isn't going ahead.
 function emailHtml(accepted: boolean, name: string, ref: string, whenText: string, routeText: string) {
-  // Matches the operator app's light theme: periwinkle ground, white card,
-  // deep-navy text, gold accents, and a subtle status pill (like the app's
-  // status badges) rather than a big colour band.
-  const pillBg = accepted ? "#dcfce7" : "#fee2e2";
-  const pillText = accepted ? "#15803d" : "#b91c1c";
-  const heading = accepted ? "Booking confirmed" : "Booking not available";
+  const title = accepted ? "Booking Confirmed" : "Booking Not Available";
   const lead = accepted
-    ? "Good news — we've accepted your airport transfer and it's now confirmed."
-    : "We're sorry, but we're unable to take this airport transfer on this occasion.";
+    ? `Hi ${name || "there"}, good news — we've accepted your airport transfer and it's now confirmed.`
+    : `Hi ${name || "there"}, we're sorry, but we're unable to take this airport transfer on this occasion.`;
   const closer = accepted
     ? "We'll be in touch with your driver details closer to the time. If anything changes, just reply to this email or call us."
     : "Please don't hesitate to get in touch to discuss alternatives — we'd be glad to help.";
-  const row = (label: string, value: string, last = false) =>
-    `<tr><td style="padding:10px 0;color:#64748b;width:110px;${last ? "" : "border-bottom:1px solid #eef0f3;"}font-size:13px">${label}</td>`
-    + `<td style="padding:10px 0;font-weight:700;color:#0f1b33;${last ? "" : "border-bottom:1px solid #eef0f3;"}font-size:14px">${value}</td></tr>`;
-  const rowsArr = [
-    ref ? row("Reference", esc(ref)) : "",
-    whenText ? row("When", esc(whenText)) : "",
-    routeText ? row("Journey", esc(routeText), true) : "",
-  ].filter(Boolean);
-  const rows = rowsArr.join("");
-  return `<!doctype html><html lang="en"><head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
-  <meta name="supported-color-schemes" content="light">
-  <style>:root{color-scheme:light;supported-color-schemes:light}</style>
-  </head>
-  <body style="margin:0;background:#E9EBF2;padding:24px 12px;font-family:Arial,Helvetica,sans-serif;color:#0f1b33">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#E9EBF2" style="background:#E9EBF2">
-    <tr><td align="center">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e2e5ee">
-      <tr><td bgcolor="#0B132B" style="background:#0B132B;padding:22px 28px">
-        <div style="color:#d7a23f;font-size:20px;font-weight:800;letter-spacing:.22em">EV EXEC</div>
-        <div style="color:#9aa3b2;font-size:10px;letter-spacing:.28em;margin-top:4px">PREMIUM AIRPORT TRANSFERS</div>
-      </td></tr>
-      <tr><td bgcolor="#C9A550" style="background:#C9A550;height:4px;line-height:4px;font-size:0">&nbsp;</td></tr>
-      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:26px 28px">
-        <span style="display:inline-block;background:${pillBg};color:${pillText};border-radius:999px;padding:6px 14px;font-size:12px;font-weight:700">${heading}</span>
-        <p style="margin:18px 0 14px;font-size:15px;color:#0f1b33">Hi ${esc(name) || "there"},</p>
-        <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#475569">${lead}</p>
-        ${rows ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin:0 0 18px">${rows}</table>` : ""}
-        <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#475569">${closer}</p>
-        <p style="margin:20px 0 0;font-size:14px;color:#475569">Kind regards,<br/>The EV Exec Team</p>
-      </td></tr>
-      <tr><td bgcolor="#0B132B" style="background:#0B132B;padding:14px 28px;color:#9aa3b2;font-size:11px">
-        EV Exec · Premium Airport Transfers · 07721 070370 · book@evexec.co.uk · evexec.co.uk
-      </td></tr>
-    </table>
-    </td></tr>
-    </table>
-  </body></html>`;
+  const body = [
+    emailLead(lead),
+    emailRefBadge(ref),
+    emailRow("When", whenText),
+    emailRow("Journey", routeText, true),
+    emailFootnote(closer),
+  ].filter(Boolean).join("");
+  return accepted
+    ? emailLayout({ title, body })
+    : emailLayout({ title, body, accent: "#374151", accentText: "#fff" });
 }
 
 export async function POST(req: Request) {
