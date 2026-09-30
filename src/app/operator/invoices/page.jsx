@@ -10,6 +10,7 @@ import { useInvoices, computeTotals } from "@/hooks/operator/useInvoices";
 import { shapedBooking } from "@/hooks/operator/useBookings";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { EV_EXEC_LOGO } from "@/lib/operator/brandLogo";
+import { EXPENSE_TYPE_LABEL, buildExpenseLineItems } from "@/lib/operator/invoiceExpenses";
 import { supabase } from "@/lib/supabase";
 
 const VAT_RATES = [
@@ -128,6 +129,12 @@ function InvoiceModal({ open, onClose, onCreate }) {
   const [searchingBookings, setSearchingBookings] = useState(false);
   const searchTimerRef = useRef(null);
 
+  // Booking expenses — logged by the driver against the selected job. Shown
+  // as an opt-in checklist; nothing is included on the invoice automatically.
+  const [expenses, setExpenses] = useState([]);
+  const [expensesLoading, setExpensesLoading] = useState(false);
+  const [includedExpenseIds, setIncludedExpenseIds] = useState(() => new Set());
+
   useEffect(() => {
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     const q = bookingQuery.trim();
@@ -159,9 +166,39 @@ function InvoiceModal({ open, onClose, onCreate }) {
     setItems([{ ...blankItem }]); setVatRate(0); setIssueDate(today()); setDueDate("");
     setNotes(""); setErr(null);
     setSelectedBooking(null); setBookingQuery(""); setBookingResults([]);
+    setExpenses([]); setIncludedExpenseIds(new Set());
   };
 
   const setJ = (key, val) => setJourney((prev) => ({ ...prev, [key]: val }));
+
+  // Fetches the selected job's logged expenses via the service-role-backed
+  // route (booking_expenses has no staff-facing RLS policy for a direct
+  // client read — see /api/booking-expenses). Best-effort: a failure just
+  // leaves the checklist empty rather than blocking invoice creation.
+  const loadExpenses = async (b) => {
+    if (!b?.dbId) { setExpenses([]); return; }
+    setExpensesLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/booking-expenses?bookingId=${encodeURIComponent(b.dbId)}`, {
+        headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      setExpenses(res.ok && Array.isArray(data?.expenses) ? data.expenses : []);
+    } catch {
+      setExpenses([]);
+    } finally {
+      setExpensesLoading(false);
+    }
+  };
+
+  const toggleExpense = (id) => {
+    setIncludedExpenseIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   const applyBooking = (b) => {
     setSelectedBooking(b);
@@ -193,6 +230,10 @@ function InvoiceModal({ open, onClose, onCreate }) {
       seeded.push({ description: `Return transfer — ${b.returnRoute}`, quantity: 1, unit_price: "" });
     }
     setItems(seeded);
+
+    setExpenses([]);
+    setIncludedExpenseIds(new Set());
+    loadExpenses(b);
   };
 
   const clearSelectedBooking = () => {
@@ -200,6 +241,8 @@ function InvoiceModal({ open, onClose, onCreate }) {
     setBookingRef("");
     setBookingQuery("");
     setBookingResults([]);
+    setExpenses([]);
+    setIncludedExpenseIds(new Set());
   };
 
   const setItem = (i, key, val) =>
@@ -207,19 +250,31 @@ function InvoiceModal({ open, onClose, onCreate }) {
   const addItem = () => setItems((prev) => [...prev, { ...blankItem }]);
   const removeItem = (i) => setItems((prev) => (prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev));
 
-  const totals = useMemo(() => computeTotals(items, vatRate), [items, vatRate]);
+  // Included expenses are kept out of the freeform `items` array entirely and
+  // only merged in here — the checklist is the single source of truth for
+  // whether an expense is on the invoice, so it can't end up counted twice.
+  const expenseLineItems = useMemo(
+    () => buildExpenseLineItems(expenses, includedExpenseIds),
+    [expenses, includedExpenseIds]
+  );
+
+  const totals = useMemo(
+    () => computeTotals([...items, ...expenseLineItems], vatRate),
+    [items, expenseLineItems, vatRate]
+  );
 
   const submit = async (autoSend) => {
     if (!customer.trim()) { setErr("Customer name is required."); return; }
-    if (!items.some((it) => it.description.trim() && Number(it.unit_price) > 0)) {
-      setErr("Add at least one line item with a description and amount."); return;
+    const hasManualItem = items.some((it) => it.description.trim() && Number(it.unit_price) > 0);
+    if (!hasManualItem && expenseLineItems.length === 0) {
+      setErr("Add at least one line item with a description and amount, or include a booking expense."); return;
     }
     if (autoSend && !isValidEmail(email)) {
       setErr("Add a valid customer email to create and send in one step, or save as a draft instead."); return;
     }
     setPending(autoSend ? "send" : "draft"); setErr(null);
     try {
-      const cleanItems = items
+      const cleanItems = [...items, ...expenseLineItems]
         .filter((it) => it.description.trim())
         .map((it) => ({ description: it.description.trim(), quantity: Number(it.quantity) || 1, unit_price: Number(it.unit_price) || 0 }));
       const cleanJourney = Object.fromEntries(
@@ -395,6 +450,49 @@ function InvoiceModal({ open, onClose, onCreate }) {
               <Plus className="h-3.5 w-3.5" /> Add charge
             </button>
           </div>
+
+          {/* Booking expenses — opt-in, only shown once a job is selected */}
+          {selectedBooking && (
+            <div>
+              <p className={labelCls}>Booking expenses</p>
+              {expensesLoading ? (
+                <p className="flex items-center gap-2 px-1 py-2 text-xs text-slate-500">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading logged expenses…
+                </p>
+              ) : expenses.length === 0 ? (
+                <p className="px-1 py-2 text-xs text-slate-500">No expenses logged for this job.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {expenses.map((exp) => {
+                    const checked = includedExpenseIds.has(exp.id);
+                    return (
+                      <label
+                        key={exp.id}
+                        className={`flex cursor-pointer items-center justify-between gap-2 rounded-xl border px-3 py-2 transition ${
+                          checked ? "border-amber-400/40 bg-amber-400/5" : "border-slate-100 bg-slate-50"
+                        }`}
+                      >
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleExpense(exp.id)}
+                            className="h-4 w-4 flex-shrink-0 accent-amber-500"
+                          />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-[#0F1B33]">{EXPENSE_TYPE_LABEL[exp.type] || "Expense"}</p>
+                            {exp.notes && <p className="truncate text-xs text-slate-500">{exp.notes}</p>}
+                          </div>
+                        </div>
+                        <span className="flex-shrink-0 text-sm font-semibold text-slate-700">{money(exp.amount)}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="mt-1 text-[10px] text-slate-600">Driver-logged costs for this job — tick any to add them as invoice charges. Nothing is included automatically.</p>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
