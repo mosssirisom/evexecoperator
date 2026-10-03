@@ -530,10 +530,10 @@ function IntegrationSettings({ toast }) {
           />
           <IntegrationItem
             name="Twilio"
-            description="Customer SMS: confirmations, 24h reminders & status updates"
-            connected={true}
-            actionLabel="Live"
-            onAction={() => toast({ message: "Twilio SMS is live — booking, reminder and status texts are sending", type: "success" })}
+            description="Automated SMS is dormant: customer texts are sent manually from your own phone"
+            connected={false}
+            actionLabel="Dormant"
+            onAction={() => toast({ message: "Twilio is dormant, so no automated texts are sent or billed. Set the SMS_ENABLED=true secret to switch it back on.", type: "info" })}
           />
           <IntegrationItem
             name="Stripe"
