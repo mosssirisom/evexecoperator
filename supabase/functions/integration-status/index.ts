@@ -38,7 +38,8 @@ serve((req) => {
     JSON.stringify({
       ok: true,
       integrations: {
-        twilio: isSet("TWILIO_ACCOUNT_SID") && isSet("TWILIO_AUTH_TOKEN") && isSet("TWILIO_FROM_NUMBER"),
+        // Dormant unless SMS_ENABLED=true, even if credentials are present.
+        twilio: Deno.env.get("SMS_ENABLED") === "true" && isSet("TWILIO_ACCOUNT_SID") && isSet("TWILIO_AUTH_TOKEN") && isSet("TWILIO_FROM_NUMBER"),
         stripe: isSet("STRIPE_SECRET_KEY"),
         aerodatabox: isSet("AERODATABOX_API_KEY"),
       },

@@ -38,6 +38,14 @@ serve(async (req) => {
       );
     }
 
+    // Twilio is dormant: nothing is sent unless the SMS_ENABLED=true secret is set.
+    if (Deno.env.get("SMS_ENABLED") !== "true") {
+      return new Response(
+        JSON.stringify({ ok: false, configured: false, reason: "SMS disabled" }),
+        { headers: { ...CORS, "Content-Type": "application/json" } }
+      );
+    }
+
     const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
     const authToken  = Deno.env.get("TWILIO_AUTH_TOKEN");
     const from       = Deno.env.get("TWILIO_FROM_NUMBER");

@@ -7,7 +7,7 @@ import {
 import { bookingStatusColor } from "../lib/statusColor";
 import ETACountdown from "./ETACountdown";
 import InvoiceModal from "./InvoiceModal";
-import { sendSms, checkFlight, createPaymentLink, bookingConfirmationSms } from "../lib/edgeFunctions";
+import { smsLink, checkFlight, createPaymentLink, bookingConfirmationSms } from "../lib/edgeFunctions";
 
 const STATUSES = [
   "Unassigned", "Dispatched", "En Route",
@@ -260,8 +260,6 @@ export default function BookingDetailDrawer({
   const [editingNotes, setEditingNotes] = useState(false);
   const [saving, setSaving] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
-  const [smsPending, setSmsPending] = useState(false);
-  const [smsStatus, setSmsStatus] = useState(null); // "sent" | "unconfigured" | "error"
   const [flightInfo, setFlightInfo] = useState(null);
   const [flightPending, setFlightPending] = useState(false);
   const [payLinkPending, setPayLinkPending] = useState(false);
@@ -272,21 +270,8 @@ export default function BookingDetailDrawer({
     setNotes(booking?.notes ?? "");
     setEditingNotes(false);
     setFlightInfo(null);
-    setSmsStatus(null);
     setPayLinkUrl(null);
   }, [booking?.id, booking?.notes]);
-
-  const handleSendSms = useCallback(async () => {
-    if (!booking.phone || smsPending) return;
-    setSmsPending(true);
-    setSmsStatus(null);
-    const msg = bookingConfirmationSms(booking);
-    const result = await sendSms({ to: booking.phone, message: msg, bookingRef: booking.id });
-    setSmsPending(false);
-    if (result.ok) setSmsStatus("sent");
-    else if (!result.configured) setSmsStatus("unconfigured");
-    else setSmsStatus("error");
-  }, [booking, smsPending]);
 
   const handleCheckFlight = useCallback(async () => {
     const fn = booking.flight && booking.flight !== "—" ? booking.flight : null;
@@ -452,21 +437,16 @@ export default function BookingDetailDrawer({
                             WhatsApp
                           </a>
                         )}
-                        <button
-                          onClick={handleSendSms}
-                          disabled={smsPending}
-                          className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] transition disabled:opacity-50 ${
-                            smsStatus === "sent"
-                              ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
-                              : smsStatus === "unconfigured"
-                              ? "border-slate-500/30 bg-slate-500/10 text-slate-500"
-                              : "border-blue-400/20 bg-blue-400/10 text-blue-300 hover:bg-blue-400/20"
-                          }`}
-                          title={smsStatus === "unconfigured" ? "Add TWILIO_ACCOUNT_SID to Supabase secrets to enable" : "Send booking confirmation SMS"}
-                        >
-                          {smsPending ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <MessageSquare className="h-2.5 w-2.5" />}
-                          {smsStatus === "sent" ? "Sent!" : smsStatus === "unconfigured" ? "SMS (setup needed)" : "Confirm SMS"}
-                        </button>
+                        {booking.phone && (
+                          <a
+                            href={smsLink(booking.phone, bookingConfirmationSms(booking))}
+                            className="flex items-center gap-1 rounded-lg border border-blue-400/20 bg-blue-400/10 px-2 py-1 text-[10px] text-blue-300 transition hover:bg-blue-400/20"
+                            title="Open a pre-filled booking confirmation text"
+                          >
+                            <MessageSquare className="h-2.5 w-2.5" />
+                            Confirm SMS
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>

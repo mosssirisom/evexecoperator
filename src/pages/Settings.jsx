@@ -346,15 +346,15 @@ function IntegrationSettings({ toast }) {
           />
           <IntegrationItem
             name="Twilio"
-            description="SMS for missed call recovery & booking confirmations"
+            description="Automated SMS (dormant: texts are sent manually from your phone)"
             connected={twilio}
             checking={checking}
-            actionLabel={checking ? "Checking…" : twilio ? "Connected" : "Setup needed"}
+            actionLabel={checking ? "Checking…" : twilio ? "Connected" : "Dormant"}
             onAction={() =>
               toast({
                 message: twilio
                   ? "Twilio is configured — SMS sending is live"
-                  : "Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER to your Supabase Edge Function secrets",
+                  : "Twilio is dormant. SMS buttons open your phone's Messages app with the text pre-filled. Set the SMS_ENABLED=true secret to switch Twilio back on.",
                 type: twilio ? "success" : "info",
               })
             }

@@ -54,6 +54,14 @@ export function getIntegrationStatus() {
   return invoke("integration-status", {});
 }
 
+/**
+ * sms: link that opens the operator's own messaging app with the text
+ * pre-filled. Twilio sending is dormant, so manual texts go this way.
+ */
+export function smsLink(phone, body) {
+  return `sms:${String(phone).replace(/\s+/g, "")}?&body=${encodeURIComponent(body)}`;
+}
+
 /** Builds a booking confirmation SMS message. */
 export function bookingConfirmationSms(booking) {
   const time = booking.pickupTime
