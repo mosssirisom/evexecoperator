@@ -381,6 +381,16 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign, onRespond }) {
               New
             </span>
           )}
+          {booking.attestation === "operator_alerted" && !isCancelled && (
+            <span className="flex-shrink-0 rounded-full bg-red-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+              Not confirmed
+            </span>
+          )}
+          {["awaiting_first_attestation", "awaiting_second_attestation"].includes(booking.attestation) && !isCancelled && (
+            <span className="flex-shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700">
+              Awaiting confirm
+            </span>
+          )}
           <p className="flex-shrink-0 text-sm font-bold text-amber-600">{booking.price}</p>
         </div>
 

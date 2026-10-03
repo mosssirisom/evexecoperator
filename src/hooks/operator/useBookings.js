@@ -64,6 +64,8 @@ export function shapedBooking(row) {
     status: row.status,
     source: row.source ?? null,
     operatorResponse: row.operator_response ?? null,
+    // Driver pickup confirmation (attestation-engine, reminder-only).
+    attestation: row.attestation_status ?? null,
     paymentStatus: row.payment_status ?? "Unpaid",
     paymentMethod: row.payment_method ?? null,
     priority: row.priority ?? false,
