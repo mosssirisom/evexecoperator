@@ -35,11 +35,11 @@ function emailHtml(accepted: boolean, name: string, ref: string, whenText: strin
   const pillText = accepted ? "#15803d" : "#b91c1c";
   const heading = accepted ? "Booking confirmed" : "Booking not available";
   const lead = accepted
-    ? "Good news — we've accepted your airport transfer and it's now confirmed."
+    ? "Good news: we've accepted your airport transfer and it's now confirmed."
     : "We're sorry, but we're unable to take this airport transfer on this occasion.";
   const closer = accepted
     ? "We'll be in touch with your driver details closer to the time. If anything changes, just reply to this email or call us."
-    : "Please don't hesitate to get in touch to discuss alternatives — we'd be glad to help.";
+    : "Please don't hesitate to get in touch to discuss alternatives. We'd be glad to help.";
   const row = (label: string, value: string, last = false) =>
     `<tr><td style="padding:10px 0;color:#64748b;width:110px;${last ? "" : "border-bottom:1px solid #eef0f3;"}font-size:13px">${label}</td>`
     + `<td style="padding:10px 0;font-weight:700;color:#0f1b33;${last ? "" : "border-bottom:1px solid #eef0f3;"}font-size:14px">${value}</td></tr>`;
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
 
   const smsText = accepted
     ? `EV Exec: Good news ${name || "there"}, your airport transfer${whenText ? ` (${whenText})` : ""} is confirmed. Ref ${ref}. We'll send driver details nearer the time.`
-    : `EV Exec: Hi ${name || "there"}, unfortunately we can't cover your transfer${whenText ? ` (${whenText})` : ""} (Ref ${ref}). Please contact us to discuss alternatives — 07721 070370.`;
+    : `EV Exec: Hi ${name || "there"}, unfortunately we can't cover your transfer${whenText ? ` (${whenText})` : ""} (Ref ${ref}). Please contact us to discuss alternatives on 07721 070370.`;
 
   // ── Email first ────────────────────────────────────────────────────────────
   let emailed = false;
