@@ -94,7 +94,7 @@ describe("quoteToPrefill", () => {
 
     expect(prefill.notes).toContain("2 passengers");
     expect(prefill.notes).toContain("Luggage: 2 large cases");
-    expect(prefill.notes).toContain("Return trip requested on 2026-07-05 at 10:00 from Hotel to Heathrow (airport: Heathrow) flight BA123");
+    expect(prefill.notes).toContain("Return trip requested on 05/07/2026 at 10:00 from Hotel to Heathrow (airport: Heathrow) flight BA123");
     expect(prefill.notes).toContain("Contact via WhatsApp");
     expect(prefill.notes).toContain("Please call on arrival");
   });

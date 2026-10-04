@@ -2,15 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase, isConfigured } from "@/lib/supabase";
+import { fmtTime } from "@/lib/dates";
 
 function shapedCall(row) {
   return {
     id: row.ref,
     caller: row.caller,
-    time: new Date(row.created_at).toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
+    time: fmtTime(row.created_at),
     attempts: row.attempts,
     notes: row.notes ?? "",
     resolved: row.resolved,

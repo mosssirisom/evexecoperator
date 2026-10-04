@@ -1,5 +1,6 @@
 import type { DbQuoteRequest } from "@/lib/database.types";
 import type { BookingPrefill } from "@/components/AddBookingModal";
+import { fmtDate } from "./dates";
 
 // Minimum gap required between two jobs assigned to the same driver on the
 // same day, to allow for drive time / handover between transfers.
@@ -30,7 +31,7 @@ export function quoteToPrefill(quote: DbQuoteRequest): BookingPrefill {
   if (quote.luggage) noteParts.push(`Luggage: ${quote.luggage}`);
   if (quote.return_required) {
     const parts = ["Return trip requested"];
-    if (quote.return_date) parts.push(`on ${quote.return_date}`);
+    if (quote.return_date) parts.push(`on ${fmtDate(quote.return_date)}`);
     if (quote.return_time) parts.push(`at ${quote.return_time.slice(0, 5)}`);
     if (quote.return_pickup) parts.push(`from ${quote.return_pickup}`);
     if (quote.return_destination) parts.push(`to ${quote.return_destination}`);

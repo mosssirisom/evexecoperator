@@ -8,6 +8,7 @@ import {
 } from "date-fns";
 import { ChevronLeft, ChevronRight, Plane, Car } from "lucide-react";
 import type { DbBooking } from "@/lib/database.types";
+import { fmtDate } from "@/lib/dates";
 type CalendarBookingMap = Record<string, DbBooking[]>;
 
 interface Props {
@@ -103,8 +104,8 @@ export default function CalendarView({
   }, 0);
 
   const weekLabel = isSameMonth(weekStart, weekEnd)
-    ? `${format(weekStart, "d")} – ${format(weekEnd, "d MMM yyyy")}`
-    : `${format(weekStart, "d MMM")} – ${format(weekEnd, "d MMM yyyy")}`;
+    ? `${fmtDate(weekStart)} – ${fmtDate(weekEnd)}`
+    : `${fmtDate(weekStart)} – ${fmtDate(weekEnd)}`;
 
   const goPrev = () =>
     viewMode === "month"

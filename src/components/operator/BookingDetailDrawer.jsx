@@ -10,6 +10,7 @@ import { bookingStatusColor } from "@/lib/operator/statusColor";
 import { reverseTarget, reverseLabel } from "@/lib/operator/statusFlow";
 import ETACountdown from "./ETACountdown";
 import FlightVerificationCard from "@/components/FlightVerificationCard";
+import { fmtTime, fmtDateTime, fmtDayDate } from "@/lib/dates";
 
 function Row({ icon: Icon, label, value, muted }) {
   if (!value) return null;
@@ -853,10 +854,7 @@ export default function BookingDetailDrawer({
                 <Row icon={Car} label="Vehicle" value={booking.vehicleType} />
                 <Row icon={Clock} label="Pickup time" value={
                   booking.pickupTime
-                    ? new Date(booking.pickupTime).toLocaleString("en-GB", {
-                        weekday: "short", day: "numeric", month: "short",
-                        hour: "2-digit", minute: "2-digit",
-                      })
+                    ? `${fmtDayDate(booking.pickupTime)} ${fmtTime(booking.pickupTime)}`
                     : booking.time !== "—" ? booking.time : null
                 } />
                 <Row icon={PoundSterling} label="Price" value={booking.price} />
@@ -926,7 +924,7 @@ export default function BookingDetailDrawer({
                 <div className="space-y-3">
                   <Row icon={RotateCcw} label="Return route" value={booking.returnRoute} />
                   <Row icon={Plane} label="Return flight" value={booking.returnFlight && booking.returnFlight !== "—" ? booking.returnFlight : null} />
-                  <Row icon={Calendar} label="Return date" value={booking.returnDate ? new Date(booking.returnDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : null} />
+                  <Row icon={Calendar} label="Return date" value={booking.returnDate ? fmtDayDate(booking.returnDate) : null} />
                   <Row icon={Clock} label="Return time" value={booking.returnTime ? booking.returnTime.slice(0, 5) : null} />
                 </div>
               </div>
@@ -992,10 +990,10 @@ export default function BookingDetailDrawer({
             {/* Meta */}
             <div className="border-t border-slate-100 pt-4 text-xs text-slate-600 space-y-1">
               {booking.createdAt && (
-                <p>Created {new Date(booking.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+                <p>Created {fmtDateTime(booking.createdAt)}</p>
               )}
               {booking.updatedAt && (
-                <p>Updated {new Date(booking.updatedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+                <p>Updated {fmtDateTime(booking.updatedAt)}</p>
               )}
             </div>
           </div>

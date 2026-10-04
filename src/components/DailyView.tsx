@@ -1,12 +1,12 @@
 "use client";
 
-import { format } from "date-fns";
 import { Calendar } from "lucide-react";
 import type { DbBooking, DbDriver, BookingStatus } from "@/lib/database.types";
 import type { BookingNotificationStatus } from "@/hooks/useNotifications";
 import type { DriverLocationMap } from "@/hooks/useDriverLocations";
 import type { JobProofMap } from "@/hooks/useJobProofs";
 import BookingCard from "./BookingCard";
+import { fmtDayDate } from "@/lib/dates";
 
 interface Props {
   date: Date;
@@ -44,7 +44,7 @@ export default function DailyView({
       <div className="flex items-center gap-2 py-1">
         <Calendar size={14} className="text-amber-600/80" />
         <h3 className="text-sm font-semibold text-slate-600">
-          {format(date, "EEEE d MMMM yyyy")}
+          {fmtDayDate(date)}
         </h3>
         <span className="ml-auto text-xs text-slate-500">
           {bookings.length} transfer{bookings.length !== 1 ? "s" : ""}

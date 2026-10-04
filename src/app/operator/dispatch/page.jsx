@@ -26,6 +26,7 @@ import { useBookings } from "@/hooks/operator/useBookings";
 import { useDrivers } from "@/hooks/operator/useDrivers";
 import { supabase } from "@/lib/supabase";
 import { bookingStatusColor } from "@/lib/operator/statusColor";
+import { fmtDayDate } from "@/lib/dates";
 
 // Builds a tel: href for a stored customer phone, or null if it doesn't look
 // like a usable number (same validation the detail drawer uses).
@@ -205,7 +206,7 @@ function groupLabel(key) {
   if (diff === 0) return "TODAY";
   if (diff === 1) return "TOMORROW";
   if (diff === -1) return "YESTERDAY";
-  return t.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }).toUpperCase();
+  return fmtDayDate(key).toUpperCase();
 }
 function timeVal(b) {
   if (b.pickupTime) { const d = new Date(b.pickupTime); if (!isNaN(d)) return d.getTime(); }

@@ -11,6 +11,7 @@ import { useBookings } from "@/hooks/operator/useBookings";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { EV_EXEC_LOGO } from "@/lib/operator/brandLogo";
 import { supabase } from "@/lib/supabase";
+import { fmtDate } from "@/lib/dates";
 
 const VAT_RATES = [
   { label: "No VAT", value: 0 },
@@ -45,14 +46,10 @@ function statusChip(status) {
   }
 }
 
-// "7th August 2026" for the printed date.
+// DD/MM/YYYY for the printed date (house style).
 function longDate(d) {
   if (!d) return null;
-  const dt = new Date(`${d}T00:00:00`);
-  if (isNaN(dt)) return d;
-  const day = dt.getDate();
-  const s = day % 10 === 1 && day !== 11 ? "st" : day % 10 === 2 && day !== 12 ? "nd" : day % 10 === 3 && day !== 13 ? "rd" : "th";
-  return `${day}${s} ${dt.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}`;
+  return fmtDate(d) || d;
 }
 // "4/11/26" compact date used inside description lines.
 function shortDate(d) {

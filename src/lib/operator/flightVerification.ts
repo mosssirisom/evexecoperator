@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import { fmtDayDate, fmtTime } from "@/lib/dates";
 
 export type Direction = "arrival" | "departure";
 export type Severity = "green" | "amber" | "red";
@@ -44,14 +45,12 @@ export interface VerifyOptions {
   overrideReason?: string;
 }
 
-/** "Sat 27 Aug, 01:05" -- the exact style requested for verified flight times. */
+/** "Sat 27/08/2026 01:05" -- house date style (DD/MM/YYYY, 24-hour). */
 export function formatFlightDateTime(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  const datePart = d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "Europe/London" });
-  const timePart = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/London" });
-  return `${datePart}, ${timePart}`;
+  return `${fmtDayDate(d)} ${fmtTime(d)}`;
 }
 
 export async function fetchLatestVerification(bookingId: string): Promise<FlightVerification | null> {

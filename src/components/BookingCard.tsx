@@ -12,6 +12,7 @@ import DriverDropdown from "./DriverDropdown";
 import DriverLiveBadge from "./DriverLiveBadge";
 import JobOfferBadge from "./JobOfferBadge";
 import FlightVerificationCard from "./FlightVerificationCard";
+import { fmtDateTime, fmtDayDate } from "@/lib/dates";
 
 const NOTIFICATION_TYPE_LABELS: Record<string, string> = {
   confirmation: "Confirmation",
@@ -45,12 +46,7 @@ const PROOF_KIND_LABEL: Record<JobProofKind, string> = {
 
 function proofTime(value: string | null | undefined): string {
   if (!value) return "—";
-  return new Date(value).toLocaleString("en-GB", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return fmtDateTime(value);
 }
 
 function short(value: string | null | undefined) {
@@ -59,7 +55,7 @@ function short(value: string | null | undefined) {
 
 function displayDate(value: string | null | undefined) {
   if (!value) return null;
-  return new Date(value).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  return fmtDayDate(value);
 }
 
 export default function BookingCard({ booking, drivers, notification, unavailableDriverIds, onStatusChange, onDriverAssign, onDangerAction, onViewReturn, driverLocation, proofs }: Props) {

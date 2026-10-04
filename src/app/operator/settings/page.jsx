@@ -29,6 +29,7 @@ import { isPushSupported, getPushEnabled, enableOperatorPush, disableOperatorPus
 import { PORTALS } from "@/lib/operator/portals";
 import { useIsSuperAdmin } from "@/hooks/operator/useIsSuperAdmin";
 import PlatformSettings from "@/components/operator/PlatformSettings";
+import { fmtDateTime } from "@/lib/dates";
 
 const SECTIONS = [
   { key: "business", label: "Business", icon: Building2 },
@@ -148,7 +149,7 @@ function notifWhen(x) {
   if (!x) return "";
   const d = new Date(x);
   if (isNaN(d)) return "";
-  return d.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  return fmtDateTime(d);
 }
 
 // Enable/disable Web Push on the current device (operator gets pinged when a

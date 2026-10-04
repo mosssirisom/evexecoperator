@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { format, formatDistanceToNow, parseISO } from "date-fns";
+import { formatDistanceToNow, parseISO } from "date-fns";
 import {
   Inbox,
   PhoneMissed,
@@ -18,6 +18,7 @@ import {
   ArrowLeftRight,
 } from "lucide-react";
 import type { DbQuoteRequest, DbMissedCall, DbContactMessage } from "@/lib/database.types";
+import { fmtDate, fmtDayDate } from "@/lib/dates";
 
 interface Props {
   quoteRequests: DbQuoteRequest[];
@@ -152,7 +153,7 @@ function QuoteRequestCard({
   const to    = quote.destination ?? "—";
   const route = `${from.split(",")[0]} → ${to.split(",")[0]}`;
 
-  const dateLabel = quote.pickup_date ? format(parseISO(quote.pickup_date), "EEE d MMM") : null;
+  const dateLabel = quote.pickup_date ? fmtDayDate(quote.pickup_date) : null;
   const timeLabel = quote.pickup_time?.slice(0, 5);
 
   const created = quote.created_at
@@ -204,7 +205,7 @@ function QuoteRequestCard({
         {quote.return_required && (
           <div className="flex items-center gap-1.5 text-xs text-purple-600 bg-purple-100 px-3 py-1.5 rounded-lg">
             <ArrowLeftRight size={11} className="shrink-0" />
-            Return{quote.return_date ? ` on ${format(parseISO(quote.return_date), "d MMM")}` : ""}
+            Return{quote.return_date ? ` on ${fmtDate(quote.return_date)}` : ""}
             {quote.return_time ? ` at ${quote.return_time.slice(0, 5)}` : ""}
           </div>
         )}
