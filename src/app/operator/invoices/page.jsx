@@ -51,12 +51,10 @@ function longDate(d) {
   if (!d) return null;
   return fmtDate(d) || d;
 }
-// "4/11/26" compact date used inside description lines.
+// Date used inside description lines (house style DD/MM/YYYY).
 function shortDate(d) {
   if (!d) return null;
-  const dt = new Date(`${d}T00:00:00`);
-  if (isNaN(dt)) return d;
-  return `${dt.getDate()}/${dt.getMonth() + 1}/${String(dt.getFullYear()).slice(2)}`;
+  return fmtDate(d) || d;
 }
 
 // Journey → the muted description sub-lines shown under a charge (mirrors how
