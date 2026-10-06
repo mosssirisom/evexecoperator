@@ -3,6 +3,8 @@ import webpush from "web-push";
 
 // Called by the database trigger when a new website booking arrives. Verifies a
 // shared secret, then sends a Web Push notification to every operator device.
+// The website also calls it with { notification: { title, body, url, tag } }
+// for other staff notices (e.g. "EV Exec Payment Received").
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,7 +44,10 @@ export async function POST(req: Request) {
     subscriptions: { endpoint: string; p256dh: string; auth: string }[];
   };
 
-  let payloadBody: { record?: Record<string, unknown> };
+  let payloadBody: {
+    record?: Record<string, unknown>;
+    notification?: { title?: string; body?: string; url?: string; tag?: string };
+  };
   try { payloadBody = await req.json(); } catch { payloadBody = {}; }
   const r = (payloadBody?.record ?? {}) as Record<string, unknown>;
 
@@ -53,12 +58,15 @@ export async function POST(req: Request) {
   const when = ukWhen(r.travel_date, r.travel_time);
   const detail = [route, when].filter(Boolean).join(" · ");
 
-  const payload = JSON.stringify({
-    title: `New booking — ${customer}`,
-    body: detail || "New job request via the website",
-    url: "/operator/dispatch",
-    tag: r.ref ? `booking-${r.ref}` : undefined,
-  });
+  const n = payloadBody?.notification;
+  const payload = n?.title
+    ? JSON.stringify({ title: n.title, body: n.body ?? "", url: n.url || "/operator/dispatch", tag: n.tag })
+    : JSON.stringify({
+        title: `New booking — ${customer}`,
+        body: detail || "New job request via the website",
+        url: "/operator/dispatch",
+        tag: r.ref ? `booking-${r.ref}` : undefined,
+      });
 
   webpush.setVapidDetails(cfg.vapid_subject || "mailto:book@evexec.co.uk", cfg.vapid_public, cfg.vapid_private);
 
