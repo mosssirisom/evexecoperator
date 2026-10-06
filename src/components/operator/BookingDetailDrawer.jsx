@@ -742,7 +742,7 @@ export default function BookingDetailDrawer({
                 }`}
               >
                 {booking.operatorResponse === "accepted" ? <Check className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                {booking.operatorResponse === "accepted" ? "Confirmed" : "Rejected"}
+                {booking.operatorResponse === "accepted" ? "Accepted" : "Rejected"}
               </span>
               {phoneHref && (
                 <a
