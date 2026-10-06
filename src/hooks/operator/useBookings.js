@@ -13,7 +13,6 @@ import {
   sanitizeText,
 } from "@/lib/operator/validation";
 import { markBookingCreated } from "@/lib/operator/recentBookingRefs";
-import { fmtDate } from "@/lib/dates";
 
 function compact(value) {
   return value ? String(value).split(",")[0] : null;
@@ -239,7 +238,7 @@ export function useBookings() {
           name: current?.customer ?? "",
           email: current?.email && current.email !== "—" ? current.email : "",
           phone: current?.phone ?? "",
-          whenText: [fmtDate(current?.travelDate), current?.time && current.time !== "—" ? current.time : ""]
+          whenText: [current?.travelDate, current?.time && current.time !== "—" ? current.time : ""]
             .filter(Boolean)
             .join(" "),
           routeText: current?.route && current.route !== "—" ? current.route : "",
@@ -250,10 +249,10 @@ export function useBookings() {
       if (!res.ok || out?.ok === false) {
         return { decision, channel, warning: out?.error ?? "Customer could not be notified." };
       }
-      return { decision, channel, paymentLink: out?.paymentLink ?? null };
     } catch {
       return { decision, channel: null, warning: "Decision saved, but the customer notification failed to send." };
     }
+    return { decision, channel };
   }, []);
 
   const createBooking = useCallback(

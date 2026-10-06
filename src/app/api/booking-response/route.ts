@@ -1,17 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
-import { paymentLinkForAcceptedBooking } from "@/lib/paymentLink";
 
 // Notifies a customer that the operator has ACCEPTED or REJECTED their website
 // booking. Email first (via Resend), SMS fallback (enqueued for the external
 // notification processor) if the email can't be sent or there's no address.
 //
-// On acceptance the confirmation includes a Stripe payment link, unless the
-// booking is already paid or has a payment method recorded (see
-// src/lib/paymentLink.ts). If the link can't be created the confirmation
-// still goes, without it.
-//
-// The caller's token is verified with the anon key, and the SMS fallback is
-// written through the queue_customer_sms RPC.
+// No service-role key needed: the caller's token is verified with the anon key,
+// and the SMS fallback is written through the queue_customer_sms RPC.
 //
 // Env (Vercel project settings):
 //   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY — already set
@@ -33,7 +27,7 @@ function json(body: unknown, status = 200) {
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 const esc = (s: string) => String(s).replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c] as string));
 
-function emailHtml(accepted: boolean, name: string, ref: string, whenText: string, routeText: string, pay?: { url: string; amount: string }) {
+function emailHtml(accepted: boolean, name: string, ref: string, whenText: string, routeText: string) {
   // Matches the operator app's light theme: periwinkle ground, white card,
   // deep-navy text, gold accents, and a subtle status pill (like the app's
   // status badges) rather than a big colour band.
@@ -76,7 +70,6 @@ function emailHtml(accepted: boolean, name: string, ref: string, whenText: strin
         <p style="margin:18px 0 14px;font-size:15px;color:#0f1b33">Hi ${esc(name) || "there"},</p>
         <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#475569">${lead}</p>
         ${rows ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin:0 0 18px">${rows}</table>` : ""}
-        ${pay ? `<p style="margin:4px 0 18px"><a href="${esc(pay.url)}" style="display:inline-block;background:#C9A550;color:#0B132B;font-weight:700;font-size:14px;padding:12px 24px;border-radius:8px;text-decoration:none">Pay ${esc(pay.amount)} securely</a></p>` : ""}
         <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#475569">${closer}</p>
         <p style="margin:20px 0 0;font-size:14px;color:#475569">Kind regards,<br/>The EV Exec Team</p>
       </td></tr>
@@ -121,13 +114,8 @@ export async function POST(req: Request) {
   const whenText = (body.whenText ?? "").trim();
   const routeText = (body.routeText ?? "").trim();
 
-  // Payment link for the confirmation (accepted bookings that still need one).
-  const link = accepted && ref ? await paymentLinkForAcceptedBooking(ref) : { needed: false as const };
-  const pay = link.needed && link.ok ? { url: link.url, amount: link.amount } : undefined;
-  const paymentLink = link.needed ? (link.ok ? { ok: true } : { ok: false, error: link.error }) : null;
-
   const smsText = accepted
-    ? `EV Exec: Good news ${name || "there"}, your airport transfer${whenText ? ` (${whenText})` : ""} is confirmed. Ref ${ref}.${pay ? ` Pay ${pay.amount} here: ${pay.url}` : ""} We'll send driver details nearer the time.`
+    ? `EV Exec: Good news ${name || "there"}, your airport transfer${whenText ? ` (${whenText})` : ""} is confirmed. Ref ${ref}. We'll send driver details nearer the time.`
     : `EV Exec: Hi ${name || "there"}, unfortunately we can't cover your transfer${whenText ? ` (${whenText})` : ""} (Ref ${ref}). Please contact us to discuss alternatives on 07721 070370.`;
 
   // ── Email first ────────────────────────────────────────────────────────────
@@ -145,7 +133,7 @@ export async function POST(req: Request) {
           subject: accepted
             ? `Your EV Exec transfer is confirmed (Ref ${ref})`
             : `About your EV Exec transfer request (Ref ${ref})`,
-          html: emailHtml(accepted, name, ref, whenText, routeText, pay),
+          html: emailHtml(accepted, name, ref, whenText, routeText),
         }),
       });
       emailed = res.ok;
@@ -171,11 +159,10 @@ export async function POST(req: Request) {
     return json({
       ok: false,
       channel: null,
-      paymentLink,
       error: email || phone
         ? `Couldn't reach the customer${emailError ? `: ${emailError}` : "."}`
         : "No email or phone on file for this customer.",
     }, 200);
   }
-  return json({ ok: true, channel, emailed, smsQueued, paymentLink });
+  return json({ ok: true, channel, emailed, smsQueued });
 }

@@ -582,11 +582,9 @@ function DispatchPageContent() {
     if (out?.warning) {
       toast({ message: `${verb}, but ${out.warning}`, type: "error" });
     } else {
-      const pl = out?.paymentLink;
-      const paymentNote = !pl ? "" : pl.ok ? " with a payment link" : ` (payment link not added: ${pl.error ?? "unknown error"})`;
       toast({
-        message: `${verb} — customer notified${out?.channel ? ` by ${out.channel}` : ""}${paymentNote}`,
-        type: pl && !pl.ok ? "error" : "success",
+        message: `${verb} — customer notified${out?.channel ? ` by ${out.channel}` : ""}`,
+        type: "success",
       });
     }
     setSelectedBooking((prev) =>
@@ -697,15 +695,10 @@ function DispatchPageContent() {
       // Reflect the method locally so the badge/chip update immediately.
       await updatePaymentMethod(id, "Payment link").catch(() => {});
       setSelectedBooking((prev) => (prev?.id === id ? { ...prev, paymentMethod: "Payment link" } : prev));
-      // Two-tap: open the review screen (Open Messages, then Mark as Sent).
-      if (data?.taskId) {
-        window.location.href = `/operator/sms-tasks/${data.taskId}`;
-      } else if (data?.smsHref) {
-        toast({ message: "Payment link created. Messages is opening with it ready to send.", type: "success" });
-        window.location.href = data.smsHref;
-      } else {
-        toast({ message: "Payment link created.", type: "success" });
-      }
+      toast({
+        message: data?.sent ? "Stripe payment link texted to the customer." : "Payment link created.",
+        type: "success",
+      });
     } catch (err) {
       toast({ message: err?.message ?? "Could not create payment link.", type: "error" });
     }

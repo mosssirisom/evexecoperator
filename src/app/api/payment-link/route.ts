@@ -1,15 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
-import { fmtDate } from "@/lib/dates";
 
-// Generates a Stripe payment link for a booking and hands it to the operator
-// as a two-tap text: an operator_sms_tasks row (kind 'payment_link') holding
-// the customer's number and a pre-filled message with the link. The response
-// carries the task id; the dispatch screen opens /operator/sms-tasks/[id],
-// where the operator taps "Open Messages", sends it from their own phone,
-// then taps "Mark as Sent". No Twilio.
+// Generates a Stripe payment link for a booking and texts it to the customer.
 //
 // Runs server-side because it needs the Stripe secret key and the Supabase
-// service-role key. Gated to authenticated operators: the browser sends its
+// service-role key (to write the notification_queue row that the SMS processor
+// already drains). Gated to authenticated operators: the browser sends its
 // Supabase access token as a Bearer header and we verify it before doing
 // anything chargeable.
 //
@@ -73,7 +68,7 @@ export async function POST(req: Request) {
 
   const { data: booking, error: bErr } = await admin
     .from("bookings")
-    .select("id, ref, tenant_id, price, quoted_price, customer_name, customer_phone, customer_email, travel_date, travel_time")
+    .select("id, ref, price, quoted_price, customer_name, customer_phone, customer_email")
     .eq("ref", ref)
     .single();
 
@@ -124,46 +119,36 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── Persist, then hand the operator a two-tap text ─────────────────────────
+  // ── Persist + enqueue the SMS the processor already delivers ────────────────
   await admin
     .from("bookings")
     .update({ stripe_session_id: session.id, payment_method: "Payment link" })
     .eq("id", booking.id);
 
-  const first = (booking.customer_name ?? "").trim().split(/\s+/)[0] || "there";
-  const travel = [fmtDate(booking.travel_date), String(booking.travel_time ?? "").slice(0, 5)].filter(Boolean).join(" at ");
-  const message =
-    `EV Exec: Hi ${first}, please pay £${amount.toFixed(2)} for your transfer` +
-    `${travel ? ` on ${travel}` : ""} (Ref ${booking.ref}) using this secure link: ${session.url}\n` +
-    `The link is valid for 24 hours. Questions: 07721 070370`;
+  const name = (booking.customer_name ?? "").trim() || "there";
+  const body =
+    `EV Exec: Hi ${name}, please complete payment for your airport transfer ` +
+    `(Ref ${booking.ref}): ${session.url}`;
 
-  // One payment-link task per booking: a re-send replaces the message (new
-  // link) and puts it back to pending.
-  const { data: task, error: tErr } = await admin
-    .from("operator_sms_tasks")
-    .upsert(
-      {
-        booking_id: booking.id,
-        ...(booking.tenant_id ? { tenant_id: booking.tenant_id } : {}),
-        kind: "payment_link",
-        customer_name: booking.customer_name ?? null,
-        customer_phone: phone,
-        message,
-        status: "pending",
-        opened_at: null,
-        sent_at: null,
-        created_at: new Date().toISOString(),
-      },
-      { onConflict: "booking_id,kind" }
-    )
-    .select("id")
-    .single();
+  const { error: qErr } = await admin.from("notification_queue").insert({
+    booking_id: booking.id,
+    type: "payment_link",
+    channel: "sms",
+    recipient: phone,
+    body,
+    status: "pending",
+    attempts: 0,
+    next_attempt_at: new Date().toISOString(),
+  });
 
-  if (tErr || !task) {
-    // The link exists and the booking is updated; return the text anyway so
-    // the operator can still send it.
-    return json({ url: session.url, taskId: null, smsHref: `sms:${phone.replace(/\s+/g, "")}?body=${encodeURIComponent(message)}` });
+  if (qErr) {
+    // The link exists and the booking is updated; surface that the text failed
+    // so the operator can copy the link manually.
+    return json(
+      { url: session.url, sent: false, error: "Link created but the text could not be queued." },
+      207
+    );
   }
 
-  return json({ url: session.url, taskId: task.id });
+  return json({ url: session.url, sent: true });
 }
