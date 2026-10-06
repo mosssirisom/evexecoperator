@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useMemo, useRef, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   FileText, Plus, X, Printer, Trash2, Check, Send, CircleDollarSign, Clock,
   MapPin, Plane, Users, Briefcase, Car, CalendarClock, ImageDown,
-  Calendar, CreditCard, Gem, Phone, Mail, Globe, Loader2,
+  Calendar, CreditCard, Gem, Phone, Mail, Globe, Loader2, Search,
 } from "lucide-react";
 import { useInvoices, computeTotals } from "@/hooks/operator/useInvoices";
-import { useBookings } from "@/hooks/operator/useBookings";
+import { shapedBooking } from "@/hooks/operator/useBookings";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { EV_EXEC_LOGO } from "@/lib/operator/brandLogo";
 import { supabase } from "@/lib/supabase";
@@ -95,8 +95,129 @@ function InvoiceLogo() {
   );
 }
 
+/* ─── Jobs to invoice ───────────────────────────────────────────────────── */
+
+// Every booking, newest travel date first, for the job finder. Loaded on its
+// own (not the dispatch board's paged, oldest-first list) so recent jobs are
+// always there to pick.
+function useInvoiceJobs() {
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("bookings")
+        .select("*")
+        .order("travel_date", { ascending: false, nullsFirst: false })
+        .order("travel_time", { ascending: false })
+        .limit(2000);
+      if (live) { setJobs((data || []).map(shapedBooking)); setLoading(false); }
+    })().catch(() => live && setLoading(false));
+    return () => { live = false; };
+  }, []);
+  return { jobs, loading };
+}
+
+const isReturnLeg = (j) => /^Return leg created automatically/i.test(j.notes || "");
+const isCompleted = (j) => String(j.status || "").toLowerCase() === "completed";
+const dash = (v) => (v && v !== "—" ? v : "");
+
+function jobSearchText(j) {
+  return [
+    j.id, j.customer, j.phone, String(j.phone || "").replace(/\D/g, ""), j.email,
+    j.pickupLocation, j.dropoffAddress, j.airport, dash(j.flight),
+    j.travelDate, fmtDate(j.travelDate), j.status,
+  ].filter(Boolean).join(" ").toLowerCase();
+}
+
+// Search box + list of jobs. Default view is the jobs that still need an
+// invoice (completed, not yet invoiced, not an auto-created return leg).
+// Jobs that already have an invoice show it, and open it instead of
+// starting a duplicate.
+function JobPicker({ jobs, loading, invoiceFor, onPick, onOpenInvoice }) {
+  const [q, setQ] = useState("");
+  const [view, setView] = useState("todo");
+
+  const list = useMemo(() => {
+    const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return jobs.filter((j) => {
+      if (view === "todo" && (!isCompleted(j) || isReturnLeg(j) || invoiceFor(j))) return false;
+      if (!words.length) return true;
+      const text = jobSearchText(j);
+      return words.every((w) => text.includes(w));
+    });
+  }, [jobs, q, view, invoiceFor]);
+
+  const todoCount = useMemo(
+    () => jobs.filter((j) => isCompleted(j) && !isReturnLeg(j) && !invoiceFor(j)).length,
+    [jobs, invoiceFor]
+  );
+
+  return (
+    <div>
+      <p className={labelCls}>Find the job</p>
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className={inputCls + " pl-9"}
+          placeholder="Ref, name, phone, address, date (DD/MM/YYYY) or flight"
+        />
+      </div>
+      <div className="mt-2 flex gap-1.5">
+        {[["todo", `To invoice (${todoCount})`], ["all", "All jobs"]].map(([k, label]) => (
+          <button key={k} type="button" onClick={() => setView(k)}
+            className={`rounded-full border px-3 py-1 text-[11px] font-medium transition ${
+              view === k ? "border-amber-400/40 bg-amber-400/10 text-amber-600" : "border-slate-200 text-slate-500 hover:text-slate-600"}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="mt-2 max-h-72 space-y-1.5 overflow-y-auto rounded-2xl border border-slate-100 bg-slate-50 p-1.5">
+        {loading && jobs.length === 0 ? (
+          <p className="py-6 text-center text-xs text-slate-500">Loading jobs…</p>
+        ) : list.length === 0 ? (
+          <p className="py-6 text-center text-xs text-slate-500">
+            {view === "todo" && !q ? "Every completed job has an invoice." : "No jobs match. Try All jobs, or fewer words."}
+          </p>
+        ) : (
+          list.slice(0, 100).map((j) => {
+            const inv = invoiceFor(j);
+            const when = [fmtDate(j.travelDate), dash(j.time)].filter(Boolean).join(" ");
+            return (
+              <button key={j.id} type="button"
+                onClick={() => (inv ? onOpenInvoice(inv) : onPick(j.id))}
+                className="flex w-full items-start gap-3 rounded-xl border border-slate-100 bg-white p-2.5 text-left transition hover:border-amber-400/40">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-[#0F1B33]">{j.customer || "No name"}</p>
+                  <p className="truncate text-xs text-slate-600">{dash(j.route)}</p>
+                  <p className="truncate text-[11px] text-slate-500">
+                    {when || "No date"} · {j.id}{isReturnLeg(j) ? " · Return leg" : ""}
+                  </p>
+                </div>
+                <div className="flex flex-shrink-0 flex-col items-end gap-1">
+                  <span className="text-sm font-bold text-amber-600">{j.price}</span>
+                  {inv ? (
+                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusChip(inv.status)}`}>{inv.number} · Open</span>
+                  ) : (
+                    <span className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] text-slate-500">{j.status}</span>
+                  )}
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+      {list.length > 100 && <p className="mt-1 text-[10px] text-slate-500">Showing the 100 most recent matches. Search to narrow it down.</p>}
+    </div>
+  );
+}
+
 /* ─── Create-invoice modal ──────────────────────────────────────────────── */
-function InvoiceModal({ open, onClose, onCreate, bookings }) {
+function InvoiceModal({ open, onClose, onCreate, bookings, jobsLoading, invoiceFor, onOpenInvoice, initialRef }) {
   const blankItem = { description: "", quantity: 1, unit_price: "" };
   const emptyJourney = { pickup: "", dropoff: "", date: "", time: "", flight: "", passengers: "", luggage: "", vehicle: "", returnDate: "", returnTime: "" };
   const [customer, setCustomer] = useState("");
@@ -104,6 +225,7 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [bookingRef, setBookingRef] = useState("");
+  const [bookingId, setBookingId] = useState(null);
   const [journey, setJourney] = useState({ ...emptyJourney });
   const [items, setItems] = useState([{ ...blankItem }]);
   const [vatRate, setVatRate] = useState(0);
@@ -114,7 +236,7 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
   const [err, setErr] = useState(null);
 
   const reset = () => {
-    setCustomer(""); setEmail(""); setPhone(""); setAddress(""); setBookingRef("");
+    setCustomer(""); setEmail(""); setPhone(""); setAddress(""); setBookingRef(""); setBookingId(null);
     setJourney({ ...emptyJourney });
     setItems([{ ...blankItem }]); setVatRate(0); setIssueDate(today()); setDueDate("");
     setNotes(""); setErr(null);
@@ -124,9 +246,10 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
 
   const prefillFromBooking = (ref) => {
     setBookingRef(ref);
-    if (!ref) { setJourney({ ...emptyJourney }); return; }
+    if (!ref) { setBookingId(null); setJourney({ ...emptyJourney }); return; }
     const b = bookings.find((x) => x.id === ref);
     if (!b) return;
+    setBookingId(b.dbId || null);
     setCustomer(b.customer || "");
     setPhone(b.phone && b.phone !== "—" ? b.phone : "");
     setEmail(b.email && b.email !== "—" ? b.email : "");
@@ -161,6 +284,18 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
 
   const totals = useMemo(() => computeTotals(items, vatRate), [items, vatRate]);
 
+  // Opened for a specific job (invoices?ref=EVX-…): prefill it once loaded.
+  const appliedRef = useRef(null);
+  useEffect(() => {
+    if (!open || !initialRef || appliedRef.current === initialRef) return;
+    if (!bookings.some((b) => b.id === initialRef)) return;
+    appliedRef.current = initialRef;
+    prefillFromBooking(initialRef);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialRef, bookings]);
+
+  const selectedJob = bookingRef ? bookings.find((b) => b.id === bookingRef) : null;
+
   const submit = async () => {
     if (!customer.trim()) { setErr("Customer name is required."); return; }
     if (!items.some((it) => it.description.trim() && Number(it.unit_price) > 0)) {
@@ -175,7 +310,7 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
         Object.entries(journey).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v]).filter(([, v]) => v !== "" && v != null)
       );
       await onCreate({
-        customer, email, phone, address, bookingRef: bookingRef || null,
+        customer, email, phone, address, bookingRef: bookingRef || null, bookingId: bookingRef ? bookingId : null,
         journey: cleanJourney,
         lineItems: cleanItems, vatRate, issueDate, dueDate: dueDate || null, notes, status: "Draft",
       });
@@ -200,16 +335,20 @@ function InvoiceModal({ open, onClose, onCreate, bookings }) {
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          {bookings.length > 0 && (
+          {selectedJob ? (
+            <div className="flex items-start gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/5 p-3">
+              <div className="min-w-0 flex-1">
+                <p className={labelCls + " mb-1"}>Invoicing job</p>
+                <p className="truncate text-sm font-semibold text-[#0F1B33]">{selectedJob.customer} · {selectedJob.id}</p>
+                <p className="truncate text-xs text-slate-600">{dash(selectedJob.route)}</p>
+                <p className="truncate text-[11px] text-slate-500">{[fmtDate(selectedJob.travelDate), dash(selectedJob.time)].filter(Boolean).join(" ")} · {selectedJob.price}</p>
+              </div>
+              <button type="button" onClick={() => prefillFromBooking("")} className="flex-shrink-0 rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:text-[#0F1B33]">Change</button>
+            </div>
+          ) : (
             <div>
-              <p className={labelCls}>Prefill from booking</p>
-              <select value={bookingRef} onChange={(e) => prefillFromBooking(e.target.value)} className={inputCls}>
-                <option value="">— none (manual) —</option>
-                {bookings.slice(0, 60).map((b) => (
-                  <option key={b.id} value={b.id}>{b.id} · {b.customer} · {b.price}</option>
-                ))}
-              </select>
-              <p className="mt-1 text-[10px] text-slate-600">Pulls in the customer, journey and price — you can edit anything below.</p>
+              <JobPicker jobs={bookings} loading={jobsLoading} invoiceFor={invoiceFor} onPick={prefillFromBooking} onOpenInvoice={onOpenInvoice} />
+              <p className="mt-1 text-[10px] text-slate-600">Pick a job to fill in the customer, journey and price. You can edit anything below, or skip this for a manual invoice.</p>
             </div>
           )}
 
@@ -744,11 +883,29 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
 /* ─── Page ──────────────────────────────────────────────────────────────── */
 export default function InvoicesPage() {
   const { invoices, loading, createInvoice, updateStatus, deleteInvoice } = useInvoices();
-  const { bookings } = useBookings();
+  const { jobs, loading: jobsLoading } = useInvoiceJobs();
   const toast = useOperatorToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [preview, setPreview] = useState(null);
   const [filter, setFilter] = useState("All");
+  const [search, setSearch] = useState("");
+  const [initialRef, setInitialRef] = useState(null);
+
+  // invoices?ref=EVX-… opens the new-invoice form for that job.
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref) { setInitialRef(ref); setModalOpen(true); }
+  }, []);
+
+  // A job's existing invoice, matched by the booking link or its ref.
+  const invoiceFor = useMemo(() => {
+    const byId = new Map(), byRef = new Map();
+    invoices.forEach((i) => {
+      if (i.bookingId) byId.set(i.bookingId, i);
+      if (i.bookingRef) byRef.set(i.bookingRef, i);
+    });
+    return (j) => (j.dbId && byId.get(j.dbId)) || byRef.get(j.id) || (j.dbId && byRef.get(j.dbId)) || null;
+  }, [invoices]);
 
   const stats = useMemo(() => {
     const outstanding = invoices.filter((i) => i.status === "Draft" || i.status === "Sent").reduce((a, i) => a + i.total, 0);
@@ -757,10 +914,19 @@ export default function InvoicesPage() {
     return { outstanding, paid, unpaidCount };
   }, [invoices]);
 
-  const filtered = useMemo(
-    () => (filter === "All" ? invoices : invoices.filter((i) => i.status === filter)),
-    [invoices, filter]
-  );
+  const filtered = useMemo(() => {
+    const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return invoices.filter((i) => {
+      if (filter !== "All" && i.status !== filter) return false;
+      if (!words.length) return true;
+      const text = [
+        i.number, i.bookingRef, i.customer, i.email, i.phone, String(i.phone || "").replace(/\D/g, ""),
+        i.journey?.pickup, i.journey?.dropoff, i.journey?.date, fmtDate(i.journey?.date),
+        i.issueDate, fmtDate(i.issueDate),
+      ].filter(Boolean).join(" ").toLowerCase();
+      return words.every((w) => text.includes(w));
+    });
+  }, [invoices, filter, search]);
 
   const handleCreate = useCallback(async (form) => {
     const inv = await createInvoice(form);
@@ -839,7 +1005,12 @@ export default function InvoicesPage() {
           </button>
         </div>
 
-        {/* Filter chips */}
+        {/* Search + filter chips */}
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} className={inputCls + " pl-9"}
+            placeholder="Search invoices: number, job ref, customer, phone, address or date" />
+        </div>
         <div className="flex flex-wrap gap-1.5">
           {["All", "Draft", "Sent", "Paid", "Void"].map((f) => (
             <button key={f} onClick={() => setFilter(f)}
@@ -857,7 +1028,7 @@ export default function InvoicesPage() {
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-14">
               <FileText className="mb-3 h-8 w-8 text-slate-700" />
-              <p className="text-sm text-slate-600">{invoices.length === 0 ? "No invoices yet." : `No ${filter.toLowerCase()} invoices.`}</p>
+              <p className="text-sm text-slate-600">{invoices.length === 0 ? "No invoices yet." : search.trim() ? "No invoices match your search." : `No ${filter.toLowerCase()} invoices.`}</p>
               {invoices.length === 0 && (
                 <button onClick={() => setModalOpen(true)} className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-500 hover:text-amber-600">
                   + Create your first invoice
@@ -875,7 +1046,7 @@ export default function InvoicesPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-[#0F1B33]">{inv.customer}</p>
                     <p className="truncate text-xs text-slate-500">
-                      {inv.number}{inv.issueDate ? ` · ${inv.issueDate}` : ""}
+                      {inv.number}{inv.bookingRef ? ` · ${inv.bookingRef}` : ""}{inv.journey?.date ? ` · Travel ${fmtDate(inv.journey.date)}` : inv.issueDate ? ` · Issued ${fmtDate(inv.issueDate)}` : ""}
                       {inv.journey?.pickup || inv.journey?.dropoff ? ` · ${[inv.journey.pickup, inv.journey.dropoff].filter(Boolean).join(" → ")}` : ""}
                     </p>
                   </div>
@@ -890,7 +1061,16 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      <InvoiceModal open={modalOpen} onClose={() => setModalOpen(false)} onCreate={handleCreate} bookings={bookings} />
+      <InvoiceModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setInitialRef(null); }}
+        onCreate={handleCreate}
+        bookings={jobs}
+        jobsLoading={jobsLoading}
+        invoiceFor={invoiceFor}
+        onOpenInvoice={(inv) => { setModalOpen(false); setInitialRef(null); setPreview(inv); }}
+        initialRef={initialRef}
+      />
       {preview && (
         <InvoicePreview
           invoice={preview}

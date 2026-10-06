@@ -8,6 +8,7 @@ export function shapedInvoice(row) {
     id: row.id,
     number: row.invoice_number,
     bookingRef: row.booking_ref ?? null,
+    bookingId: row.booking_id ?? null,
     customer: row.customer_name ?? "",
     email: row.customer_email ?? null,
     phone: row.customer_phone ?? null,
@@ -70,6 +71,9 @@ export function useInvoices() {
       .from("invoices")
       .insert({
         booking_ref:      form.bookingRef || null,
+        // Links the invoice to the job (one invoice per job is enforced by the
+        // invoices_one_per_booking index; it's also how customers see it).
+        booking_id:       form.bookingId || null,
         customer_name:    (form.customer || "").trim(),
         customer_email:   form.email?.trim() || null,
         customer_phone:   form.phone?.trim() || null,
@@ -87,7 +91,10 @@ export function useInvoices() {
       })
       .select()
       .single();
-    if (err) throw new Error(err.message);
+    if (err) {
+      if (/invoices_one_per_booking/.test(err.message)) throw new Error("This job already has an invoice. Open it from the list instead.");
+      throw new Error(err.message);
+    }
     const shaped = shapedInvoice(data);
     setInvoices((prev) => [shaped, ...prev]);
     return shaped;

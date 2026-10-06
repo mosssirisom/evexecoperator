@@ -246,7 +246,7 @@ function PaymentMethodPicker({ value, onSelect }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {PAYMENT_METHODS.map((m) => {
-        const active = value === m;
+        const active = String(value ?? "").toLowerCase() === m.toLowerCase();
         return (
           <button
             key={m}
