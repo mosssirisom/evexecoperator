@@ -582,9 +582,11 @@ function DispatchPageContent() {
     if (out?.warning) {
       toast({ message: `${verb}, but ${out.warning}`, type: "error" });
     } else {
+      const pl = out?.paymentLink;
+      const paymentNote = !pl ? "" : pl.ok ? " with a payment link" : ` (payment link not added: ${pl.error ?? "unknown error"})`;
       toast({
-        message: `${verb} — customer notified${out?.channel ? ` by ${out.channel}` : ""}`,
-        type: "success",
+        message: `${verb} — customer notified${out?.channel ? ` by ${out.channel}` : ""}${paymentNote}`,
+        type: pl && !pl.ok ? "error" : "success",
       });
     }
     setSelectedBooking((prev) =>
