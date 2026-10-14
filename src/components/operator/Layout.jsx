@@ -14,6 +14,7 @@ import { useNewBookingAlerts } from "@/hooks/operator/useNewBookingAlerts";
 import { useBookings } from "@/hooks/operator/useBookings";
 import { playNewBookingChime } from "@/lib/operator/notificationSound";
 import { useTenantProfile } from "@/hooks/operator/useTenantProfile";
+import { pricingFromTenant } from "@/lib/prices";
 import { useQuoteRequests } from "@/hooks/useQuoteRequests";
 import { useMissedCalls as useInboxMissedCalls } from "@/hooks/useMissedCalls";
 import { useContactMessages } from "@/hooks/useContactMessages";
@@ -266,7 +267,7 @@ export default function Layout({ children, onSignOut }) {
       setMissedCallResolved: inboxCalls.setResolved,
       setContactMessageStatus: messages.setStatus,
     },
-    profile: { tenant: profile.tenant, user: profile.user, reload: profile.reload },
+    profile: { tenant: profile.tenant, user: profile.user, pricing: pricingFromTenant(profile.tenant?.pricing), reload: profile.reload },
   }), [
     openNewBooking, inboxCount, profile.tenant, profile.user, profile.reload,
     quotes.quoteRequests, quotes.loading, quotes.setStatus,
