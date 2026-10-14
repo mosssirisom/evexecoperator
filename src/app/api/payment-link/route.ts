@@ -70,6 +70,17 @@ export async function POST(req: Request) {
   const { data: userData, error: userErr } = await admin.auth.getUser(token);
   if (userErr || !userData?.user) return json({ error: "Not authorised." }, 401);
 
+  // Signed in isn't enough (website customers have logins on this project):
+  // the caller must be staff, and below, of the business that owns the booking.
+  const { data: roles } = await admin
+    .from("tenant_users")
+    .select("tenant_id, role")
+    .eq("user_id", userData.user.id)
+    .in("role", ["super_admin", "operator_admin", "dispatcher"]);
+  const isSuper = (roles ?? []).some((r) => r.role === "super_admin");
+  const staffTenants = new Set((roles ?? []).map((r) => r.tenant_id).filter(Boolean));
+  if (!isSuper && staffTenants.size === 0) return json({ error: "Not authorised." }, 403);
+
   // ── Resolve the booking ────────────────────────────────────────────────────
   let ref: string | undefined;
   try {
@@ -87,6 +98,7 @@ export async function POST(req: Request) {
     .single();
 
   if (bErr || !booking) return json({ error: "Booking not found." }, 404);
+  if (!isSuper && !staffTenants.has(booking.tenant_id)) return json({ error: "Booking not found." }, 404);
 
   const phone = (booking.customer_phone ?? "").trim();
   const email = (booking.customer_email ?? "").trim();
