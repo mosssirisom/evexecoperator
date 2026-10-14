@@ -27,3 +27,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Update — 2026-10-14: payment links by email + two-tap text (live)
+
+`/api/payment-link` no longer queues a Twilio SMS (it never sent: Twilio is dormant). It creates the Stripe checkout, emails it via Resend in the shared design (`paymentLink` from `src/lib/email/content.js`) when the booking has an email, and returns `smsHref` (an `sms:` link with the message pre-written, house date style) when it has a phone. The booking drawer's "Send payment link" button then shows "Text link to customer" (opens Messages, operator presses Send) and "Copy link". Payment is still recorded by the website's Stripe webhook (`metadata[booking_ref]`).
