@@ -13,16 +13,15 @@ import { EV_EXEC_LOGO } from "@/lib/operator/brandLogo";
 import { supabase } from "@/lib/supabase";
 import { fmtDate } from "@/lib/dates";
 import { useTenantProfile } from "@/hooks/operator/useTenantProfile";
+import { brandFrom } from "@/lib/brand";
 
 const VAT_RATES = [
   { label: "No VAT", value: 0 },
   { label: "VAT 20%", value: 0.2 },
 ];
 
-// Brand colours. NAVY matches the logo's own flat background (#04080f) so the
-// real EV Exec badge blends into the header/footer bands with no visible box.
-const NAVY = "#0B132B";
-const GOLD = "#d7a23f";
+// Invoice colours come from the business's branding (brandFrom in
+// lib/brand.js), navy #0B132B and gold #D7A23F unless changed.
 
 // Letterhead fallback, used until the business details load (and if a field
 // is blank). The live values come from Settings → Business (tenants.brand.invoice).
@@ -100,14 +99,25 @@ const inputCls =
   "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#0F1B33] placeholder:text-slate-400 outline-none transition focus:border-amber-400/40";
 const labelCls = "mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500";
 
-function InvoiceLogo({ company = COMPANY }) {
+// The business's logo (Settings → Branding); EV Exec's built-in badge for EV
+// Exec; otherwise the business name as a wordmark. Uploaded logos load with
+// CORS so they appear in the downloaded PDF too.
+function logoSrcFor(brand) {
+  return brand.logoUrl || (brand.useBuiltInLogo ? EV_EXEC_LOGO : null);
+}
+
+function InvoiceLogo({ company = COMPANY, brand }) {
+  const src = logoSrcFor(brand);
   return (
     <div className="flex flex-col items-start">
-      {/* Real EV Exec badge — its background is the same navy as the header band */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={EV_EXEC_LOGO} alt={company.name || "EV Exec"} className="h-16 w-auto sm:h-20" />
-      <div className="mt-1 h-px w-28 sm:w-36" style={{ background: GOLD, opacity: 0.55 }} />
-      <p className="mt-1.5 text-[8px] font-semibold leading-relaxed tracking-[0.24em] sm:text-[9px]" style={{ color: GOLD }}>
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt={company.name || "Logo"} crossOrigin={brand.logoUrl ? "anonymous" : undefined} className="h-16 w-auto max-w-[220px] object-contain sm:h-20" />
+      ) : (
+        <p className="text-xl font-semibold tracking-[0.2em] sm:text-2xl" style={{ color: brand.accent }}>{(company.name || "").toUpperCase()}</p>
+      )}
+      <div className="mt-1 h-px w-28 sm:w-36" style={{ background: brand.accent, opacity: 0.55 }} />
+      <p className="mt-1.5 text-[8px] font-semibold leading-relaxed tracking-[0.24em] sm:text-[9px]" style={{ color: brand.accent }}>
         {company.tagline1}<br />{company.tagline2}
       </p>
     </div>
@@ -505,6 +515,10 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
   const jLines = journeyLines(inv.journey);
   const { tenant } = useTenantProfile();
   const company = companyFrom(tenant);
+  // Invoice colours from Settings → Branding (navy and gold by default).
+  const brand = brandFrom(tenant);
+  const NAVY = brand.primary;
+  const GOLD = brand.accent;
   const terms = (inv.notes && inv.notes.trim()) || company.terms;
   const exact = { WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" };
   const sheetRef = useRef(null);
@@ -725,7 +739,7 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
           {/* ── Header band ── */}
           <div className="relative px-5 pt-5 pb-10 sm:px-10 sm:pt-8 sm:pb-14" style={{ backgroundColor: NAVY, ...exact }}>
             <div className="flex items-start justify-between gap-3">
-              <InvoiceLogo company={company} />
+              <InvoiceLogo company={company} brand={brand} />
               <div className="text-right">
                 <p className="text-xl font-light tracking-[0.3em] sm:text-3xl sm:tracking-[0.35em]" style={{ color: GOLD }}>INVOICE</p>
                 <div className="ml-auto mt-2 h-0.5 w-16 sm:w-24" style={{ background: GOLD }} />
@@ -856,18 +870,19 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
           </div>
 
           {/* Thank-you flourish — centres in the space above the footer so a
-              short invoice still fills the A4 page. A faint EV Exec badge sits
+              short invoice still fills the A4 page. A faint copy of the logo sits
               behind it as a watermark to fill the empty space. */}
           <div className="relative flex flex-1 items-center justify-center px-8 py-8">
-            {/* Watermark — the real badge, greatly enlarged and dimmed. */}
+            {/* Watermark — the logo, greatly enlarged and dimmed. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={EV_EXEC_LOGO}
+            {logoSrcFor(brand) && <img
+              src={logoSrcFor(brand)}
+              crossOrigin={brand.logoUrl ? "anonymous" : undefined}
               alt=""
               aria-hidden="true"
               className="pointer-events-none absolute left-1/2 top-1/2 w-64 max-w-[70%] -translate-x-1/2 -translate-y-1/2 select-none sm:w-80"
               style={{ opacity: 0.06 }}
-            />
+            />}
             <div className="relative text-center">
               <p className="text-[15px] font-semibold uppercase tracking-[0.18em] sm:text-base" style={{ color: NAVY }}>
                 Thank you for choosing {company.name}

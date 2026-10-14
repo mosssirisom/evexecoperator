@@ -15,6 +15,7 @@ import { useBookings } from "@/hooks/operator/useBookings";
 import { playNewBookingChime } from "@/lib/operator/notificationSound";
 import { useTenantProfile } from "@/hooks/operator/useTenantProfile";
 import { pricingFromTenant } from "@/lib/prices";
+import { brandFrom } from "@/lib/brand";
 import { useQuoteRequests } from "@/hooks/useQuoteRequests";
 import { useMissedCalls as useInboxMissedCalls } from "@/hooks/useMissedCalls";
 import { useContactMessages } from "@/hooks/useContactMessages";
@@ -267,7 +268,7 @@ export default function Layout({ children, onSignOut }) {
       setMissedCallResolved: inboxCalls.setResolved,
       setContactMessageStatus: messages.setStatus,
     },
-    profile: { tenant: profile.tenant, user: profile.user, pricing: pricingFromTenant(profile.tenant?.pricing), reload: profile.reload },
+    profile: { tenant: profile.tenant, user: profile.user, pricing: pricingFromTenant(profile.tenant?.pricing), brand: brandFrom(profile.tenant), reload: profile.reload },
   }), [
     openNewBooking, inboxCount, profile.tenant, profile.user, profile.reload,
     quotes.quoteRequests, quotes.loading, quotes.setStatus,
@@ -285,7 +286,7 @@ export default function Layout({ children, onSignOut }) {
   return (
     <OperatorProvider value={operatorValue}>
     <div className="min-h-screen bg-white text-[#0F1B33]">
-      <Sidebar inboxCount={inboxCount} businessName={businessName} onSignOut={onSignOut} />
+      <Sidebar inboxCount={inboxCount} businessName={businessName} logoUrl={brandFrom(profile.tenant).logoUrl} onSignOut={onSignOut} />
       <main className="ml-0 min-h-screen w-full max-w-full overflow-x-hidden pb-[calc(5rem+env(safe-area-inset-bottom))] sm:ml-20 sm:w-auto lg:ml-60 sm:pb-0 bg-[radial-gradient(circle_at_top_right,rgba(201,165,80,0.14),transparent_38%),linear-gradient(180deg,#EEF0F6_0%,#E4E7F0_100%)]">
         <header className="sticky top-0 z-40 border-b border-slate-100 bg-white/85 px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] sm:px-10 sm:pb-6 sm:pt-6 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">

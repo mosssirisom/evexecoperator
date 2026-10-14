@@ -51,7 +51,7 @@ function Badge({ count, className = "" }) {
   );
 }
 
-export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", onSignOut }) {
+export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", logoUrl = null, onSignOut }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const badgeFor = (item) => (item.badge === "inbox" ? inboxCount : 0);
@@ -76,9 +76,17 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", onSi
         className="fixed left-0 top-0 z-50 hidden h-screen w-20 flex-col border-r border-white/5 bg-[#050B17] py-5 sm:flex lg:w-60 lg:px-4"
       >
         <Link href="/operator/today" className="mb-8 flex items-center justify-center gap-3 lg:justify-start lg:px-2" title={businessName}>
-          <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-amber-400/25 bg-amber-400/10 text-sm font-bold text-amber-300">
-            {initialsOf(businessName)}
-          </span>
+          {logoUrl ? (
+            <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-1">
+              {/* The business's own logo (Settings → Branding) */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={logoUrl} alt="" className="max-h-full max-w-full object-contain" />
+            </span>
+          ) : (
+            <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-amber-400/25 bg-amber-400/10 text-sm font-bold text-amber-300">
+              {initialsOf(businessName)}
+            </span>
+          )}
           <span className="hidden min-w-0 lg:block">
             <span className="block truncate text-sm font-semibold text-white">{businessName}</span>
             <span className="block text-[11px] text-slate-500">Operator</span>
