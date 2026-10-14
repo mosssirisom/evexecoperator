@@ -8,7 +8,6 @@ import {
   Plug,
   Shield,
   ChevronRight,
-  Check,
   CheckCircle2,
   Circle,
   ExternalLink,
@@ -17,7 +16,6 @@ import {
   BookOpen,
   UserCircle,
   Mail,
-  MessageCircle,
   Smartphone,
   BellRing,
   Building,
@@ -30,21 +28,24 @@ import { PORTALS } from "@/lib/operator/portals";
 import { useIsSuperAdmin } from "@/hooks/operator/useIsSuperAdmin";
 import PlatformSettings from "@/components/operator/PlatformSettings";
 import { fmtDateTime } from "@/lib/dates";
+import { useTenantProfile } from "@/hooks/operator/useTenantProfile";
+import { AIRPORT_PRICES, EXTRA_STOP_PRICE } from "@/lib/prices";
 
 const SECTIONS = [
   { key: "business", label: "Business", icon: Building2 },
   { key: "notifications", label: "Notifications", icon: Bell },
-  { key: "fleet", label: "Fleet & Pricing", icon: Car },
+  { key: "prices", label: "Prices", icon: Car },
   { key: "integrations", label: "Integrations", icon: Plug },
   { key: "security", label: "Security", icon: Shield },
 ];
 
-function Toggle({ value, onChange }) {
+function Toggle({ value, onChange, label }) {
   return (
     <button
       type="button"
       onClick={() => onChange(!value)}
-      aria-checked={value}
+      aria-checked={!!value}
+      aria-label={label}
       role="switch"
       className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${
         value ? "bg-amber-500" : "bg-slate-100"
@@ -59,64 +60,142 @@ function Toggle({ value, onChange }) {
   );
 }
 
-function TextInput({ label, value, onChange, type = "text", placeholder = "" }) {
+function TextInput({ label, value, onChange, type = "text", placeholder = "", disabled = false, autoComplete }) {
   return (
     <div>
       <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-slate-500">
         {label}
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          disabled={disabled}
+          autoComplete={autoComplete}
+          className="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm normal-case tracking-normal text-[#0F1B33] outline-none placeholder:text-slate-400 transition focus:border-amber-400/40 focus:bg-slate-50 disabled:opacity-60"
+        />
       </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none placeholder:text-slate-400 transition focus:border-amber-400/40 focus:bg-slate-50"
-      />
     </div>
   );
 }
 
-function ToggleRow({ label, value, onChange, description }) {
+function TextArea({ label, value, onChange, rows = 3, placeholder = "", disabled = false, hint }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4">
-      <div className="min-w-0">
-        <span className="text-sm text-[#0F1B33]">{label}</span>
-        {description && <p className="mt-0.5 text-xs text-slate-500">{description}</p>}
+    <div>
+      <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-slate-500">
+        {label}
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={rows}
+          placeholder={placeholder}
+          disabled={disabled}
+          className="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm normal-case tracking-normal text-[#0F1B33] outline-none placeholder:text-slate-400 transition focus:border-amber-400/40 disabled:opacity-60"
+        />
+      </label>
+      {hint && <p className="-mt-1 text-[11px] text-slate-500">{hint}</p>}
+    </div>
+  );
+}
+
+function SaveButton({ onClick, busy, label = "Save Changes", disabled = false }) {
+  return (
+    <div className="mt-8 flex justify-end">
+      <button
+        onClick={onClick}
+        disabled={busy || disabled}
+        className="rounded-2xl bg-amber-500 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:opacity-50"
+      >
+        {busy ? "Saving…" : label}
+      </button>
+    </div>
+  );
+}
+
+// Saved to the operator's own tenants row (update_tenant_profile), so every
+// staff device sees the same details. The invoice letterhead lives in
+// brand.invoice, which customer invoices on the website already read.
+function profileForm(tenant) {
+  const inv = tenant?.brand?.invoice || {};
+  return {
+    name: tenant?.name || "",
+    contactEmail: tenant?.contact_email || "",
+    contactPhone: tenant?.contact_phone || "",
+    invoiceName: inv.business_name || "",
+    addressLines: Array.isArray(inv.address_lines) ? inv.address_lines.join("\n") : "",
+    invoicePhone: inv.phone || "",
+    invoiceEmail: inv.email || "",
+    web: inv.web || "",
+    paymentTerms: inv.payment_terms || "",
+  };
+}
+
+function BusinessSettings({ toast }) {
+  const { tenant, canEdit, loading, error, save } = useTenantProfile();
+  const [form, setForm] = useState(() => profileForm(null));
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => { setForm(profileForm(tenant)); }, [tenant]);
+
+  const set = (field) => (value) => setForm((f) => ({ ...f, [field]: value }));
+
+  async function handleSave() {
+    setBusy(true);
+    try {
+      await save({
+        name: form.name,
+        contactEmail: form.contactEmail,
+        contactPhone: form.contactPhone,
+        invoice: {
+          business_name: form.invoiceName.trim(),
+          address_lines: form.addressLines.split("\n").map((l) => l.trim()).filter(Boolean),
+          phone: form.invoicePhone.trim(),
+          email: form.invoiceEmail.trim(),
+          web: form.web.trim(),
+          payment_terms: form.paymentTerms.trim(),
+        },
+      });
+      toast({ message: "Business details saved for everyone on your team", type: "success" });
+    } catch (e) {
+      toast({ message: e?.message || "Could not save business details", type: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (loading) return <p className="text-sm text-slate-500">Loading business details…</p>;
+  if (error || !tenant) {
+    return <p className="text-sm text-red-600">{error || "No business is linked to this account."}</p>;
+  }
+
+  const off = !canEdit;
+  return (
+    <div className="space-y-8">
+      {off && (
+        <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+          Only an operator admin can change these details.
+        </p>
+      )}
+      <div className="space-y-5">
+        <TextInput label="Business Name" value={form.name} onChange={set("name")} disabled={off} />
+        <TextInput label="Contact Email" value={form.contactEmail} onChange={set("contactEmail")} type="email" disabled={off} />
+        <TextInput label="Phone Number" value={form.contactPhone} onChange={set("contactPhone")} type="tel" disabled={off} />
       </div>
-      <Toggle value={value} onChange={onChange} />
-    </div>
-  );
-}
-
-function BusinessSettings({ state, set }) {
-  return (
-    <div className="space-y-5">
-      <TextInput label="Business Name" value={state.name} onChange={set("name")} />
-      <TextInput label="Contact Email" value={state.email} onChange={set("email")} type="email" />
-      <TextInput label="Phone Number" value={state.phone} onChange={set("phone")} />
-      <TextInput label="Business Address" value={state.address} onChange={set("address")} />
-      <div>
-        <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-slate-500">
-          Operating Area
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {[
-            "Manchester Airport",
-            "Liverpool Airport",
-            "Blackpool",
-            "Lytham St Annes",
-            "Preston",
-          ].map((area) => (
-            <span
-              key={area}
-              className="flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1.5 text-xs text-amber-600"
-            >
-              <Check className="h-3 w-3" />
-              {area}
-            </span>
-          ))}
+      <div className="space-y-5">
+        <div>
+          <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Invoice letterhead</p>
+          <p className="mt-1 text-xs text-slate-500">Shown on the invoices customers download from their account.</p>
         </div>
+        <TextInput label="Name on Invoices" value={form.invoiceName} onChange={set("invoiceName")} disabled={off} />
+        <TextArea label="Address" value={form.addressLines} onChange={set("addressLines")} rows={4} disabled={off} hint="One line per row." />
+        <div className="grid gap-5 sm:grid-cols-2">
+          <TextInput label="Invoice Phone" value={form.invoicePhone} onChange={set("invoicePhone")} type="tel" disabled={off} />
+          <TextInput label="Invoice Email" value={form.invoiceEmail} onChange={set("invoiceEmail")} type="email" disabled={off} />
+        </div>
+        <TextInput label="Website" value={form.web} onChange={set("web")} disabled={off} />
+        <TextArea label="Payment Terms" value={form.paymentTerms} onChange={set("paymentTerms")} rows={3} disabled={off} />
       </div>
+      {canEdit && <SaveButton onClick={handleSave} busy={busy} />}
     </div>
   );
 }
@@ -211,11 +290,12 @@ function PushDeviceRow() {
 function NotificationCenter() {
   const { settings, activity, loading, saving, error, update } = useNotificationCenter();
 
+  // Push is set up per device (row above). Automated SMS is dormant: texts to
+  // customers are sent from the driver's or operator's own phone instead.
   const channels = [
-    { key: "push", n: 1, icon: BellRing, label: "Push / in-app", connected: false },
-    { key: "email", n: 2, icon: Mail, label: "Email", connected: true, enabled: settings.email_enabled, toggle: "email_enabled" },
-    { key: "whatsapp", n: 3, icon: MessageCircle, label: "WhatsApp", connected: false },
-    { key: "sms", n: 4, icon: Smartphone, label: "SMS", connected: true, enabled: settings.sms_enabled, toggle: "sms_enabled" },
+    { key: "push", icon: BellRing, label: "Push / in-app", note: "Set up on each device above", status: "On" },
+    { key: "email", icon: Mail, label: "Email", toggle: "email_enabled", enabled: settings.email_enabled },
+    { key: "sms", icon: Smartphone, label: "Text messages", note: "Sent from your own phone with one tap, never automatically", status: "From your phone" },
   ];
 
   return (
@@ -224,39 +304,30 @@ function NotificationCenter() {
 
       <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.04] p-4 text-xs leading-relaxed text-slate-600">
         <p className="mb-1 font-semibold text-amber-600">How messages are sent</p>
-        <strong>Operators</strong> are alerted by push &amp; in-app only. <strong>Drivers</strong> get their jobs
-        by in-app push and <strong>email</strong> — no SMS. <strong>Customers</strong> get <strong>email</strong>,
-        falling back to SMS only when there's no email on file. Every message goes on a single channel, so no one is
-        texted and emailed the same thing.
+        <strong>Operators</strong> are alerted by push &amp; in-app. <strong>Drivers</strong> get their jobs
+        by push and <strong>email</strong>. <strong>Customers</strong> get <strong>email</strong>; when there&apos;s
+        no email on file, the driver or office is prompted to send a pre-written text from their own phone.
       </div>
 
       <div>
-        <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-slate-500">Channel priority</p>
+        <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-slate-500">Channels</p>
         <div className="space-y-2">
           {channels.map((c) => (
             <div key={c.key} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-              <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-slate-500">{c.n}</span>
               <c.icon className="h-4 w-4 flex-shrink-0 text-slate-500" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-[#0F1B33]">{c.label}</p>
-                {!c.connected && <p className="text-[11px] text-slate-600">Not connected yet</p>}
+                {c.note && <p className="text-[11px] text-slate-600">{c.note}</p>}
               </div>
-              {c.connected ? (
-                <Toggle value={!!c.enabled} onChange={(v) => update({ [c.toggle]: v })} />
+              {c.toggle ? (
+                <Toggle value={!!c.enabled} onChange={(v) => update({ [c.toggle]: v })} label={c.label} />
               ) : (
-                <span className="rounded-full border border-slate-200 px-2.5 py-1 text-[10px] font-medium text-slate-500">Coming soon</span>
+                <span className="rounded-full border border-slate-200 px-2.5 py-1 text-[10px] font-medium text-slate-500">{c.status}</span>
               )}
             </div>
           ))}
         </div>
       </div>
-
-      <ToggleRow
-        label="Use SMS only when necessary"
-        description="Customers with an email get email; SMS is only a fallback when there's no email. Drivers and operators never get SMS. Cuts Twilio spend."
-        value={!!settings.sms_only_when_necessary}
-        onChange={(v) => update({ sms_only_when_necessary: v })}
-      />
 
       {saving && <p className="text-[11px] text-slate-500">Saving…</p>}
       {error && <p className="text-[11px] text-red-600">{error}</p>}
@@ -289,67 +360,37 @@ function NotificationCenter() {
   );
 }
 
-function NotificationSettings({ state, set }) {
-  const items = [
-    { key: "newBooking", label: "New booking confirmation", description: "Alert when a booking is created" },
-    { key: "missedCall", label: "Missed call alert", description: "Immediate notification for missed calls" },
-    { key: "driverStatus", label: "Driver status change", description: "When a driver's availability changes" },
-    { key: "flightDelay", label: "Flight delay detected", description: "Auto-monitors connected flights" },
-    { key: "dailySummary", label: "Daily revenue summary", description: "End-of-day report via email" },
-    { key: "weeklyReport", label: "Weekly analytics report", description: "Sent every Monday morning" },
-  ];
-  return (
-    <div className="space-y-4">
-      {items.map((n) => (
-        <ToggleRow
-          key={n.key}
-          label={n.label}
-          description={n.description}
-          value={state[n.key]}
-          onChange={set(n.key)}
-        />
-      ))}
-    </div>
-  );
-}
-
-function FleetSettings({ state, set }) {
+// Read-only: the same fixed prices the website booking form charges, and the
+// price the New Booking form suggests. Editing prices per operator is part of
+// the white-label work (prices still live in code on the website).
+function PriceSettings() {
   return (
     <div className="space-y-5">
-      <TextInput
-        label="Standard Rate (MAN → Blackpool)"
-        value={state.rateMan}
-        onChange={set("rateMan")}
-        placeholder="£160"
-      />
-      <TextInput
-        label="Standard Rate (LPL → Blackpool)"
-        value={state.rateLpl}
-        onChange={set("rateLpl")}
-        placeholder="£145"
-      />
-      <TextInput
-        label="Waiting Time (per 15 min)"
-        value={state.rateWaiting}
-        onChange={set("rateWaiting")}
-        placeholder="£15"
-      />
-      <TextInput
-        label="Child Seat Surcharge"
-        value={state.rateChildSeat}
-        onChange={set("rateChildSeat")}
-        placeholder="£10"
-      />
-      <ToggleRow
-        label="Show fixed prices on booking form"
-        value={state.showPrices}
-        onChange={set("showPrices")}
-      />
-      <ToggleRow
-        label="Auto-assign nearest available driver"
-        value={state.autoAssign}
-        onChange={set("autoAssign")}
-      />
+      <p className="text-xs leading-relaxed text-slate-500">
+        Fixed airport prices from anywhere on the Fylde Coast. These are the prices the website charges, and the New
+        Booking form fills them in for you. Anything else is priced by quote.
+      </p>
+      <div className="overflow-hidden rounded-2xl border border-slate-100">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-left text-[10px] uppercase tracking-[0.2em] text-slate-500">
+            <tr>
+              <th scope="col" className="px-4 py-3 font-medium">Airport</th>
+              <th scope="col" className="px-4 py-3 text-right font-medium">One way</th>
+              <th scope="col" className="px-4 py-3 text-right font-medium">Return</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {AIRPORT_PRICES.map((a) => (
+              <tr key={a.code}>
+                <td className="px-4 py-3 text-[#0F1B33]">{a.name}</td>
+                <td className="px-4 py-3 text-right font-medium text-[#0F1B33]">£{a.oneWay}</td>
+                <td className="px-4 py-3 text-right font-medium text-[#0F1B33]">£{a.ret}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-slate-500">Each extra stop adds £{EXTRA_STOP_PRICE}.</p>
     </div>
   );
 }
@@ -543,12 +584,6 @@ function IntegrationSettings({ toast }) {
             actionLabel="Live"
             onAction={() => toast({ message: "Stripe payment links are live. Manage keys in the Vercel environment settings.", type: "success" })}
           />
-          <IntegrationItem
-            name="Google Maps API"
-            description="Live map & routing on dispatch board"
-            connected={false}
-            onAction={() => toast({ message: "Maps integration coming soon", type: "info" })}
-          />
         </div>
       </div>
 
@@ -557,99 +592,53 @@ function IntegrationSettings({ toast }) {
   );
 }
 
-function SecuritySettings({ state, set }) {
+// Changes the signed-in user's own password. The current password is checked
+// first by signing in with it, so a device left signed in can't be used to
+// take over the account.
+function SecuritySettings({ toast }) {
+  const [form, setForm] = useState({ current: "", next: "", confirm: "" });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const set = (field) => (value) => setForm((f) => ({ ...f, [field]: value }));
+
+  async function handleChange() {
+    setError(null);
+    if (!form.current || !form.next) return setError("Enter your current and new password.");
+    if (form.next.length < 8) return setError("Use at least 8 characters for the new password.");
+    if (form.next !== form.confirm) return setError("The new passwords don't match.");
+    if (form.next === form.current) return setError("The new password must be different.");
+    setBusy(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const email = auth?.user?.email;
+      if (!email) throw new Error("You're signed out. Sign in again and retry.");
+      const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password: form.current });
+      if (signInErr) throw new Error("Your current password is incorrect.");
+      const { error: updErr } = await supabase.auth.updateUser({ password: form.next });
+      if (updErr) throw new Error(updErr.message);
+      setForm({ current: "", next: "", confirm: "" });
+      toast({ message: "Password changed", type: "success" });
+    } catch (e) {
+      setError(e?.message || "Could not change the password.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
-      <TextInput
-        label="Current Password"
-        value={state.currentPassword}
-        onChange={set("currentPassword")}
-        type="password"
-        placeholder="••••••••"
-      />
-      <TextInput
-        label="New Password"
-        value={state.newPassword}
-        onChange={set("newPassword")}
-        type="password"
-        placeholder="••••••••"
-      />
-      <TextInput
-        label="Confirm New Password"
-        value={state.confirmPassword}
-        onChange={set("confirmPassword")}
-        type="password"
-        placeholder="••••••••"
-      />
-      <ToggleRow
-        label="Two-factor authentication"
-        description="Adds an extra layer of login security"
-        value={state.twoFactor}
-        onChange={set("twoFactor")}
-      />
-      <ToggleRow
-        label="Session timeout (30 minutes)"
-        description="Auto-logout after inactivity"
-        value={state.sessionTimeout}
-        onChange={set("sessionTimeout")}
-      />
+      <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Change password</p>
+      <TextInput label="Current Password" value={form.current} onChange={set("current")} type="password" autoComplete="current-password" />
+      <TextInput label="New Password" value={form.next} onChange={set("next")} type="password" autoComplete="new-password" placeholder="At least 8 characters" />
+      <TextInput label="Confirm New Password" value={form.confirm} onChange={set("confirm")} type="password" autoComplete="new-password" />
+      {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
+      <SaveButton onClick={handleChange} busy={busy} label="Change Password" />
     </div>
   );
 }
 
-const STORAGE_KEY = "evexec_settings";
-
-const INITIAL = {
-  business: {
-    name: "EV Exec",
-    email: "operator@evexec.co.uk",
-    phone: "+44 1253 000000",
-    address: "Blackpool, Lancashire, UK",
-  },
-  notifications: {
-    newBooking: true,
-    missedCall: true,
-    driverStatus: true,
-    flightDelay: true,
-    dailySummary: false,
-    weeklyReport: false,
-  },
-  fleet: {
-    rateMan: "£160",
-    rateLpl: "£145",
-    rateWaiting: "£15",
-    rateChildSeat: "£10",
-    showPrices: true,
-    autoAssign: false,
-  },
-  security: {
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-    twoFactor: false,
-    sessionTimeout: true,
-  },
-};
-
-function loadSettings() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return INITIAL;
-    const saved = JSON.parse(raw);
-    return {
-      business: { ...INITIAL.business, ...saved.business },
-      notifications: { ...INITIAL.notifications, ...saved.notifications },
-      fleet: { ...INITIAL.fleet, ...saved.fleet },
-      security: { ...INITIAL.security, ...saved.security },
-    };
-  } catch {
-    return INITIAL;
-  }
-}
-
 export default function Settings() {
   const [active, setActive] = useState("business");
-  const [settings, setSettings] = useState(loadSettings);
   const toast = useOperatorToast();
   const { isSuperAdmin } = useIsSuperAdmin();
 
@@ -657,37 +646,12 @@ export default function Settings() {
     ? [...SECTIONS, { key: "platform", label: "Platform", icon: Building }]
     : SECTIONS;
 
-  function set(section) {
-    return (field) => (value) =>
-      setSettings((prev) => ({
-        ...prev,
-        [section]: { ...prev[section], [field]: value },
-      }));
-  }
-
-  function handleSave() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-      toast({ message: "Settings saved successfully", type: "success" });
-    } catch {
-      toast({ message: "Failed to save — storage may be full", type: "error" });
-    }
-  }
-
   const sectionContent = {
-    business: <BusinessSettings state={settings.business} set={set("business")} />,
-    notifications: (
-      <div className="space-y-8">
-        <NotificationCenter />
-        <div>
-          <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-slate-500">Alert preferences</p>
-          <NotificationSettings state={settings.notifications} set={set("notifications")} />
-        </div>
-      </div>
-    ),
-    fleet: <FleetSettings state={settings.fleet} set={set("fleet")} />,
+    business: <BusinessSettings toast={toast} />,
+    notifications: <NotificationCenter />,
+    prices: <PriceSettings />,
     integrations: <IntegrationSettings toast={toast} />,
-    security: <SecuritySettings state={settings.security} set={set("security")} />,
+    security: <SecuritySettings toast={toast} />,
     platform: <PlatformSettings />,
   };
 
@@ -750,16 +714,6 @@ export default function Settings() {
             </h2>
           </div>
           {sectionContent[active]}
-          {active !== "integrations" && active !== "platform" && (
-            <div className="mt-8 flex justify-end">
-              <button
-                onClick={handleSave}
-                className="rounded-2xl bg-amber-500 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-400"
-              >
-                Save Changes
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>

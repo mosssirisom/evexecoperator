@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { X, Plane, MapPin, Clock, User, Car, PoundSterling, ChevronDown, ArrowLeftRight, Search } from "lucide-react";
 import { useDrivers } from "@/hooks/operator/useDrivers";
+import { fixedOneWayPrice } from "@/lib/prices";
 
 // Builds a de-duplicated list of past customers from the bookings feed, so a
 // manual booking can reuse a saved customer's details — and their addresses —
@@ -131,17 +132,11 @@ const DESTINATIONS = [
   "Chorley",
 ];
 
+// The website's fixed one-way price for that airport (same list the booking
+// form charges), so a phone booking is quoted the same as an online one.
 function getSuggestedPrice(airport) {
-  try {
-    const saved = JSON.parse(localStorage.getItem("evexec_settings") || "{}");
-    const fleet = saved.fleet || {};
-    const parse = (s) => { const n = parseInt(String(s || "").replace(/[^0-9]/g, ""), 10); return n > 0 ? n : null; };
-    if (airport.includes("MAN")) return parse(fleet.rateMan);
-    if (airport.includes("LPL")) return parse(fleet.rateLpl);
-  } catch {}
-  return null;
+  return fixedOneWayPrice(airport);
 }
-
 
 function Field({ label, icon: Icon, error, children }) {
   return (
@@ -523,7 +518,7 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
             {/* Driver + Price */}
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Assign Driver" icon={Car}>
-                <Select value={form.driver} onChange={set("driver")} options={vehicles} placeholder="Auto-assign" />
+                <Select value={form.driver} onChange={set("driver")} options={vehicles} placeholder="Leave unassigned" />
               </Field>
               <Field label="Fixed Price" icon={PoundSterling}>
                 <div className="relative">

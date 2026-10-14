@@ -31,3 +31,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Update — 2026-10-14: payment links by email + two-tap text (live)
 
 `/api/payment-link` no longer queues a Twilio SMS (it never sent: Twilio is dormant). It creates the Stripe checkout, emails it via Resend in the shared design (`paymentLink` from `src/lib/email/content.js`) when the booking has an email, and returns `smsHref` (an `sms:` link with the message pre-written, house date style) when it has a phone. The booking drawer's "Send payment link" button then shows "Text link to customer" (opens Messages, operator presses Send) and "Copy link". Payment is still recorded by the website's Stripe webhook (`metadata[booking_ref]`).
+
+## Update — 2026-10-14: Settings saved to the database, dead controls removed (SaaS quick wins)
+
+- **Settings → Business** saves to the operator's own `tenants` row (name, contact email/phone, and the invoice letterhead in `brand.invoice`) through the `update_tenant_profile` RPC (operator_admin or super_admin only; migration `20261014120000_tenant_profile_settings.sql` in `evexec`). Hook: `src/hooks/operator/useTenantProfile.js`. Nothing in Settings uses localStorage any more (the old `evexec_settings` key is ignored).
+- **Invoices** read the letterhead from the same row (`companyFrom()` in `invoices/page.jsx`), with the old fixed values only as a fallback.
+- **Prices**: `src/lib/prices.ts` is a copy of the website's price list (keep in sync with `evexec/lib/format.js` PRICES). Settings → Prices shows it read-only; the New Booking form suggests the one-way price from it (it used £160/£145 from browser storage before).
+- **Security**: "Change password" now really changes it (checks the current password first). The two-factor and session-timeout switches were removed (they did nothing).
+- **Removed** because they did nothing: notification "Alert preferences" toggles, "Auto-assign" and "Show prices" switches, waiting/child-seat rates, the WhatsApp channel, the SMS on/off and "SMS only when necessary" switches (Twilio is dormant), the Google Maps "coming soon" item. "Demo mode" status label renamed "Not connected".
+- **Redirect-only pages** (`/`, `/operator`, `/operator/dashboard`, `/operator/bookings`) are now `redirects()` in `next.config.mjs`, same destinations.

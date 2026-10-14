@@ -20,7 +20,7 @@ export default function RealtimeDot() {
     live: { color: "bg-emerald-400", label: "Live" },
     connecting: { color: "bg-amber-400 animate-pulse", label: "Connecting" },
     error: { color: "bg-red-400", label: "Disconnected" },
-    mock: { color: "bg-slate-500", label: "Demo mode" },
+    mock: { color: "bg-slate-500", label: "Not connected" },
   };
   const { color, label } = map[state];
 
