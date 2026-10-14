@@ -2,7 +2,8 @@
 
 import React, { useMemo, useState } from "react";
 import { TrendingUp, Repeat, PoundSterling, Users, Calendar, Trophy, PieChart, CheckCircle2 } from "lucide-react";
-import { useBookings } from "@/hooks/operator/useBookings";
+import { useBookings, ukDateDaysAgo } from "@/hooks/operator/useBookings";
+import { ukDateOf, ukHourOf } from "@/lib/dates";
 import { useDrivers } from "@/hooks/operator/useDrivers";
 
 const PERIODS = ["Today", "7 Days", "30 Days", "All Time"];
@@ -44,17 +45,8 @@ export default function Analytics() {
 
   // ── Build live "Today" data from real bookings ──────────────────────────────
   const todayData = useMemo(() => {
-    const now = new Date();
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(todayStart);
-    todayEnd.setDate(todayEnd.getDate() + 1);
-
-    const todayBookings = bookings.filter((b) => {
-      if (!b.pickupTime) return false;
-      const d = new Date(b.pickupTime);
-      return d >= todayStart && d < todayEnd;
-    });
+    const today = ukDateDaysAgo(0);
+    const todayBookings = bookings.filter((b) => b.pickupTime && (b.travelDate || ukDateOf(b.pickupTime)) === today);
 
     const completedRevenue = todayBookings
       .filter((b) => b.status === "Completed")
@@ -71,7 +63,7 @@ export default function Analytics() {
 
     const bars = windows.map(({ label, start, end }) => {
       const windowBookings = todayBookings.filter((b) => {
-        const h = new Date(b.pickupTime).getHours();
+        const h = ukHourOf(b.pickupTime);
         return h >= start && h < end;
       });
       const revenue = windowBookings.reduce((acc, b) => acc + parsePrice(b), 0);

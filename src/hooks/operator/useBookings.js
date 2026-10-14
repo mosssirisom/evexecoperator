@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase, isConfigured } from "@/lib/supabase";
 import { useRealtimeBookings } from "./useRealtimeBookings";
-import { dispatchJobToDriverApp, updateJobStatus } from "@/lib/operator/driverApp";
 import {
   validateBookingPayload,
   validateStatusTransition,
@@ -14,6 +13,7 @@ import {
 } from "@/lib/operator/validation";
 import { markBookingCreated } from "@/lib/operator/recentBookingRefs";
 import { looksLikeAirport } from "@/lib/bookingUtils";
+import { ukToIso } from "@/lib/dates";
 
 function compact(value) {
   return value ? String(value).split(",")[0] : null;
@@ -45,7 +45,7 @@ export function shapedBooking(row) {
     direction: row.direction ?? null,
     journeyType: row.journey_type ?? null,
     time: row.travel_time ? row.travel_time.slice(0, 5) : "—",
-    pickupTime: row.pickup_time ?? (row.travel_date && row.travel_time ? `${row.travel_date}T${row.travel_time}` : null),
+    pickupTime: row.pickup_time ?? ukToIso(row.travel_date, row.travel_time),
     travelDate: row.travel_date ?? null,
     passengers: row.passengers ?? null,
     luggage: row.luggage ?? null,
@@ -235,12 +235,7 @@ export function useBookings({ scope = "operational" } = {}) {
     const snapshot = bookingsRef.current;
     setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)));
 
-    if (!isConfigured) {
-      updateJobStatus(id, status).catch((err) => {
-        console.warn("[DriverApp] Status sync failed (mock):", err.message);
-      });
-      return;
-    }
+    if (!isConfigured) return;
 
     try {
       const { error: err } = await supabase
@@ -248,10 +243,6 @@ export function useBookings({ scope = "operational" } = {}) {
         .update({ status })
         .eq("ref", id);
       if (err) throw new Error(err.message);
-
-      updateJobStatus(id, status).catch((err) => {
-        console.warn("[DriverApp] Status sync failed:", err.message);
-      });
     } catch (err) {
       setBookings(snapshot);
       throw err;
@@ -387,6 +378,7 @@ export function useBookings({ scope = "operational" } = {}) {
         dropoff_address:    dropoff,
         travel_date:        form.date || null,
         travel_time:        form.time || null,
+        pickup_time:        ukToIso(form.date, form.time),
         driver_id:          driverRow?.id ?? null,
         assigned_driver_id: driverRow?.id ?? null,
         status:             driverRow ? "Dispatched" : "Unassigned",
@@ -395,16 +387,6 @@ export function useBookings({ scope = "operational" } = {}) {
 
       // Suppress the new-booking alert for a booking this operator just made.
       markBookingCreated(ref);
-      dispatchJobToDriverApp({
-        bookingRef: ref,
-        customer: form.customer,
-        route: `${pickup} → ${dropoff}`,
-        flight: form.flight,
-        pickupTime: form.date && form.time ? `${form.date}T${form.time}` : null,
-        price: form.price ? `£${form.price}` : "TBC",
-        driver: driverRow?.name ?? null,
-        status: driverRow ? "Dispatched" : "Unassigned",
-      }).catch(() => {});
 
       // Optional return leg — the reverse trip (pickup/drop-off swapped) on the
       // return date/time, created as its own dispatchable job (left unassigned).
@@ -425,22 +407,13 @@ export function useBookings({ scope = "operational" } = {}) {
           dropoff_address:    pickup,
           travel_date:        form.returnDate,
           travel_time:        form.returnTime,
+          pickup_time:        ukToIso(form.returnDate, form.returnTime),
           driver_id:          null,
           assigned_driver_id: null,
           status:             "Unassigned",
           notes:              `Return leg of ${ref}`,
         });
         markBookingCreated(returnRef);
-        dispatchJobToDriverApp({
-          bookingRef: returnRef,
-          customer: form.customer,
-          route: `${dropoff} → ${pickup}`,
-          flight: form.returnFlight,
-          pickupTime: `${form.returnDate}T${form.returnTime}`,
-          price: form.price ? `£${form.price}` : "TBC",
-          driver: null,
-          status: "Unassigned",
-        }).catch(() => {});
       }
 
       await fetchBookings();
@@ -584,9 +557,15 @@ export function useBookings({ scope = "operational" } = {}) {
     for (const [k, v] of Object.entries(fields)) {
       if (FIELD_TO_COLUMN[k]) Object.assign(dbPatch, FIELD_TO_COLUMN[k](v));
     }
-    // When the pickup date/time changes, clear the stored pickup_time so the
-    // display falls back to the edited travel_date + travel_time consistently.
-    if ("travelDate" in fields || "time" in fields) dbPatch.pickup_time = null;
+    // When the pickup date/time changes, store the matching moment (UK time),
+    // or clear it if either half is now missing.
+    if ("travelDate" in fields || "time" in fields) {
+      const cur = bookingsRef.current.find((b) => b.id === id) || {};
+      const date = "travelDate" in fields ? fields.travelDate : cur.travelDate;
+      const time = "time" in fields ? fields.time : cur.time;
+      dbPatch.pickup_time = ukToIso(date, time);
+      fields = { ...fields, pickupTime: dbPatch.pickup_time };
+    }
     if (Object.keys(dbPatch).length === 0) return;
 
     const snapshot = bookingsRef.current;

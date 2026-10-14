@@ -24,7 +24,7 @@ import { useBookings, ukDateDaysAgo, OPERATIONAL_DAYS_BACK } from "@/hooks/opera
 import { useDrivers } from "@/hooks/operator/useDrivers";
 import { bookingStatusColor } from "@/lib/operator/statusColor";
 import { LIST_VIEWS } from "@/lib/operator/bookingBuckets";
-import { fmtDate, fmtDayDate } from "@/lib/dates";
+import { fmtDate, fmtDayDate, ukDateOf } from "@/lib/dates";
 
 // Builds a tel: href for a stored customer phone, or null if it doesn't look
 // like a usable number (same validation the detail drawer uses).
@@ -150,13 +150,8 @@ const EMPTY_TEXT = {
 };
 
 // ── Schedule view row ─────────────────────────────────────────────────────────
-function ymd(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 function dateKeyOf(b) {
-  if (b.travelDate) return b.travelDate;
-  if (b.pickupTime) { const d = new Date(b.pickupTime); if (!isNaN(d)) return ymd(d); }
-  return null;
+  return b.travelDate || ukDateOf(b.pickupTime);
 }
 // Day heading: "Today" / "Tomorrow" / "Yesterday" with the date beside it,
 // otherwise the weekday and date ("Thu 01/10/2026").

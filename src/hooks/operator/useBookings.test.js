@@ -39,11 +39,6 @@ vi.mock("./useRealtimeBookings", () => ({
   useRealtimeDrivers:  vi.fn(),
 }));
 
-vi.mock("@/lib/operator/driverApp", () => ({
-  dispatchJobToDriverApp: vi.fn().mockResolvedValue({ ok: true }),
-  updateJobStatus:        vi.fn().mockResolvedValue({ ok: true }),
-}));
-
 import { useBookings, shapedBooking, ukDateDaysAgo, OPERATIONAL_DAYS_BACK } from "./useBookings";
 
 // ─── Shared setup ─────────────────────────────────────────────────────────────
@@ -87,6 +82,10 @@ function primeRows(rows, times = 2) {
 // ─── shapedBooking — pure function ───────────────────────────────────────────
 
 describe("shapedBooking", () => {
+  it("builds the pickup moment from the UK date and time when none is stored", () => {
+    const s = shapedBooking({ id: 1, ref: "EVX-1", travel_date: "2026-10-15", travel_time: "09:00:00", pickup_time: null, status: "Unassigned" });
+    expect(s.pickupTime).toBe("2026-10-15T08:00:00.000Z"); // 09:00 BST
+  });
   it("maps a full DB row to the display shape", () => {
     const row = {
       ref: "EVX-1234", customer_name: "James Whitmore", flight_number: "EK017",
