@@ -12,7 +12,7 @@ import DriverDropdown from "./DriverDropdown";
 import DriverLiveBadge from "./DriverLiveBadge";
 import JobOfferBadge from "./JobOfferBadge";
 import FlightVerificationCard from "./FlightVerificationCard";
-import { fmtDateTime, fmtDayDate } from "@/lib/dates";
+import { fmtDateTime, fmtDayDate, ukToIso } from "@/lib/dates";
 import { looksLikeAirport } from "@/lib/bookingUtils";
 
 const NOTIFICATION_TYPE_LABELS: Record<string, string> = {
@@ -260,7 +260,7 @@ function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: (
     const payload = {
       travel_date: form.travel_date || null,
       travel_time: form.travel_time ? `${form.travel_time}:00` : null,
-      pickup_time: form.travel_date && form.travel_time ? new Date(`${form.travel_date}T${form.travel_time}:00`).toISOString() : null,
+      pickup_time: ukToIso(form.travel_date, form.travel_time),
       customer_name: form.customer_name.trim(),
       customer_phone: form.customer_phone.trim() || null,
       customer_email: form.customer_email.trim() || null,

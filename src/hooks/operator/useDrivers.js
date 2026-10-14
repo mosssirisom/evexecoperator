@@ -31,10 +31,8 @@ export function useDrivers() {
     if (!isConfigured) return;
     setLoading(true);
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
+      // Today in UK time, by the booking's own date (not every row has pickup_time).
+      const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date());
 
       const [{ data, error: err }, { data: completedData }] = await Promise.all([
         supabase.from("drivers").select("*").order("name"),
@@ -42,8 +40,7 @@ export function useDrivers() {
           .from("bookings")
           .select("driver_id")
           .eq("status", "Completed")
-          .gte("pickup_time", today.toISOString())
-          .lt("pickup_time", tomorrow.toISOString()),
+          .eq("travel_date", today),
       ]);
 
       if (err) { setError(err.message); return; }

@@ -29,3 +29,24 @@ describe("booking buckets", () => {
     expect(unpaidCompleted(b({ status: "Dispatched" }))).toBe(false);
   });
 });
+
+import { isPast, needsAction, LIST_VIEWS } from "./bookingBuckets";
+
+describe("list views", () => {
+  const today = "2026-10-14";
+  it("upcoming = today onwards and not finished; past = done or earlier", () => {
+    expect(LIST_VIEWS.upcoming(b({ travelDate: "2026-10-14", status: "Dispatched", driverId: "d" }), today)).toBe(true);
+    expect(LIST_VIEWS.upcoming(b({ travelDate: "2026-10-14", status: "Completed" }), today)).toBe(false);
+    expect(isPast(b({ travelDate: "2026-10-01", status: "Completed" }), today)).toBe(true);
+    expect(isPast(b({ travelDate: "2026-10-13", status: "Dispatched" }), today)).toBe(true);
+    // still on the road from yesterday's late job: not past
+    expect(isPast(b({ travelDate: "2026-10-13", status: "En Route" }), today)).toBe(false);
+  });
+  it("needs action covers replies, missing drivers (not past) and unpaid completed jobs", () => {
+    expect(needsAction(b({ source: "website" }), today)).toBe(true);
+    expect(needsAction(b({ travelDate: "2026-10-15" }), today)).toBe(true);
+    expect(needsAction(b({ travelDate: "2026-10-01" }), today)).toBe(false);
+    expect(needsAction(b({ status: "Completed", travelDate: "2026-10-01" }), today)).toBe(true);
+    expect(needsAction(b({ status: "Dispatched", driverId: "d", travelDate: "2026-10-15" }), today)).toBe(false);
+  });
+});

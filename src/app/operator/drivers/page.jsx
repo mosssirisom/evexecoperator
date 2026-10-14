@@ -7,7 +7,8 @@ import {
   User, Hash, Truck, MapPin, ExternalLink, Edit2, Trash2, Mail,
 } from "lucide-react";
 import { useDrivers } from "@/hooks/operator/useDrivers";
-import { useBookings } from "@/hooks/operator/useBookings";
+import { useBookings, ukDateDaysAgo } from "@/hooks/operator/useBookings";
+import { ukDateOf } from "@/lib/dates";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { bookingStatusColor } from "@/lib/operator/statusColor";
 import { PORTALS } from "@/lib/operator/portals";
@@ -463,16 +464,9 @@ export default function DriversPage() {
   const offDuty = drivers.length - active - available;
 
   const todayJobs = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const today = ukDateDaysAgo(0);
     return bookings
-      .filter((b) => {
-        if (!b.pickupTime) return false;
-        const d = new Date(b.pickupTime);
-        return d >= today && d < tomorrow && b.driver !== "Unassigned";
-      })
+      .filter((b) => (b.travelDate || ukDateOf(b.pickupTime)) === today && b.pickupTime && b.driver !== "Unassigned")
       .sort((a, b) => new Date(a.pickupTime) - new Date(b.pickupTime));
   }, [bookings]);
 

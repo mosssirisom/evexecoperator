@@ -14,18 +14,17 @@ function useDebounce(value, delay) {
   return debounced;
 }
 import StatusActionMenu from "@/components/operator/StatusActionMenu";
-import DispatchButton from "@/components/operator/DispatchButton";
 import { useBookingDrawer } from "@/components/operator/useBookingDrawer";
 import { useOperator } from "@/components/operator/OperatorContext";
-import ETACountdown from "@/components/operator/ETACountdown";
 import {
-  Clock, Filter, Search, X, AlertTriangle, Loader2, Check, Plane, Phone,
+  Search, X, AlertTriangle, Loader2, Check, Plane, Phone, ChevronRight,
 } from "lucide-react";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { useBookings, ukDateDaysAgo, OPERATIONAL_DAYS_BACK } from "@/hooks/operator/useBookings";
 import { useDrivers } from "@/hooks/operator/useDrivers";
 import { bookingStatusColor } from "@/lib/operator/statusColor";
-import { fmtDate, fmtDayDate } from "@/lib/dates";
+import { LIST_VIEWS } from "@/lib/operator/bookingBuckets";
+import { fmtDate, fmtDayDate, ukDateOf } from "@/lib/dates";
 
 // Builds a tel: href for a stored customer phone, or null if it doesn't look
 // like a usable number (same validation the detail drawer uses).
@@ -136,43 +135,38 @@ function InlineDriverCell({ bookingId, currentDriverId, drivers, onAssign }) {
   );
 }
 
-const STATUS_FILTERS = [
-  "All",
-  "Unassigned",
-  "Dispatched",
-  "En Route",
-  "Passenger On Board",
-  "Completed",
-  "Cancelled",
-  "Unassigned / Missed Call Recovery",
+const LIST_VIEW_TABS = [
+  { key: "upcoming", label: "Upcoming" },
+  { key: "action", label: "Needs action", short: "To do" },
+  { key: "past", label: "Past" },
+  { key: "all", label: "All" },
 ];
 
+const EMPTY_TEXT = {
+  upcoming: "Nothing coming up. New bookings will appear here.",
+  action: "All clear: nothing to reply to, no jobs without a driver, nothing unpaid.",
+  past: "No past bookings in this period.",
+  all: "No bookings yet.",
+};
+
 // ── Schedule view row ─────────────────────────────────────────────────────────
-function ymd(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 function dateKeyOf(b) {
-  if (b.travelDate) return b.travelDate;
-  if (b.pickupTime) { const d = new Date(b.pickupTime); if (!isNaN(d)) return ymd(d); }
-  return null;
+  return b.travelDate || ukDateOf(b.pickupTime);
 }
+// Day heading: "Today" / "Tomorrow" / "Yesterday" with the date beside it,
+// otherwise the weekday and date ("Thu 01/10/2026").
 function groupLabel(key) {
-  if (!key) return "NO DATE";
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const t = new Date(`${key}T00:00:00`);
-  const diff = Math.round((t - today) / 86400000);
-  if (diff === 0) return "TODAY";
-  if (diff === 1) return "TOMORROW";
-  if (diff === -1) return "YESTERDAY";
-  return fmtDayDate(key).toUpperCase();
+  if (!key) return { label: "No date", sub: "" };
+  const diff = Math.round((Date.parse(`${key}T12:00:00Z`) - Date.parse(`${ukDateDaysAgo(0)}T12:00:00Z`)) / 86400000);
+  const rel = diff === 0 ? "Today" : diff === 1 ? "Tomorrow" : diff === -1 ? "Yesterday" : null;
+  return rel ? { label: rel, sub: fmtDayDate(key) } : { label: fmtDayDate(key), sub: "" };
 }
 function timeVal(b) {
   if (b.pickupTime) { const d = new Date(b.pickupTime); if (!isNaN(d)) return d.getTime(); }
   if (b.time && b.time !== "—") return Number(b.time.replace(":", "")) || Infinity;
   return Infinity;
 }
-function groupByDate(list) {
+function groupByDate(list, newestFirst = false) {
   const map = new Map();
   for (const b of list) {
     const k = dateKeyOf(b);
@@ -181,10 +175,14 @@ function groupByDate(list) {
   }
   const groups = [...map.entries()].map(([key, items]) => ({
     key,
-    label: groupLabel(key),
+    ...groupLabel(key),
     items: items.sort((a, b) => timeVal(a) - timeVal(b)),
   }));
   groups.sort((a, b) => (a.key === null ? 1 : b.key === null ? -1 : a.key < b.key ? -1 : 1));
+  if (newestFirst) {
+    groups.reverse();
+    for (const g of groups) g.items.reverse();
+  }
   return groups;
 }
 
@@ -269,24 +267,81 @@ function MobileDriverSheet({ booking, drivers, onAssign, onClose }) {
   );
 }
 
-// ── Mobile booking card ───────────────────────────────────────────────────────
-function cardAccent(booking) {
-  if (booking.priority) return "bg-red-500";
-  if (["Dispatched", "En Route", "Passenger On Board"].includes(booking.status)) return "bg-amber-400";
-  if (booking.status === "Completed") return "bg-emerald-400";
-  if (booking.status === "Cancelled") return "bg-slate-700";
-  return "bg-slate-600/50";
+// ── Booking card ──────────────────────────────────────────────────────────────
+const STATUS_EDGE = {
+  Dispatched: "bg-amber-400",
+  "En Route": "bg-blue-500",
+  Arrived: "bg-indigo-500",
+  "Passenger On Board": "bg-emerald-500",
+  Completed: "bg-slate-300",
+  Cancelled: "bg-slate-200",
+  "No Show": "bg-slate-300",
+};
+
+function initials(name) {
+  return String(name || "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
 }
 
+// What the card and the desktop row both show, worked out once.
+function bookingFacts(booking) {
+  const isDone = ["Completed", "Cancelled", "No Show"].includes(booking.status);
+  const [from, to] = (() => {
+    const p = booking.pickupLocation || booking.airport || "";
+    const d = booking.dropoffAddress || booking.destination || "";
+    if (p || d) return [p || "Pickup to confirm", d || "Drop-off to confirm"];
+    const parts = String(booking.route || "").split("→").map((x) => x.trim());
+    return [parts[0] || "Pickup to confirm", parts[1] || "Drop-off to confirm"];
+  })();
+  return {
+    isDone,
+    isCancelled: booking.status === "Cancelled",
+    pendingRequest: booking.source === "website" && !booking.operatorResponse && !["Cancelled", "Completed"].includes(booking.status),
+    unpaid: booking.status === "Completed" && booking.paymentStatus !== "Paid" && booking.paymentMethod !== "Cash",
+    driverUnconfirmed: !isDone && booking.attestation === "operator_alerted",
+    awaitingConfirm: !isDone && ["awaiting_first_attestation", "awaiting_second_attestation"].includes(booking.attestation),
+    from,
+    to,
+    statusLabel:
+      booking.status === "Unassigned / Missed Call Recovery" ? "Missed call" :
+      booking.status === "Passenger On Board" ? "On board" :
+      booking.status,
+  };
+}
+
+function Badges({ facts }) {
+  const { pendingRequest, unpaid, driverUnconfirmed, awaitingConfirm } = facts;
+  if (!pendingRequest && !unpaid && !driverUnconfirmed && !awaitingConfirm) return null;
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {pendingRequest && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">New request</span>}
+      {unpaid && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700">Unpaid</span>}
+      {driverUnconfirmed && <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700">Driver hasn&apos;t confirmed</span>}
+      {awaitingConfirm && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">Awaiting driver confirm</span>}
+    </div>
+  );
+}
+
+function RouteLines({ from, to, className = "" }) {
+  return (
+    <div className={`relative space-y-1 pl-4 leading-snug ${className}`}>
+      <span className="absolute left-[3px] top-[7px] bottom-[7px] w-px bg-slate-200" aria-hidden="true" />
+      <p className="relative truncate"><span className="absolute -left-4 top-[5px] h-2 w-2 rounded-full border-2 border-slate-400 bg-white" aria-hidden="true" />{from}</p>
+      <p className="relative truncate"><span className="absolute -left-4 top-[5px] h-2 w-2 rounded-full bg-[#0F1B33]" aria-hidden="true" />{to}</p>
+    </div>
+  );
+}
+
+function edgeColour(booking, facts) {
+  return facts.pendingRequest ? "bg-amber-400" : booking.priority ? "bg-red-500" : STATUS_EDGE[booking.status] || "bg-red-400";
+}
+
+// Phone/tablet booking card. The whole card opens the booking; the driver
+// chip, call button and accept/decline are their own targets.
 function BookingCard({ booking, onSelect, drivers = [], onAssign, onRespond }) {
   const [driverSheetOpen, setDriverSheetOpen] = useState(false);
   const [respBusy, setRespBusy] = useState(null);
-  const isActive = ["Dispatched", "En Route", "Passenger On Board"].includes(booking.status);
-  const isCancelled = booking.status === "Cancelled";
-  const pendingRequest =
-    booking.source === "website" &&
-    !booking.operatorResponse &&
-    !["Cancelled", "Completed"].includes(booking.status);
+  const facts = bookingFacts(booking);
+  const { isCancelled, isDone, pendingRequest, from, to, statusLabel } = facts;
 
   const respond = async (e, decision) => {
     e.stopPropagation();
@@ -299,138 +354,203 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign, onRespond }) {
       setRespBusy(null);
     }
   };
-  const statusLabel =
-    booking.status === "Unassigned / Missed Call Recovery" ? "Missed Call" :
-    booking.status === "Passenger On Board" ? "On Board" :
-    booking.status;
+  const stop = (e) => e.stopPropagation();
 
   return (
     <div
-      className={`relative min-w-0 overflow-visible rounded-xl border transition ${
-        pendingRequest
-          ? "border-amber-400/50 bg-amber-400/[0.06]"
-          : booking.priority
-          ? "border-red-500/20 bg-red-500/[0.04]"
-          : isActive
-          ? "border-amber-400/15 bg-amber-400/[0.03]"
-          : "border-slate-100 bg-slate-50"
-      } ${isCancelled ? "opacity-50" : ""}`}
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(booking)}
+      onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onSelect(booking); } }}
+      aria-label={`Open booking ${booking.id} for ${booking.customer}`}
+      className={`relative min-w-0 cursor-pointer overflow-hidden rounded-2xl border bg-white shadow-[0_1px_2px_rgba(15,27,51,0.04)] transition active:scale-[0.99] ${
+        pendingRequest ? "border-amber-300" : booking.priority ? "border-red-200" : "border-slate-200/80"
+      } ${isCancelled ? "opacity-60" : ""}`}
     >
-      {/* Left accent stripe */}
-      <div className={`absolute left-1.5 top-1.5 bottom-1.5 w-0.5 rounded-full ${cardAccent(booking)}`} />
+      <span className={`absolute inset-y-0 left-0 w-1 ${edgeColour(booking, facts)}`} aria-hidden="true" />
 
-      {/* Full-card tap target — opens the detail drawer */}
-      <button
-        type="button"
-        onClick={() => onSelect(booking)}
-        className="absolute inset-0 z-0 rounded-xl"
-        aria-label={`View details for ${booking.customer}`}
-      />
-
-      <div className="relative z-10 py-1.5 pl-3.5 pr-3">
-        {/* Row 1 — passenger + price */}
-        <div className="pointer-events-none flex items-baseline gap-2">
-          {booking.priority && (
-            <AlertTriangle className="h-3 w-3 flex-shrink-0 self-center text-red-600" />
+      <div className="flex gap-3 py-3 pl-4 pr-3">
+        {/* Time column */}
+        <div className="w-14 flex-shrink-0">
+          <p className={`text-lg font-semibold leading-none tracking-tight ${isDone ? "text-slate-400" : "text-[#0F1B33]"}`}>{booking.time}</p>
+          {booking.flight && booking.flight !== "—" && (
+            <p className="mt-1.5 flex items-center gap-0.5 text-[10px] font-medium text-slate-500"><Plane className="h-2.5 w-2.5" />{booking.flight}</p>
           )}
-          <p className="min-w-0 flex-1 truncate text-sm font-semibold text-[#0F1B33]">
+        </div>
+
+        {/* Main */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start gap-2">
+            <p className="min-w-0 flex-1 truncate text-[15px] font-semibold text-[#0F1B33]">
+              {booking.priority && <AlertTriangle className="mr-1 inline h-3.5 w-3.5 -translate-y-px text-red-600" />}
+              {booking.customer}
+            </p>
+            <p className={`flex-shrink-0 text-[15px] font-semibold ${booking.price === "TBC" ? "text-xs font-medium text-slate-400" : "text-[#0F1B33]"}`}>
+              {booking.price === "TBC" ? "Price TBC" : booking.price}
+            </p>
+          </div>
+
+          <RouteLines from={from} to={to} className="mt-1.5 text-[13px] text-slate-600" />
+          <Badges facts={facts} />
+
+          {/* Driver · call · status */}
+          <div className="mt-2.5 flex items-center gap-2">
+            {isDone && !booking.driverId ? (
+              <span className="text-xs text-slate-400">No driver</span>
+            ) : (
+            <button
+              type="button"
+              onClick={(e) => { stop(e); setDriverSheetOpen(true); }}
+              aria-label={booking.driverId ? `Driver ${booking.driver}, change` : "Assign a driver"}
+              className={`flex min-h-[32px] min-w-0 items-center gap-1.5 rounded-full border py-0.5 pl-0.5 pr-2.5 text-xs transition active:scale-95 ${
+                booking.driverId ? "border-slate-200 text-slate-700" : "border-dashed border-amber-400 text-amber-700"
+              }`}
+            >
+              <span className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${booking.driverId ? "bg-[#0F1B33] text-white" : "bg-amber-100 text-amber-700"}`}>
+                {booking.driverId ? initials(booking.driver) : "+"}
+              </span>
+              <span className="truncate">{booking.driverId ? booking.driver : "Assign driver"}</span>
+            </button>
+            )}
+            <span className="flex-1" />
+            {telHref(booking.phone) && (
+              <a
+                href={telHref(booking.phone)}
+                onClick={stop}
+                aria-label={`Call ${booking.customer}`}
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition active:scale-95"
+              >
+                <Phone className="h-3.5 w-3.5" />
+              </a>
+            )}
+            <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${bookingStatusColor(booking.status)}`}>
+              {statusLabel}
+            </span>
+          </div>
+
+          {/* Accept / decline a new website request */}
+          {pendingRequest && (
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={(e) => respond(e, "accepted")}
+                disabled={!!respBusy}
+                className="flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-60"
+              >
+                {respBusy === "accepted" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                Accept
+              </button>
+              <button
+                onClick={(e) => respond(e, "rejected")}
+                disabled={!!respBusy}
+                className="flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 transition active:scale-95 disabled:opacity-60"
+              >
+                {respBusy === "rejected" ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                Decline
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {driverSheetOpen && (
+        // The sheet is portalled, but React events still bubble to the card:
+        // stop them so picking a driver doesn't also open the booking.
+        <div onClick={stop} onKeyDown={stop}>
+          <MobileDriverSheet
+            booking={booking}
+            drivers={drivers}
+            onAssign={onAssign}
+            onClose={() => setDriverSheetOpen(false)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Desktop row: time, customer, route, driver, price, status. Clicking the row
+// opens the booking; the driver and status controls work in place.
+function DesktopRow({ booking, selected, onSelect, drivers, onAssign, onStatus, onRespond }) {
+  const [respBusy, setRespBusy] = useState(null);
+  const facts = bookingFacts(booking);
+  const { isCancelled, isDone, pendingRequest, from, to } = facts;
+  const stop = (e) => e.stopPropagation();
+  const respond = async (e, decision) => {
+    e.stopPropagation();
+    setRespBusy(decision);
+    try { await onRespond?.(booking.id, decision); } catch { /* surfaced by the hook */ } finally { setRespBusy(null); }
+  };
+
+  return (
+    <li
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(booking)}
+      onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onSelect(booking); } }}
+      aria-label={`Open booking ${booking.id} for ${booking.customer}`}
+      className={`group relative grid cursor-pointer grid-cols-[64px_minmax(0,1.3fr)_minmax(0,1.6fr)_minmax(150px,1fr)_72px_190px_16px] items-center gap-5 px-5 py-3.5 outline-none transition hover:bg-slate-50 focus-visible:bg-amber-50/60 ${
+        selected ? "bg-amber-50/60" : ""
+      } ${isCancelled ? "opacity-60" : ""}`}
+    >
+      <span className={`absolute inset-y-2 left-0 w-1 rounded-r-full ${edgeColour(booking, facts)}`} aria-hidden="true" />
+      <div>
+        <p className={`text-lg font-semibold leading-none tracking-tight ${isDone ? "text-slate-400" : "text-[#0F1B33]"}`}>{booking.time}</p>
+        {booking.flight && booking.flight !== "—" && (
+          <p className="mt-1.5 flex items-center gap-0.5 text-[11px] font-medium text-slate-500"><Plane className="h-3 w-3" />{booking.flight}</p>
+        )}
+      </div>
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="truncate font-semibold text-[#0F1B33]">
+            {booking.priority && <AlertTriangle className="mr-1 inline h-3.5 w-3.5 -translate-y-px text-red-600" />}
             {booking.customer}
           </p>
-          {pendingRequest && (
-            <span className="flex-shrink-0 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-black">
-              New
-            </span>
-          )}
-          {booking.attestation === "operator_alerted" && !isCancelled && (
-            <span className="flex-shrink-0 rounded-full bg-red-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-              Not confirmed
-            </span>
-          )}
-          {["awaiting_first_attestation", "awaiting_second_attestation"].includes(booking.attestation) && !isCancelled && (
-            <span className="flex-shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700">
-              Awaiting confirm
-            </span>
-          )}
-          <p className="flex-shrink-0 text-sm font-bold text-amber-600">{booking.price}</p>
-        </div>
-
-        {/* Row 2 — route, flight kept secondary */}
-        <div className="pointer-events-none mt-0.5 flex items-center gap-1.5">
-          <p className="min-w-0 flex-1 truncate text-xs text-slate-500">{booking.route}</p>
-          {booking.flight && booking.flight !== "—" && (
-            <span className="flex flex-shrink-0 items-center gap-0.5 text-[10px] text-slate-600">
-              <Plane className="h-2.5 w-2.5" />
-              {booking.flight}
-            </span>
-          )}
-        </div>
-
-        {/* Row 3 — time · driver (tap to assign) · status */}
-        <div className="mt-0.5 flex items-center gap-1.5 text-[11px]">
-          <span className="pointer-events-none flex flex-shrink-0 items-center gap-1 text-slate-500">
-            <Clock className="h-3 w-3 text-slate-600" />
-            {booking.time}
-          </span>
-          <span className="pointer-events-none text-slate-700">·</span>
-          <button
-            onClick={(e) => { e.stopPropagation(); setDriverSheetOpen(true); }}
-            className={`min-w-0 flex-1 truncate text-left transition active:opacity-70 ${
-              booking.driverId ? "text-slate-600" : "font-medium text-amber-600/80"
-            }`}
-          >
-            {booking.driver || "Unassigned"}
-          </button>
           {telHref(booking.phone) && (
             <a
               href={telHref(booking.phone)}
-              onClick={(e) => e.stopPropagation()}
+              onClick={stop}
               aria-label={`Call ${booking.customer}`}
-              className="flex flex-shrink-0 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10 p-1 text-emerald-600 transition active:scale-95"
+              title={booking.phone}
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 opacity-70 transition hover:border-amber-300 hover:text-amber-700 group-hover:opacity-100"
             >
               <Phone className="h-3 w-3" />
             </a>
           )}
-          <span
-            className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${bookingStatusColor(
-              booking.status
-            )}`}
-          >
-            {statusLabel}
-          </span>
         </div>
-
-        {/* Accept / reject for a new website request */}
-        {pendingRequest && (
-          <div className="mt-2 flex gap-2">
+        <p className="mt-0.5 font-mono text-[11px] text-slate-400">{booking.id}</p>
+        <Badges facts={facts} />
+      </div>
+      <RouteLines from={from} to={to} className="text-[13px] text-slate-600" />
+      <div className="min-w-0" onClick={stop} onKeyDown={stop}>
+        <InlineDriverCell bookingId={booking.id} currentDriverId={booking.driverId} drivers={drivers} onAssign={onAssign} />
+      </div>
+      <p className={`text-right font-semibold ${booking.price === "TBC" ? "text-xs font-medium text-slate-400" : "text-[#0F1B33]"}`}>
+        {booking.price === "TBC" ? "Price TBC" : booking.price}
+      </p>
+      <div className="flex items-center justify-end gap-2" onClick={stop} onKeyDown={stop}>
+        {pendingRequest ? (
+          <>
             <button
               onClick={(e) => respond(e, "accepted")}
               disabled={!!respBusy}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-2 text-xs font-bold text-white transition active:scale-95 disabled:opacity-60"
+              className="flex h-8 items-center gap-1 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
             >
-              {respBusy === "accepted" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-              Accept
+              {respBusy === "accepted" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Accept
             </button>
             <button
               onClick={(e) => respond(e, "rejected")}
               disabled={!!respBusy}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-400/40 bg-red-500/10 py-2 text-xs font-bold text-red-600 transition active:scale-95 disabled:opacity-60"
+              className="flex h-8 items-center gap-1 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-white disabled:opacity-60"
             >
-              {respBusy === "rejected" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
-              Reject
+              {respBusy === "rejected" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />} Decline
             </button>
-          </div>
+          </>
+        ) : (
+          <StatusActionMenu bookingId={booking.id} currentStatus={booking.status} onUpdate={onStatus} />
         )}
       </div>
-
-      {driverSheetOpen && (
-        <MobileDriverSheet
-          booking={booking}
-          drivers={drivers}
-          onAssign={onAssign}
-          onClose={() => setDriverSheetOpen(false)}
-        />
-      )}
-    </div>
+      <ChevronRight className="h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-slate-500" />
+    </li>
   );
 }
 
@@ -440,11 +560,26 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign, onRespond }) {
 // assignment and accept/decline. Rows open the shared booking drawer.
 export default function BookingsList() {
   const searchParams = useSearchParams();
-  const [activeFilter, setActiveFilter] = useState("All");
+  // Which slice of bookings to show. A search arriving in the URL (header
+  // search, a notification link) looks across everything.
+  const [view, setView] = useState(searchParams.get("q") ? "all" : "upcoming");
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [searchOpen, setSearchOpen] = useState(false);
   const [stickyTop, setStickyTop] = useState(0);
   const searchRef = useRef(null);
+  const filterBarRef = useRef(null);
+  const [filterBarH, setFilterBarH] = useState(0);
+
+  // Day headings stick just below the (sticky) filter bar.
+  useEffect(() => {
+    const el = filterBarRef.current;
+    if (!el) return;
+    const update = () => setFilterBarH(el.getBoundingClientRect().height);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Pin the filter bar directly beneath the (variable-height) app header while
   // scrolling the feed. Measure the header live so it tracks any size change.
@@ -510,9 +645,14 @@ export default function BookingsList() {
   const handleRespond = drawer.respond;
   const handleStatusUpdate = drawer.setStatus;
 
+  const today = ukDateDaysAgo(0);
+  const viewCounts = useMemo(
+    () => Object.fromEntries(Object.entries(LIST_VIEWS).map(([k, fn]) => [k, transfers.filter((t) => fn(t, today)).length])),
+    [transfers, today]
+  );
+
   const filtered = useMemo(() => {
-    let list = transfers;
-    if (activeFilter !== "All") list = list.filter((t) => t.status === activeFilter);
+    let list = transfers.filter((t) => LIST_VIEWS[view](t, today));
     if (debouncedSearch.trim()) {
       const q = debouncedSearch.toLowerCase();
       list = list.filter(
@@ -525,7 +665,7 @@ export default function BookingsList() {
       );
     }
     return list;
-  }, [transfers, activeFilter, debouncedSearch]);
+  }, [transfers, view, today, debouncedSearch]);
 
 
   return (
@@ -543,13 +683,14 @@ export default function BookingsList() {
             {/* Header block is sticky on mobile so the filter row stays pinned
                 below the app header while the feed scrolls; static on desktop. */}
             <div
+              ref={filterBarRef}
               style={{ top: stickyTop }}
               className="sticky z-30 mb-2 flex min-w-0 flex-col gap-2 bg-white/95 py-2 backdrop-blur-md lg:static lg:mb-4 lg:flex-row lg:items-center lg:justify-between lg:gap-3 lg:bg-transparent lg:py-0 lg:backdrop-blur-none"
             >
 
 
               {/* Search + filter row */}
-              <div className="flex min-w-0 flex-col gap-2 sm:gap-3">
+              <div className="flex min-w-0 flex-col gap-2 sm:gap-3 lg:flex-1 lg:flex-row-reverse lg:items-center lg:justify-between">
                 {/* Search input — always shown on desktop; toggled on mobile */}
                 <div className={`relative ${searchOpen ? "block" : "hidden"} sm:block`}>
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" />
@@ -570,33 +711,27 @@ export default function BookingsList() {
                   )}
                 </div>
 
-                {/* Status filter chips — horizontally scrollable — plus mobile search toggle */}
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <Filter className="h-3 w-3 flex-shrink-0 text-slate-600 sm:h-3.5 sm:w-3.5 sm:text-slate-500" />
-                  <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:gap-1.5">
-                    {STATUS_FILTERS.map((f) => (
+                {/* View switcher (Upcoming / Needs action / Past / All) + mobile search toggle */}
+                <div className="flex min-w-0 items-center gap-2">
+                  <div role="tablist" aria-label="Which bookings" className="flex min-w-0 flex-1 gap-1 overflow-x-auto rounded-2xl bg-slate-100 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none">
+                    {LIST_VIEW_TABS.map((v) => (
                       <button
-                        key={f}
-                        onClick={() => setActiveFilter(f)}
-                        className={`flex-shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition sm:px-3 sm:py-1.5 sm:text-xs ${
-                          activeFilter === f
-                            ? "border-amber-400/40 bg-amber-400/10 text-amber-600"
-                            : "border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-600"
+                        key={v.key}
+                        role="tab"
+                        aria-selected={view === v.key}
+                        aria-label={`${v.label} (${viewCounts[v.key]})`}
+                        onClick={() => setView(v.key)}
+                        className={`flex flex-shrink-0 items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium transition sm:gap-1.5 sm:px-3 sm:text-sm ${
+                          view === v.key ? "bg-white text-[#0F1B33] shadow-sm" : "text-slate-500 hover:text-[#0F1B33]"
                         }`}
                       >
-                        {f === "Unassigned / Missed Call Recovery" ? "Missed Call" : f}
+                        {v.short ? (<><span className="sm:hidden">{v.short}</span><span className="hidden sm:inline">{v.label}</span></>) : v.label}
+                        <span className={`rounded-full px-1.5 text-[10px] font-semibold ${
+                          view === v.key ? (v.key === "action" && viewCounts[v.key] ? "bg-red-500 text-white" : "bg-slate-100 text-slate-600") : "text-slate-400"
+                        }`}>{viewCounts[v.key]}</span>
                       </button>
                     ))}
                   </div>
-                  {activeFilter !== "All" && (
-                    <button
-                      onClick={() => setActiveFilter("All")}
-                      className="flex-shrink-0 text-slate-600 hover:text-[#0F1B33] transition"
-                      title="Clear filter"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
                   {/* Mobile-only search toggle button */}
                   <button
                     onClick={() => {
@@ -630,11 +765,15 @@ export default function BookingsList() {
                       <div className="mt-3 h-3 w-2/3 rounded-full bg-slate-50" />
                     </div>
                   ))
-                : groupByDate(filtered).map((g) => (
-                    <div key={g.key ?? "no-date"} className="grid min-w-0 gap-1">
-                      <p className="px-0.5 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-600/80">
-                        {g.label}
-                        <span className="ml-1.5 text-slate-600">· {g.items.length}</span>
+                : groupByDate(filtered, view === "past").map((g) => (
+                    <div key={g.key ?? "no-date"} className="grid min-w-0 gap-2">
+                      <p
+                        style={{ top: stickyTop + filterBarH }}
+                        className="sticky z-20 -mx-2 flex items-baseline gap-2 bg-[#EEF0F6]/95 px-3 py-1.5 backdrop-blur-sm sm:-mx-6 sm:px-6"
+                      >
+                        <span className="text-sm font-semibold text-[#0F1B33]">{g.label}</span>
+                        {g.sub && <span className="text-xs text-slate-500">{g.sub}</span>}
+                        <span className="ml-auto text-xs text-slate-400">{g.items.length} job{g.items.length === 1 ? "" : "s"}</span>
                       </p>
                       {g.items.map((t) => (
                         <BookingCard
@@ -650,120 +789,58 @@ export default function BookingsList() {
                   ))}
               {!loading && filtered.length === 0 && (
                 <p className="py-8 text-center text-sm text-slate-600">
-                  {debouncedSearch ? `No transfers match "${debouncedSearch}"` : "No transfers match this filter."}
+                  {debouncedSearch ? `No bookings match "${debouncedSearch}" here.` : EMPTY_TEXT[view]}
                 </p>
               )}
             </div>
 
-            {/* Desktop table layout */}
-            <div className="hidden overflow-x-auto lg:block">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 text-left">
-                    {["Job ID", "Customer", "Route", "Flight", "Pickup", "ETA", "Driver", "Price", "Status", ""].map(
-                      (h) => (
-                        <th
-                          key={h}
-                          className="pb-4 pr-6 text-[10px] font-normal uppercase tracking-[0.2em] text-slate-600"
-                        >
-                          {h}
-                        </th>
-                      )
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.03]">
-                  {loading &&
-                    transfers.length === 0 &&
-                    [1, 2, 3, 4].map((i) => (
-                      <tr key={i} className="animate-pulse">
-                        {[...Array(10)].map((_, j) => (
-                          <td key={j} className="py-4 pr-6">
-                            <div
-                              className="h-3 rounded-full bg-slate-50"
-                              style={{ width: `${50 + j * 5}%` }}
-                            />
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  {filtered.map((t) => (
-                    <tr
-                      key={t.id}
-                      onClick={() => setSelectedBooking(t)}
-                      className={`cursor-pointer transition-colors ${
-                        t.priority ? "bg-red-500/[0.03]" : "hover:bg-slate-50"
-                      } ${drawer.selectedId === t.id ? "bg-amber-400/[0.04]" : ""}`}
-                    >
-                      <td className="py-4 pr-6">
-                        <div className="flex items-center gap-1.5">
-                          {t.priority && (
-                            <AlertTriangle className="h-3 w-3 flex-shrink-0 text-red-600" />
-                          )}
-                          <span className="font-mono text-xs text-slate-500">{t.id}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 pr-6 font-medium text-[#0F1B33]">
-                        <div className="flex items-center gap-2">
-                          {t.customer}
-                          {telHref(t.phone) && (
-                            <a
-                              href={telHref(t.phone)}
-                              onClick={(e) => e.stopPropagation()}
-                              aria-label={`Call ${t.customer}`}
-                              title={t.phone}
-                              className="flex flex-shrink-0 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10 p-1 text-emerald-600 transition hover:bg-emerald-400/20"
-                            >
-                              <Phone className="h-3 w-3" />
-                            </a>
-                          )}
-                        </div>
-                      </td>
-                      <td className="max-w-[180px] truncate py-4 pr-6 text-slate-500">{t.route}</td>
-                      <td className="py-4 pr-6 text-[#0F1B33]">{t.flight}</td>
-                      <td className="py-4 pr-6">
-                        <div className="flex items-center gap-1.5 text-[#0F1B33]">
-                          <Clock className="h-3.5 w-3.5 text-slate-500" />
-                          {t.time}
-                        </div>
-                        {t.travelDate && <p className="mt-0.5 pl-5 text-[11px] text-slate-500">{fmtDate(t.travelDate)}</p>}
-                      </td>
-                      <td className="py-4 pr-6">
-                        <ETACountdown pickupTime={t.pickupTime} />
-                      </td>
-                      <td className="py-4 pr-6" onClick={(e) => e.stopPropagation()}>
-                        <InlineDriverCell
-                          bookingId={t.id}
-                          currentDriverId={t.driverId}
-                          drivers={drivers}
-                          onAssign={handleAssignDriver}
-                        />
-                      </td>
-                      <td className="py-4 pr-6 font-semibold text-amber-600">{t.price}</td>
-                      <td className="py-4 pr-6" onClick={(e) => e.stopPropagation()}>
-                        <StatusActionMenu
-                          bookingId={t.id}
-                          currentStatus={t.status}
-                          onUpdate={handleStatusUpdate}
-                        />
-                      </td>
-                      <td className="py-4" onClick={(e) => e.stopPropagation()}>
-                        <DispatchButton booking={t} driverName={t.driver} />
-                      </td>
-                    </tr>
+            {/* Desktop: the same day groups as the cards, as rows. The whole
+                row opens the booking; driver and status change in place. */}
+            <div className="hidden space-y-5 lg:block">
+              {loading && transfers.length === 0 && (
+                <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex animate-pulse gap-6 px-5 py-4">
+                      <div className="h-4 w-12 rounded-full bg-slate-100" />
+                      <div className="h-4 w-40 rounded-full bg-slate-100" />
+                      <div className="h-4 flex-1 rounded-full bg-slate-100" />
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              )}
+              {groupByDate(filtered, view === "past").map((g) => (
+                <section key={g.key ?? "no-date"} className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,27,51,0.04)]">
+                  <header className="flex items-baseline gap-2 border-b border-slate-100 px-5 py-3">
+                    <h3 className="text-sm font-semibold text-[#0F1B33]">{g.label}</h3>
+                    {g.sub && <span className="text-xs text-slate-500">{g.sub}</span>}
+                    <span className="ml-auto text-xs text-slate-400">{g.items.length} job{g.items.length === 1 ? "" : "s"}</span>
+                  </header>
+                  <ul className="divide-y divide-slate-100">
+                    {g.items.map((t) => (
+                      <DesktopRow
+                        key={t.id}
+                        booking={t}
+                        selected={drawer.selectedId === t.id}
+                        onSelect={setSelectedBooking}
+                        drivers={drivers}
+                        onAssign={handleAssignDriver}
+                        onStatus={handleStatusUpdate}
+                        onRespond={handleRespond}
+                      />
+                    ))}
+                  </ul>
+                </section>
+              ))}
               {!loading && filtered.length === 0 && (
                 <p className="py-10 text-center text-sm text-slate-600">
-                  {debouncedSearch ? `No transfers match "${debouncedSearch}"` : "No transfers match this filter."}
+                  {debouncedSearch ? `No bookings match "${debouncedSearch}" here.` : EMPTY_TEXT[view]}
                 </p>
               )}
             </div>
 
             {/* Older bookings: the board loads from OPERATIONAL_DAYS_BACK days ago;
                 anything earlier (including for a search) loads on request. */}
-            {hasEarlier && (
+            {hasEarlier && (view === "past" || view === "all" || debouncedSearch) && (
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3 border-t border-slate-100 pt-4 text-center">
                 <p className="text-xs text-slate-600">
                   Showing bookings from {fmtDate(ukDateDaysAgo(OPERATIONAL_DAYS_BACK))} onwards{debouncedSearch ? " (search included)" : ""}.
@@ -779,7 +856,7 @@ export default function BookingsList() {
             )}
 
             {/* Load more — shown on both mobile and desktop when more pages exist */}
-            {totalCount > transfers.length && !debouncedSearch && activeFilter === "All" && (
+            {totalCount > transfers.length && !debouncedSearch && (view === "all" || view === "upcoming") && (
               <div className="mt-4 flex items-center justify-center gap-4 border-t border-slate-100 pt-4">
                 <p className="text-xs text-slate-600">
                   Showing {transfers.length} of {totalCount} bookings
