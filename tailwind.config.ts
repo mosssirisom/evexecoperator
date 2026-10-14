@@ -9,6 +9,39 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Neutral greys as navy blue-greys (EV Exec navy-and-white theme).
+        // Same shade roles as Tailwind's slate, so contrast is kept: 500 is
+        // secondary text (#56708C, the palette's #627D98 deepened slightly to
+        // pass WCAG AA on white and on the page background), 200 borders,
+        // 50 the page background.
+        slate: {
+          50: "#F3F6F9",
+          100: "#E9EFF5",
+          200: "#D9E2EC",
+          300: "#BCCCDC",
+          400: "#829AB1",
+          500: "#56708C",
+          600: "#486581",
+          700: "#334E68",
+          800: "#243B53",
+          900: "#102A43",
+          950: "#0B1F33",
+        },
+        // Brand accent (was gold/amber). Shades follow the roles the amber
+        // shades had: 300 text on dark navy, 400 fills/borders/tints,
+        // 500 primary buttons, 600 accent text on white.
+        brand: {
+          DEFAULT: "#102A43",
+          50: "#F0F5FA",
+          100: "#E3EDF8",
+          200: "#C9DAEC",
+          300: "#A9C2DD",
+          400: "#334E68",
+          500: "#102A43",
+          600: "#334E68",
+          700: "#102A43",
+          800: "#0B1F33",
+        },
         navy: {
           950: "#04080f",
           900: "#070d1c",
@@ -35,12 +68,12 @@ const config: Config = {
         sans: ["Inter", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        "gold-sm": "0 0 12px rgba(201,165,80,0.15)",
-        "gold-md": "0 0 24px rgba(201,165,80,0.25)",
-        "card":    "0 4px 20px rgba(15,27,51,0.08)",
+        "brand-sm": "0 0 12px rgba(16,42,67,0.15)",
+        "brand-md": "0 0 24px rgba(16,42,67,0.25)",
+        "card":    "0 4px 20px rgba(16,42,67,0.08)",
       },
       backgroundImage: {
-        "gold-gradient": "linear-gradient(135deg, #C9A550 0%, #E8C97A 50%, #C9A550 100%)",
+        "brand-gradient": "linear-gradient(135deg, #102A43 0%, #334E68 50%, #102A43 100%)",
         "navy-gradient": "linear-gradient(180deg, #0c1528 0%, #070d1c 100%)",
       },
     },

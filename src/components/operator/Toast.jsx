@@ -47,7 +47,7 @@ export function OperatorToastProvider({ children }) {
             className="flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-2xl backdrop-blur-xl sm:max-w-sm"
           >
             {ICONS[t.type]}
-            <span className="flex-1 text-sm text-[#0F1B33]">{t.message}</span>
+            <span className="flex-1 text-sm text-[#102A43]">{t.message}</span>
             <button
               onClick={() => dismiss(t.id)}
               aria-label="Dismiss notification"

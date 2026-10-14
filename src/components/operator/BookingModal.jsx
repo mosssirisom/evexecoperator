@@ -82,7 +82,7 @@ function CustomerPicker({ customers, onPick }) {
         onChange={(e) => { setQ(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         placeholder="Use an existing customer — search name, phone or email"
-        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-[#0F1B33] outline-none placeholder:text-slate-400 focus:border-amber-400/40 transition"
+        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-[#102A43] outline-none placeholder:text-slate-400 focus:border-brand-400/40 transition"
       />
       {open && results.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-60 overflow-y-auto rounded-2xl border border-slate-200 bg-white py-1 shadow-2xl">
@@ -93,12 +93,12 @@ function CustomerPicker({ customers, onPick }) {
               onClick={() => { onPick(c); setOpen(false); setQ(""); }}
               className="flex w-full flex-col items-start px-4 py-2.5 text-left transition hover:bg-slate-100"
             >
-              <span className="text-sm font-medium text-[#0F1B33]">{c.name}</span>
+              <span className="text-sm font-medium text-[#102A43]">{c.name}</span>
               {(c.phone || c.email) && (
                 <span className="text-xs text-slate-500">{[c.phone, c.email].filter(Boolean).join("  ·  ")}</span>
               )}
               {c.addresses?.length > 0 && (
-                <span className="text-[11px] text-amber-600">
+                <span className="text-[11px] text-brand-600">
                   {c.addresses.length} saved address{c.addresses.length > 1 ? "es" : ""}
                 </span>
               )}
@@ -159,7 +159,7 @@ function Select({ value, onChange, options, placeholder }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none focus:border-amber-400/40 transition"
+        className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#102A43] outline-none focus:border-brand-400/40 transition"
       >
         <option value="" className="bg-white">{placeholder}</option>
         {options.map((o) => (
@@ -182,7 +182,7 @@ function Input({ value, onChange, placeholder, type = "text", list, onFocus }) {
       onFocus={onFocus}
       placeholder={placeholder}
       list={list}
-      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none placeholder:text-slate-400 focus:border-amber-400/40 transition"
+      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#102A43] outline-none placeholder:text-slate-400 focus:border-brand-400/40 transition"
     />
   );
 }
@@ -378,16 +378,16 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
         {/* Header */}
         <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 bg-white px-4 py-4 sm:px-8 sm:py-6">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-amber-600">
+            <p className="text-xs uppercase tracking-[0.28em] text-brand-600">
               {eyebrow ?? (initialValues ? "Return Journey" : "New Booking")}
             </p>
-            <h2 id="booking-modal-title" className="mt-1 text-2xl font-semibold text-[#0F1B33]">
+            <h2 id="booking-modal-title" className="mt-1 text-2xl font-semibold text-[#102A43]">
               {heading ?? (initialValues ? "Create Return" : "Create Transfer")}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-[#0F1B33]"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-[#102A43]"
           >
             <X className="h-4 w-4" />
           </button>
@@ -402,7 +402,7 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <p className="text-xl font-semibold text-[#0F1B33]">Booking Created</p>
+            <p className="text-xl font-semibold text-[#102A43]">Booking Created</p>
             <p className="text-sm text-slate-500">Transfer added to dispatch board</p>
           </div>
         ) : (
@@ -464,7 +464,7 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
                         key={a}
                         onClick={() => fillAddress(a)}
                         title={`Use ${a} for the ${lastRouteField || "empty"} field`}
-                        className="flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-xs text-amber-700 transition hover:bg-amber-400/20"
+                        className="flex items-center gap-1 rounded-full border border-brand-400/30 bg-brand-400/10 px-2.5 py-1 text-xs text-brand-700 transition hover:bg-brand-400/20"
                       >
                         <MapPin className="h-3 w-3" />
                         {a}
@@ -493,15 +493,15 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
             {/* Return journey */}
             <div>
               <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <span className="flex items-center gap-2 text-sm font-medium text-[#0F1B33]">
-                  <ArrowLeftRight className="h-4 w-4 text-amber-600" />
+                <span className="flex items-center gap-2 text-sm font-medium text-[#102A43]">
+                  <ArrowLeftRight className="h-4 w-4 text-brand-600" />
                   Add return journey
                 </span>
                 <input
                   type="checkbox"
                   checked={form.returnJourney}
                   onChange={(e) => set("returnJourney")(e.target.checked)}
-                  className="h-5 w-5 accent-amber-500"
+                  className="h-5 w-5 accent-brand-500"
                 />
               </label>
 
@@ -542,7 +542,7 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
                     value={form.price}
                     onChange={(e) => { priceAutoRef.current = false; set("price")(e.target.value); }}
                     placeholder="0"
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-8 pr-4 text-sm text-amber-600 outline-none placeholder:text-slate-400 focus:border-amber-400/40 transition"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-8 pr-4 text-sm text-brand-600 outline-none placeholder:text-slate-400 focus:border-brand-400/40 transition"
                   />
                 </div>
               </Field>
@@ -555,7 +555,7 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
                 onChange={(e) => set("notes")(e.target.value)}
                 placeholder="Child seat required, meet & greet at arrivals..."
                 rows={3}
-                className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none placeholder:text-slate-400 focus:border-amber-400/40 transition"
+                className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#102A43] outline-none placeholder:text-slate-400 focus:border-brand-400/40 transition"
               />
             </Field>
 
@@ -569,14 +569,14 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-2xl border border-slate-200 px-5 py-3 text-sm text-slate-500 transition hover:border-slate-300 hover:text-[#0F1B33]"
+                className="rounded-2xl border border-slate-200 px-5 py-3 text-sm text-slate-500 transition hover:border-slate-300 hover:text-[#102A43]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 rounded-2xl bg-amber-500 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="flex-1 rounded-2xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-400 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {submitting ? "Creating…" : `Create Booking${form.price ? ` — £${form.price}` : ""}`}
               </button>

@@ -24,7 +24,7 @@ function Tile({ icon: Icon, label, sub, value, tone, href }) {
         <Icon className="h-5 w-5" />
       </span>
       <div className="min-w-0">
-        <p className="text-2xl font-semibold leading-none text-[#0F1B33]">{value}</p>
+        <p className="text-2xl font-semibold leading-none text-[#102A43]">{value}</p>
         <p className="mt-1 truncate text-xs text-slate-500">{label}{sub && <span className="hidden sm:inline"> · {sub}</span>}</p>
       </div>
     </div>
@@ -39,13 +39,13 @@ function BookingRow({ b, onOpen, aside }) {
       className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-slate-50 sm:px-5"
     >
       <div className="w-14 flex-shrink-0 text-center">
-        <p className="text-sm font-semibold text-[#0F1B33]">{b.time}</p>
+        <p className="text-sm font-semibold text-[#102A43]">{b.time}</p>
         {b.travelDate && b.travelDate !== ukDateDaysAgo(0) && (
           <p className="text-[10px] text-slate-500">{fmtDate(b.travelDate).slice(0, 5)}</p>
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-[#0F1B33]">{b.customer}</p>
+        <p className="truncate text-sm font-medium text-[#102A43]">{b.customer}</p>
         <p className="truncate text-xs text-slate-500">{b.route}</p>
         {/* Phones: status/driver under the customer so the row never overflows */}
         <div className="mt-1.5 flex flex-wrap items-center gap-2 sm:hidden">{aside}</div>
@@ -111,7 +111,7 @@ export default function TodayPage() {
       <SetupChecklist drivers={drivers} hasBookings={api.totalCount > 0 || bookings.length > 0} />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Tile icon={Clock} label="Jobs today" sub={`£${view.revenue.toLocaleString("en-GB")}`} value={view.todays.length} tone="bg-amber-50 text-amber-600" href="/operator/bookings" />
+        <Tile icon={Clock} label="Jobs today" sub={`£${view.revenue.toLocaleString("en-GB")}`} value={view.todays.length} tone="bg-brand-100 text-brand-600" href="/operator/bookings" />
         <Tile icon={MessageSquareReply} label="To reply to" value={view.reply.length} tone="bg-amber-50 text-amber-600" />
         <Tile icon={UserX} label="Need a driver" sub="next 48h" value={view.noDriver.length} tone="bg-red-50 text-red-600" />
         <Tile icon={Inbox} label="Inbox" value={inbox.count} tone="bg-slate-100 text-slate-600" href="/operator/inbox" />
@@ -121,7 +121,7 @@ export default function TodayPage() {
         <div className="min-w-0 space-y-4 sm:space-y-6 lg:col-span-2">
           <section className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 sm:px-5">
-              <h2 className="text-base font-semibold text-[#0F1B33]">Needs you</h2>
+              <h2 className="text-base font-semibold text-[#102A43]">Needs you</h2>
               <span className="text-xs text-slate-500">{view.needs.length}</span>
             </div>
             {loading && bookings.length === 0 ? (
@@ -129,7 +129,7 @@ export default function TodayPage() {
             ) : view.needs.length === 0 ? (
               <div className="flex flex-col items-center gap-2 px-5 py-8 text-center">
                 <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-                <p className="text-sm font-medium text-[#0F1B33]">All clear</p>
+                <p className="text-sm font-medium text-[#102A43]">All clear</p>
                 <p className="text-xs text-slate-500">No requests to answer, no jobs without a driver, nothing unpaid.</p>
               </div>
             ) : (
@@ -151,8 +151,8 @@ export default function TodayPage() {
 
           <section className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 sm:px-5">
-              <h2 className="text-base font-semibold text-[#0F1B33]">Today · {fmtDate(today)}</h2>
-              <Link href="/operator/bookings" className="text-xs font-medium text-amber-600 hover:underline">All bookings</Link>
+              <h2 className="text-base font-semibold text-[#102A43]">Today · {fmtDate(today)}</h2>
+              <Link href="/operator/bookings" className="text-xs font-medium text-brand-600 hover:underline">All bookings</Link>
             </div>
             {view.todays.length === 0 ? (
               <p className="px-5 py-8 text-center text-sm text-slate-500">{loading ? "Loading…" : "No pickups today."}</p>
@@ -176,8 +176,8 @@ export default function TodayPage() {
 
         <section className="card h-fit min-w-0 overflow-hidden">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 sm:px-5">
-            <h2 className="text-base font-semibold text-[#0F1B33]">Drivers today</h2>
-            <Link href="/operator/drivers" className="text-xs font-medium text-amber-600 hover:underline">Drivers</Link>
+            <h2 className="text-base font-semibold text-[#102A43]">Drivers today</h2>
+            <Link href="/operator/drivers" className="text-xs font-medium text-brand-600 hover:underline">Drivers</Link>
           </div>
           {view.driverDay.length === 0 ? (
             <p className="px-5 py-8 text-center text-sm text-slate-500">No drivers yet.</p>
@@ -187,7 +187,7 @@ export default function TodayPage() {
                 <li key={d.id} className="flex items-center gap-3 px-4 py-3 sm:px-5">
                   <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${live ? "bg-blue-500" : next ? "bg-amber-400" : "bg-emerald-500"}`} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-[#0F1B33]">{d.name}</p>
+                    <p className="truncate text-sm font-medium text-[#102A43]">{d.name}</p>
                     <p className="truncate text-xs text-slate-500">
                       {live ? `${live.status} · ${live.customer}` : next ? `Next ${next.time} · ${next.customer}` : jobs.length ? "Done for today" : "No jobs today"}
                     </p>

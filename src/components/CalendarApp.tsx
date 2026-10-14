@@ -138,7 +138,7 @@ export function CalendarApp() {
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-600">
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-gold/30 border-t-gold" />
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand/30 border-t-brand" />
         Loading live data…
       </div>
     );
@@ -157,7 +157,7 @@ export function CalendarApp() {
           <StatsBar stats={monthStats} />
           <Link
             href="/operator/bookings"
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-gold/20 bg-white py-4 text-sm font-semibold text-amber-600 shadow-card transition-all hover:border-gold/40 hover:bg-gold/10 active:scale-[0.99]"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-brand/20 bg-white py-4 text-sm font-semibold text-brand-600 shadow-card transition-all hover:border-brand/40 hover:bg-brand/10 active:scale-[0.99]"
           >
             <LayoutList size={15} />Show as list
           </Link>
@@ -191,12 +191,12 @@ function PasswordConfirmModal({ booking, password, busy, onPasswordChange, onCan
       <div className="w-full max-w-md rounded-3xl border border-red-400/20 bg-white p-5 shadow-2xl">
         <div className="flex items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-red-600"><ShieldCheck size={20} /></div>
-          <div><h2 className="text-lg font-bold text-[#0F1B33]">Confirm job removal</h2><p className="mt-1 text-sm text-slate-500">For security, re-enter your operator password before removing this booking.</p></div>
+          <div><h2 className="text-lg font-bold text-[#102A43]">Confirm job removal</h2><p className="mt-1 text-sm text-slate-500">For security, re-enter your operator password before removing this booking.</p></div>
         </div>
         <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 text-sm"><p className="font-semibold text-slate-800">{booking.customer_name}</p><p className="mt-1 text-xs text-slate-500">{booking.ref} · {booking.travel_date ? fmtDate(booking.travel_date) : "No date"} {booking.travel_time?.slice(0, 5) ?? ""}</p></div>
         <div className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-xs text-amber-700 flex gap-2"><AlertTriangle size={15} className="shrink-0" />This action permanently removes the job from the operator calendar and driver view.</div>
         <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-slate-500">Operator password</label>
-        <input type="password" value={password} onChange={(e) => onPasswordChange(e.target.value)} autoFocus className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#0F1B33] outline-none focus:border-gold/50" placeholder="Enter password" />
+        <input type="password" value={password} onChange={(e) => onPasswordChange(e.target.value)} autoFocus className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#102A43] outline-none focus:border-brand/50" placeholder="Enter password" />
         <div className="mt-5 flex gap-3">
           <button type="button" onClick={onCancel} disabled={busy} className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 hover:border-slate-300 disabled:opacity-50">Cancel</button>
           <button type="button" onClick={onConfirm} disabled={busy || !password.trim()} className="flex-1 rounded-2xl border border-red-400/30 bg-red-500/15 px-4 py-3 text-sm font-semibold text-red-700 hover:bg-red-500/25 disabled:opacity-50">{busy ? "Verifying…" : "Remove job"}</button>

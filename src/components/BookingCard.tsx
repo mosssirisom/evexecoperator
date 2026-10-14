@@ -69,10 +69,10 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
   const route = `${short(pickup)} → ${short(dropoff)}`;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-card overflow-hidden transition-all hover:border-gold/20">
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-card overflow-hidden transition-all hover:border-brand/20">
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
         <div className="flex items-center gap-2">
-          <Clock size={14} className="text-amber-600/80" />
+          <Clock size={14} className="text-brand-600/80" />
           <span className="text-xl font-bold text-slate-800 tracking-tight">{time}</span>
           {booking.priority && (
             <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full">
@@ -91,7 +91,7 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
         <div>
           <p className="font-semibold text-slate-800 text-sm leading-tight">{booking.customer_name}</p>
           <div className="flex items-start gap-1.5 mt-1">
-            <MapPin size={12} className="text-amber-600/70 mt-0.5 shrink-0" />
+            <MapPin size={12} className="text-brand-600/70 mt-0.5 shrink-0" />
             <p className="text-xs text-slate-500 leading-relaxed">{route}</p>
           </div>
         </div>
@@ -140,7 +140,7 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
           <span className={`text-xs font-medium ${booking.payment_status === "Paid" ? "text-emerald-600" : "text-slate-500"}`}>
             {booking.payment_status ?? "Unpaid"}{booking.payment_method ? ` · ${booking.payment_method}` : " · method not set"}
           </span>
-          <span className="text-sm font-semibold text-amber-600">{booking.quoted_price != null ? `£${Number(booking.quoted_price).toFixed(0)}` : "TBC"}</span>
+          <span className="text-sm font-semibold text-brand-600">{booking.quoted_price != null ? `£${Number(booking.quoted_price).toFixed(0)}` : "TBC"}</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -167,10 +167,10 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
             {booking.travel_date && <DetailRow label="Date" value={displayDate(booking.travel_date) ?? booking.travel_date} />}
             {booking.journey_type && <DetailRow label="Journey" value={booking.journey_type.replace(/_/g, " ")} />}
             {booking.vehicle_type && <DetailRow label="Vehicle" value={booking.vehicle_type} />}
-            {booking.customer_phone && <div className="flex items-center gap-1.5"><Phone size={11} className="text-amber-600/70 shrink-0" /><span className="text-xs text-slate-500">{booking.customer_phone}</span></div>}
+            {booking.customer_phone && <div className="flex items-center gap-1.5"><Phone size={11} className="text-brand-600/70 shrink-0" /><span className="text-xs text-slate-500">{booking.customer_phone}</span></div>}
             {booking.customer_email && <DetailRow label="Email" value={booking.customer_email} />}
-            {(booking.notes || booking.operator_note) && <div className="flex items-start gap-1.5"><MessageSquare size={11} className="text-amber-600/70 shrink-0 mt-0.5" /><span className="text-xs text-slate-500 italic">{booking.notes || booking.operator_note}</span></div>}
-            {notification?.lastSent && <div className="flex items-center gap-1.5"><Bell size={11} className="text-amber-600/70 shrink-0" /><span className="text-xs text-slate-500">{NOTIFICATION_TYPE_LABELS[notification.lastSent.type] ?? notification.lastSent.type} sent {formatDistanceToNow(parseISO(notification.lastSent.sent_at), { addSuffix: true })}</span></div>}
+            {(booking.notes || booking.operator_note) && <div className="flex items-start gap-1.5"><MessageSquare size={11} className="text-brand-600/70 shrink-0 mt-0.5" /><span className="text-xs text-slate-500 italic">{booking.notes || booking.operator_note}</span></div>}
+            {notification?.lastSent && <div className="flex items-center gap-1.5"><Bell size={11} className="text-brand-600/70 shrink-0" /><span className="text-xs text-slate-500">{NOTIFICATION_TYPE_LABELS[notification.lastSent.type] ?? notification.lastSent.type} sent {formatDistanceToNow(parseISO(notification.lastSent.sent_at), { addSuffix: true })}</span></div>}
             {notification && notification.pendingCount > 0 && <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-100 px-3 py-1.5 rounded-lg"><Bell size={11} />{notification.pendingCount} notification{notification.pendingCount === 1 ? "" : "s"} pending</div>}
             {notification && notification.failedCount > 0 && <div className="flex items-center gap-1.5 text-xs text-red-600 bg-red-100 px-3 py-1.5 rounded-lg"><AlertTriangle size={11} />{notification.failedCount} notification{notification.failedCount === 1 ? "" : "s"} failed to send</div>}
             {(booking.pob_at || booking.completed_at || (proofs && proofs.length > 0)) && (
@@ -181,20 +181,20 @@ export default function BookingCard({ booking, drivers, notification, unavailabl
                 {proofs && proofs.length > 0 && (
                   <div className="flex flex-wrap gap-2 pt-1">
                     {proofs.map((p) => (
-                      <a key={p.id} href={p.url} target="_blank" rel="noopener noreferrer" title={PROOF_KIND_LABEL[p.kind]} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 transition hover:border-gold/30 hover:text-amber-600"><Camera size={10} />{PROOF_KIND_LABEL[p.kind]}</a>
+                      <a key={p.id} href={p.url} target="_blank" rel="noopener noreferrer" title={PROOF_KIND_LABEL[p.kind]} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 transition hover:border-brand/30 hover:text-brand-600"><Camera size={10} />{PROOF_KIND_LABEL[p.kind]}</a>
                     ))}
                   </div>
                 )}
               </div>
             )}
-            <button type="button" onClick={() => setEditing(true)} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-gold/25 bg-gold/10 px-3 py-2 text-xs font-semibold text-amber-600 transition hover:bg-gold/20"><Pencil size={13} /> Edit job</button>
+            <button type="button" onClick={() => setEditing(true)} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-brand/25 bg-brand/10 px-3 py-2 text-xs font-semibold text-brand-600 transition hover:bg-brand/20"><Pencil size={13} /> Edit job</button>
           </div>
         )}
 
         {(nextStatus || undoStatus) && (
           <div className="flex items-center gap-2 mt-1">
             {nextStatus && nextLabel && (
-              <button type="button" onClick={() => onStatusChange(booking.ref, nextStatus)} className="flex-1 py-2 rounded-xl text-xs font-semibold bg-gold/10 text-amber-600 border border-gold/25 hover:bg-gold/20 hover:border-gold/40 active:scale-[0.98] transition-all">
+              <button type="button" onClick={() => onStatusChange(booking.ref, nextStatus)} className="flex-1 py-2 rounded-xl text-xs font-semibold bg-brand/10 text-brand-600 border border-brand/25 hover:bg-brand/20 hover:border-brand/40 active:scale-[0.98] transition-all">
                 {nextLabel}
               </button>
             )}
@@ -291,10 +291,10 @@ function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: (
       <form onSubmit={save} className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
           <div>
-            <h2 className="text-lg font-bold text-[#0F1B33]">Edit job</h2>
+            <h2 className="text-lg font-bold text-[#102A43]">Edit job</h2>
             <p className="text-xs text-slate-500">{booking.ref}</p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-[#0F1B33]"><X size={16} /></button>
+          <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-[#102A43]"><X size={16} /></button>
         </div>
 
         <div className="space-y-4 p-5">
@@ -356,21 +356,21 @@ function EditBookingModal({ booking, onClose }: { booking: DbBooking; onClose: (
             <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={3} className={editInputCls} />
           </div>
           <label className="flex items-center gap-2 text-xs text-slate-500">
-            <input type="checkbox" checked={form.priority} onChange={(e) => set("priority", e.target.checked)} className="h-4 w-4 accent-gold" />
+            <input type="checkbox" checked={form.priority} onChange={(e) => set("priority", e.target.checked)} className="h-4 w-4 accent-brand" />
             Mark as priority
           </label>
         </div>
 
         <div className="sticky bottom-0 flex gap-3 border-t border-slate-200 bg-white px-5 py-4">
           <button type="button" onClick={onClose} disabled={saving} className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 hover:border-slate-300 disabled:opacity-50">Cancel</button>
-          <button type="submit" disabled={saving || !form.customer_name.trim()} className="flex-1 rounded-2xl bg-gold-gradient px-4 py-3 text-sm font-bold text-navy-900 disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button>
+          <button type="submit" disabled={saving || !form.customer_name.trim()} className="flex-1 rounded-2xl bg-brand-gradient px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button>
         </div>
       </form>
     </div>
   );
 }
 
-const editInputCls = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-gold/50";
+const editInputCls = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-brand/50";
 
 function Field({ label, value, onChange, type = "text", required, min }: { label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean; min?: number }) {
   return <div><label className="mb-1 block text-xs text-slate-500">{label}</label><input type={type} min={min} value={value} onChange={(e) => onChange(e.target.value)} required={required} className={editInputCls} /></div>;

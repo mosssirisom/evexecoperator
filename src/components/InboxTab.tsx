@@ -52,7 +52,7 @@ export default function InboxTab({
       <section className="space-y-2">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <Inbox size={16} className="text-amber-600/80" />
+            <Inbox size={16} className="text-brand-600/80" />
             Quote Requests
           </h2>
           <span className="text-xs text-slate-500">{newQuotes.length} new</span>
@@ -79,7 +79,7 @@ export default function InboxTab({
       <section className="space-y-2">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <PhoneMissed size={16} className="text-amber-600/80" />
+            <PhoneMissed size={16} className="text-brand-600/80" />
             Missed Calls
           </h2>
           <button
@@ -110,7 +110,7 @@ export default function InboxTab({
       <section className="space-y-2">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <Mail size={16} className="text-amber-600/80" />
+            <Mail size={16} className="text-brand-600/80" />
             Messages
           </h2>
           <button
@@ -167,7 +167,7 @@ function QuoteRequestCard({
           <div>
             <p className="font-semibold text-slate-800 text-sm leading-tight">{quote.customer_name}</p>
             <div className="flex items-start gap-1.5 mt-1">
-              <MapPin size={12} className="text-amber-600/70 mt-0.5 shrink-0" />
+              <MapPin size={12} className="text-brand-600/70 mt-0.5 shrink-0" />
               <p className="text-xs text-slate-500 leading-relaxed">{route}</p>
             </div>
           </div>
@@ -178,17 +178,17 @@ function QuoteRequestCard({
         <div className="flex items-center gap-3 flex-wrap">
           {dateLabel && (
             <span className="flex items-center gap-1 text-xs text-slate-500">
-              <Calendar size={11} className="text-amber-600/70" /> {dateLabel}
+              <Calendar size={11} className="text-brand-600/70" /> {dateLabel}
             </span>
           )}
           {timeLabel && (
             <span className="flex items-center gap-1 text-xs text-slate-500">
-              <Clock size={11} className="text-amber-600/70" /> {timeLabel}
+              <Clock size={11} className="text-brand-600/70" /> {timeLabel}
             </span>
           )}
           {quote.passengers != null && (
             <span className="flex items-center gap-1 text-xs text-slate-500">
-              <Users size={11} className="text-amber-600/70" /> {quote.passengers}
+              <Users size={11} className="text-brand-600/70" /> {quote.passengers}
             </span>
           )}
         </div>
@@ -212,7 +212,7 @@ function QuoteRequestCard({
 
         {/* Phone */}
         <div className="flex items-center gap-1.5">
-          <Phone size={11} className="text-amber-600/70 shrink-0" />
+          <Phone size={11} className="text-brand-600/70 shrink-0" />
           <span className="text-xs text-slate-500">{quote.phone}</span>
           {quote.contact_method && (
             <span className="text-[10px] text-slate-600 ml-1">via {quote.contact_method}</span>
@@ -222,7 +222,7 @@ function QuoteRequestCard({
         {/* Notes */}
         {quote.notes && (
           <div className="flex items-start gap-1.5">
-            <MessageSquare size={11} className="text-amber-600/70 shrink-0 mt-0.5" />
+            <MessageSquare size={11} className="text-brand-600/70 shrink-0 mt-0.5" />
             <span className="text-xs text-slate-500 italic">{quote.notes}</span>
           </div>
         )}
@@ -237,7 +237,7 @@ function QuoteRequestCard({
           </button>
           <button
             onClick={onConvert}
-            className="flex-1 py-2 rounded-xl text-xs font-semibold bg-gold/10 text-amber-600 border border-gold/25 hover:bg-gold/20 hover:border-gold/40 active:scale-[0.98] transition-all"
+            className="flex-1 py-2 rounded-xl text-xs font-semibold bg-brand/10 text-brand-600 border border-brand/25 hover:bg-brand/20 hover:border-brand/40 active:scale-[0.98] transition-all"
           >
             Create Booking
           </button>
@@ -323,12 +323,12 @@ function ContactMessageCard({
           <div className="flex items-center gap-3 mt-1 flex-wrap">
             {message.phone && (
               <span className="flex items-center gap-1 text-xs text-slate-500">
-                <Phone size={11} className="text-amber-600/70" /> {message.phone}
+                <Phone size={11} className="text-brand-600/70" /> {message.phone}
               </span>
             )}
             {message.email && (
               <span className="flex items-center gap-1 text-xs text-slate-500">
-                <Mail size={11} className="text-amber-600/70" /> {message.email}
+                <Mail size={11} className="text-brand-600/70" /> {message.email}
               </span>
             )}
           </div>

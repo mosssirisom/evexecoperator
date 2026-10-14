@@ -55,13 +55,13 @@ export default function FlightVerificationCard({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-[10px] uppercase tracking-[0.28em] text-amber-600">Flight verification</p>
+        <p className="text-[10px] uppercase tracking-[0.28em] text-brand-600">Flight verification</p>
         <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 p-0.5 text-[11px]">
           <button
             type="button"
             onClick={() => setDirection("arrival")}
             className={`rounded-md px-2 py-1 font-medium transition ${
-              direction === "arrival" ? "bg-white text-[#0F1B33] shadow-sm" : "text-slate-500"
+              direction === "arrival" ? "bg-white text-[#102A43] shadow-sm" : "text-slate-500"
             }`}
           >
             Arrival
@@ -70,7 +70,7 @@ export default function FlightVerificationCard({
             type="button"
             onClick={() => setDirection("departure")}
             className={`rounded-md px-2 py-1 font-medium transition ${
-              direction === "departure" ? "bg-white text-[#0F1B33] shadow-sm" : "text-slate-500"
+              direction === "departure" ? "bg-white text-[#102A43] shadow-sm" : "text-slate-500"
             }`}
           >
             Departure
@@ -80,7 +80,7 @@ export default function FlightVerificationCard({
 
       {verification && (
         <div className="mb-3 space-y-2 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm">
-          <div className="flex items-center gap-2 text-[#0F1B33]">
+          <div className="flex items-center gap-2 text-[#102A43]">
             <Plane className="h-4 w-4 flex-shrink-0 text-slate-500" />
             <span className="font-semibold">{verification.flight_number}</span>
             {(verification.departure_iata || verification.arrival_iata) && (
@@ -94,25 +94,25 @@ export default function FlightVerificationCard({
             {verification.scheduled_departure && (
               <div>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Scheduled departure</p>
-                <p className="mt-0.5 font-medium text-[#0F1B33]">{formatFlightDateTime(verification.scheduled_departure)}</p>
+                <p className="mt-0.5 font-medium text-[#102A43]">{formatFlightDateTime(verification.scheduled_departure)}</p>
               </div>
             )}
             {verification.scheduled_arrival && (
               <div>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Scheduled arrival</p>
-                <p className="mt-0.5 font-medium text-[#0F1B33]">{formatFlightDateTime(verification.scheduled_arrival)}</p>
+                <p className="mt-0.5 font-medium text-[#102A43]">{formatFlightDateTime(verification.scheduled_arrival)}</p>
               </div>
             )}
             {verification.recommended_pickup && (
               <div>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Estimated arrival</p>
-                <p className="mt-0.5 font-medium text-[#0F1B33]">{formatFlightDateTime(verification.recommended_pickup)}</p>
+                <p className="mt-0.5 font-medium text-[#102A43]">{formatFlightDateTime(verification.recommended_pickup)}</p>
               </div>
             )}
             {verification.flight_status && (
               <div>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Flight status</p>
-                <p className="mt-0.5 font-medium text-[#0F1B33]">{verification.flight_status}</p>
+                <p className="mt-0.5 font-medium text-[#102A43]">{verification.flight_status}</p>
               </div>
             )}
           </div>
@@ -145,7 +145,7 @@ export default function FlightVerificationCard({
         type="button"
         onClick={() => verify({ direction })}
         disabled={busy || loading}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-2.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-500/20 disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-brand-400/40 bg-brand-400/10 px-4 py-2.5 text-xs font-semibold text-brand-700 transition hover:bg-brand-400/20 disabled:opacity-60"
       >
         {busy ? (
           <>

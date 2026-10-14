@@ -81,7 +81,7 @@ function InlineDriverCell({ bookingId, currentDriverId, drivers, onAssign }) {
         onClick={handleOpen}
         disabled={pending}
         className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs transition hover:bg-slate-100 disabled:opacity-50 ${
-          current ? "text-slate-600" : "font-medium text-amber-600 hover:text-amber-600"
+          current ? "text-slate-600" : "font-medium text-brand-600 hover:text-brand-600"
         }`}
       >
         {pending ? (
@@ -92,7 +92,7 @@ function InlineDriverCell({ bookingId, currentDriverId, drivers, onAssign }) {
             {current.name}
           </>
         ) : (
-          <span className="rounded-full border border-dashed border-amber-400/40 px-2 py-0.5">
+          <span className="rounded-full border border-dashed border-brand-400/40 px-2 py-0.5">
             + Assign
           </span>
         )}
@@ -108,7 +108,7 @@ function InlineDriverCell({ bookingId, currentDriverId, drivers, onAssign }) {
             <button
               onClick={() => handleAssign(null)}
               className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-slate-100 ${
-                !currentDriverId ? "text-amber-600" : "text-slate-500"
+                !currentDriverId ? "text-brand-600" : "text-slate-500"
               }`}
             >
               <span className="h-2 w-2 rounded-full bg-slate-700" />
@@ -120,7 +120,7 @@ function InlineDriverCell({ bookingId, currentDriverId, drivers, onAssign }) {
                 key={d.id}
                 onClick={() => handleAssign(d.id)}
                 className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-slate-100 ${
-                  d.id === currentDriverId ? "text-amber-600" : "text-slate-600"
+                  d.id === currentDriverId ? "text-brand-600" : "text-slate-600"
                 }`}
               >
                 <span className={`h-2 w-2 flex-shrink-0 rounded-full ${driverDot(d.status)}`} />
@@ -212,10 +212,10 @@ function MobileDriverSheet({ booking, drivers, onAssign, onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-amber-600">Assign Driver</p>
-            <p className="mt-0.5 text-sm font-semibold text-[#0F1B33]">{booking.customer}</p>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-brand-600">Assign Driver</p>
+            <p className="mt-0.5 text-sm font-semibold text-[#102A43]">{booking.customer}</p>
           </div>
-          <button onClick={onClose} className="text-slate-500 transition hover:text-[#0F1B33]">
+          <button onClick={onClose} className="text-slate-500 transition hover:text-[#102A43]">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -226,7 +226,7 @@ function MobileDriverSheet({ booking, drivers, onAssign, onClose }) {
             onClick={() => handleSelect(null)}
             disabled={pending}
             className={`flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-sm transition ${
-              !booking.driverId ? "bg-amber-400/10 text-amber-600" : "text-slate-500 hover:bg-slate-100"
+              !booking.driverId ? "bg-brand-400/10 text-brand-600" : "text-slate-500 hover:bg-slate-100"
             }`}
           >
             <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-slate-700" />
@@ -242,7 +242,7 @@ function MobileDriverSheet({ booking, drivers, onAssign, onClose }) {
                 onClick={() => handleSelect(d.id)}
                 disabled={pending}
                 className={`flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-sm transition ${
-                  isCurrent ? "bg-amber-400/10 text-amber-600" : "text-slate-600 hover:bg-slate-100"
+                  isCurrent ? "bg-brand-400/10 text-brand-600" : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
                 <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${driverDot(d.status)}`} />
@@ -326,7 +326,7 @@ function RouteLines({ from, to, className = "" }) {
     <div className={`relative space-y-1 pl-4 leading-snug ${className}`}>
       <span className="absolute left-[3px] top-[7px] bottom-[7px] w-px bg-slate-200" aria-hidden="true" />
       <p className="relative truncate"><span className="absolute -left-4 top-[5px] h-2 w-2 rounded-full border-2 border-slate-400 bg-white" aria-hidden="true" />{from}</p>
-      <p className="relative truncate"><span className="absolute -left-4 top-[5px] h-2 w-2 rounded-full bg-[#0F1B33]" aria-hidden="true" />{to}</p>
+      <p className="relative truncate"><span className="absolute -left-4 top-[5px] h-2 w-2 rounded-full bg-[#102A43]" aria-hidden="true" />{to}</p>
     </div>
   );
 }
@@ -363,7 +363,7 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign, onRespond }) {
       onClick={() => onSelect(booking)}
       onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onSelect(booking); } }}
       aria-label={`Open booking ${booking.id} for ${booking.customer}`}
-      className={`relative min-w-0 cursor-pointer overflow-hidden rounded-2xl border bg-white shadow-[0_1px_2px_rgba(15,27,51,0.04)] transition active:scale-[0.99] ${
+      className={`relative min-w-0 cursor-pointer overflow-hidden rounded-2xl border bg-white shadow-[0_1px_2px_rgba(16,42,67,0.04)] transition active:scale-[0.99] ${
         pendingRequest ? "border-amber-300" : booking.priority ? "border-red-200" : "border-slate-200/80"
       } ${isCancelled ? "opacity-60" : ""}`}
     >
@@ -372,7 +372,7 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign, onRespond }) {
       <div className="flex gap-3 py-3 pl-4 pr-3">
         {/* Time column */}
         <div className="w-14 flex-shrink-0">
-          <p className={`text-lg font-semibold leading-none tracking-tight ${isDone ? "text-slate-400" : "text-[#0F1B33]"}`}>{booking.time}</p>
+          <p className={`text-lg font-semibold leading-none tracking-tight ${isDone ? "text-slate-400" : "text-[#102A43]"}`}>{booking.time}</p>
           {booking.flight && booking.flight !== "—" && (
             <p className="mt-1.5 flex items-center gap-0.5 text-[10px] font-medium text-slate-500"><Plane className="h-2.5 w-2.5" />{booking.flight}</p>
           )}
@@ -381,11 +381,11 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign, onRespond }) {
         {/* Main */}
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2">
-            <p className="min-w-0 flex-1 truncate text-[15px] font-semibold text-[#0F1B33]">
+            <p className="min-w-0 flex-1 truncate text-[15px] font-semibold text-[#102A43]">
               {booking.priority && <AlertTriangle className="mr-1 inline h-3.5 w-3.5 -translate-y-px text-red-600" />}
               {booking.customer}
             </p>
-            <p className={`flex-shrink-0 text-[15px] font-semibold ${booking.price === "TBC" ? "text-xs font-medium text-slate-400" : "text-[#0F1B33]"}`}>
+            <p className={`flex-shrink-0 text-[15px] font-semibold ${booking.price === "TBC" ? "text-xs font-medium text-slate-400" : "text-[#102A43]"}`}>
               {booking.price === "TBC" ? "Price TBC" : booking.price}
             </p>
           </div>
@@ -403,10 +403,10 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign, onRespond }) {
               onClick={(e) => { stop(e); setDriverSheetOpen(true); }}
               aria-label={booking.driverId ? `Driver ${booking.driver}, change` : "Assign a driver"}
               className={`flex min-h-[32px] min-w-0 items-center gap-1.5 rounded-full border py-0.5 pl-0.5 pr-2.5 text-xs transition active:scale-95 ${
-                booking.driverId ? "border-slate-200 text-slate-700" : "border-dashed border-amber-400 text-amber-700"
+                booking.driverId ? "border-slate-200 text-slate-700" : "border-dashed border-brand-400 text-brand-700"
               }`}
             >
-              <span className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${booking.driverId ? "bg-[#0F1B33] text-white" : "bg-amber-100 text-amber-700"}`}>
+              <span className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${booking.driverId ? "bg-[#102A43] text-white" : "bg-brand-100 text-brand-700"}`}>
                 {booking.driverId ? initials(booking.driver) : "+"}
               </span>
               <span className="truncate">{booking.driverId ? booking.driver : "Assign driver"}</span>
@@ -488,20 +488,20 @@ function DesktopRow({ booking, selected, onSelect, drivers, onAssign, onStatus, 
       onClick={() => onSelect(booking)}
       onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onSelect(booking); } }}
       aria-label={`Open booking ${booking.id} for ${booking.customer}`}
-      className={`group relative grid cursor-pointer grid-cols-[64px_minmax(0,1.3fr)_minmax(0,1.6fr)_minmax(150px,1fr)_72px_190px_16px] items-center gap-5 px-5 py-3.5 outline-none transition hover:bg-slate-50 focus-visible:bg-amber-50/60 ${
-        selected ? "bg-amber-50/60" : ""
+      className={`group relative grid cursor-pointer grid-cols-[64px_minmax(0,1.3fr)_minmax(0,1.6fr)_minmax(150px,1fr)_72px_190px_16px] items-center gap-5 px-5 py-3.5 outline-none transition hover:bg-slate-50 focus-visible:bg-brand-50 ${
+        selected ? "bg-brand-50" : ""
       } ${isCancelled ? "opacity-60" : ""}`}
     >
       <span className={`absolute inset-y-2 left-0 w-1 rounded-r-full ${edgeColour(booking, facts)}`} aria-hidden="true" />
       <div>
-        <p className={`text-lg font-semibold leading-none tracking-tight ${isDone ? "text-slate-400" : "text-[#0F1B33]"}`}>{booking.time}</p>
+        <p className={`text-lg font-semibold leading-none tracking-tight ${isDone ? "text-slate-400" : "text-[#102A43]"}`}>{booking.time}</p>
         {booking.flight && booking.flight !== "—" && (
           <p className="mt-1.5 flex items-center gap-0.5 text-[11px] font-medium text-slate-500"><Plane className="h-3 w-3" />{booking.flight}</p>
         )}
       </div>
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <p className="truncate font-semibold text-[#0F1B33]">
+          <p className="truncate font-semibold text-[#102A43]">
             {booking.priority && <AlertTriangle className="mr-1 inline h-3.5 w-3.5 -translate-y-px text-red-600" />}
             {booking.customer}
           </p>
@@ -511,7 +511,7 @@ function DesktopRow({ booking, selected, onSelect, drivers, onAssign, onStatus, 
               onClick={stop}
               aria-label={`Call ${booking.customer}`}
               title={booking.phone}
-              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 opacity-70 transition hover:border-amber-300 hover:text-amber-700 group-hover:opacity-100"
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 opacity-70 transition hover:border-brand-300 hover:text-amber-700 group-hover:opacity-100"
             >
               <Phone className="h-3 w-3" />
             </a>
@@ -524,7 +524,7 @@ function DesktopRow({ booking, selected, onSelect, drivers, onAssign, onStatus, 
       <div className="min-w-0" onClick={stop} onKeyDown={stop}>
         <InlineDriverCell bookingId={booking.id} currentDriverId={booking.driverId} drivers={drivers} onAssign={onAssign} />
       </div>
-      <p className={`text-right font-semibold ${booking.price === "TBC" ? "text-xs font-medium text-slate-400" : "text-[#0F1B33]"}`}>
+      <p className={`text-right font-semibold ${booking.price === "TBC" ? "text-xs font-medium text-slate-400" : "text-[#102A43]"}`}>
         {booking.price === "TBC" ? "Price TBC" : booking.price}
       </p>
       <div className="flex items-center justify-end gap-2" onClick={stop} onKeyDown={stop}>
@@ -699,12 +699,12 @@ export default function BookingsList() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search customer, flight, ref… (/)"
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-9 text-sm text-[#0F1B33] placeholder:text-slate-400 outline-none transition focus:border-amber-400/30 sm:py-3 lg:w-72"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-9 text-sm text-[#102A43] placeholder:text-slate-400 outline-none transition focus:border-brand-400/30 sm:py-3 lg:w-72"
                   />
                   {search && (
                     <button
                       onClick={() => setSearch("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#0F1B33]"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#102A43]"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -722,7 +722,7 @@ export default function BookingsList() {
                         aria-label={`${v.label} (${viewCounts[v.key]})`}
                         onClick={() => setView(v.key)}
                         className={`flex flex-shrink-0 items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium transition sm:gap-1.5 sm:px-3 sm:text-sm ${
-                          view === v.key ? "bg-white text-[#0F1B33] shadow-sm" : "text-slate-500 hover:text-[#0F1B33]"
+                          view === v.key ? "bg-white text-[#102A43] shadow-sm" : "text-slate-500 hover:text-[#102A43]"
                         }`}
                       >
                         {v.short ? (<><span className="sm:hidden">{v.short}</span><span className="hidden sm:inline">{v.label}</span></>) : v.label}
@@ -745,7 +745,7 @@ export default function BookingsList() {
                     aria-label={searchOpen ? "Close search" : "Search"}
                     className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border transition active:bg-slate-100 sm:hidden ${
                       searchOpen || search
-                        ? "border-amber-400/40 bg-amber-400/10 text-amber-600"
+                        ? "border-brand-400/40 bg-brand-400/10 text-brand-600"
                         : "border-slate-200 text-slate-500"
                     }`}
                   >
@@ -769,9 +769,9 @@ export default function BookingsList() {
                     <div key={g.key ?? "no-date"} className="grid min-w-0 gap-2">
                       <p
                         style={{ top: stickyTop + filterBarH }}
-                        className="sticky z-20 -mx-2 flex items-baseline gap-2 bg-[#EEF0F6]/95 px-3 py-1.5 backdrop-blur-sm sm:-mx-6 sm:px-6"
+                        className="sticky z-20 -mx-2 flex items-baseline gap-2 bg-[#F3F6F9]/95 px-3 py-1.5 backdrop-blur-sm sm:-mx-6 sm:px-6"
                       >
-                        <span className="text-sm font-semibold text-[#0F1B33]">{g.label}</span>
+                        <span className="text-sm font-semibold text-[#102A43]">{g.label}</span>
                         {g.sub && <span className="text-xs text-slate-500">{g.sub}</span>}
                         <span className="ml-auto text-xs text-slate-400">{g.items.length} job{g.items.length === 1 ? "" : "s"}</span>
                       </p>
@@ -809,9 +809,9 @@ export default function BookingsList() {
                 </div>
               )}
               {groupByDate(filtered, view === "past").map((g) => (
-                <section key={g.key ?? "no-date"} className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,27,51,0.04)]">
+                <section key={g.key ?? "no-date"} className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(16,42,67,0.04)]">
                   <header className="flex items-baseline gap-2 border-b border-slate-100 px-5 py-3">
-                    <h3 className="text-sm font-semibold text-[#0F1B33]">{g.label}</h3>
+                    <h3 className="text-sm font-semibold text-[#102A43]">{g.label}</h3>
                     {g.sub && <span className="text-xs text-slate-500">{g.sub}</span>}
                     <span className="ml-auto text-xs text-slate-400">{g.items.length} job{g.items.length === 1 ? "" : "s"}</span>
                   </header>
@@ -848,7 +848,7 @@ export default function BookingsList() {
                 <button
                   onClick={() => loadEarlier().catch((err) => toast({ message: err?.message ?? "Couldn't load earlier bookings", type: "error" }))}
                   disabled={loadingMore}
-                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs text-slate-500 transition hover:border-amber-400/20 hover:text-amber-600 disabled:opacity-50"
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs text-slate-500 transition hover:border-brand-400/20 hover:text-brand-600 disabled:opacity-50"
                 >
                   {loadingMore ? "Loading…" : "Show earlier bookings"}
                 </button>
@@ -864,7 +864,7 @@ export default function BookingsList() {
                 <button
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs text-slate-500 transition hover:border-amber-400/20 hover:text-amber-600 disabled:opacity-50"
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs text-slate-500 transition hover:border-brand-400/20 hover:text-brand-600 disabled:opacity-50"
                 >
                   {loadingMore ? "Loading…" : "Load more"}
                 </button>

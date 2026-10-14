@@ -20,7 +20,7 @@ function Row({ icon: Icon, label, value, muted }) {
       <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-600" />
       <div>
         <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">{label}</p>
-        <p className={`mt-0.5 text-sm ${muted ? "text-slate-500" : "text-[#0F1B33]"}`}>{value}</p>
+        <p className={`mt-0.5 text-sm ${muted ? "text-slate-500" : "text-[#102A43]"}`}>{value}</p>
       </div>
     </div>
   );
@@ -91,7 +91,7 @@ function StatusPicker({ currentStatus, onUpdate }) {
                 </button>
                 <button
                   onClick={() => setConfirmCancel(false)}
-                  className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-500 transition hover:text-[#0F1B33]"
+                  className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-500 transition hover:text-[#102A43]"
                 >
                   Keep Job
                 </button>
@@ -109,7 +109,7 @@ function StatusPicker({ currentStatus, onUpdate }) {
                   onClick={() => handleSelect(reverse)}
                   className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-slate-700 transition hover:bg-slate-100"
                 >
-                  <RotateCcw className="h-3.5 w-3.5 text-amber-600" />
+                  <RotateCcw className="h-3.5 w-3.5 text-brand-600" />
                   {reverseLabel(currentStatus)}
                 </button>
               )}
@@ -167,8 +167,8 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
         aria-expanded={open}
         className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
           current
-            ? "border-slate-200 bg-slate-50 text-[#0F1B33] hover:border-amber-400/20"
-            : "border-dashed border-amber-400/30 bg-amber-400/[0.04] text-amber-600 hover:border-amber-400/50 hover:bg-amber-400/[0.06]"
+            ? "border-slate-200 bg-slate-50 text-[#102A43] hover:border-brand-400/20"
+            : "border-dashed border-brand-400/30 bg-brand-400/[0.04] text-brand-600 hover:border-brand-400/50 hover:bg-brand-400/[0.06]"
         }`}
       >
         {pending ? (
@@ -201,7 +201,7 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
             aria-selected={currentDriverId == null}
             onClick={() => handleAssign(null)}
             className={`flex w-full items-center gap-3 px-4 py-3 text-sm transition hover:bg-slate-100 ${
-              currentDriverId == null ? "text-amber-600" : "text-slate-500"
+              currentDriverId == null ? "text-brand-600" : "text-slate-500"
             }`}
           >
             <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
@@ -215,7 +215,7 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
               aria-selected={d.id === currentDriverId}
               onClick={() => handleAssign(d.id)}
               className={`flex w-full items-center gap-3 px-4 py-3 text-sm transition hover:bg-slate-100 ${
-                d.id === currentDriverId ? "text-amber-600" : "text-slate-600"
+                d.id === currentDriverId ? "text-brand-600" : "text-slate-600"
               }`}
             >
               <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${driverDot(d.status)}`} />
@@ -259,7 +259,7 @@ function PaymentMethodPicker({ value, onSelect }) {
             }}
             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
               active
-                ? "border-amber-400/40 bg-amber-400/10 text-amber-600"
+                ? "border-brand-400/40 bg-brand-400/10 text-brand-600"
                 : "border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700"
             }`}
           >
@@ -324,7 +324,7 @@ function PaymentBadge({ paymentStatus, onUpdate }) {
 }
 
 const editInputCls =
-  "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#0F1B33] placeholder:text-slate-400 outline-none transition focus:border-amber-400/40";
+  "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#102A43] placeholder:text-slate-400 outline-none transition focus:border-brand-400/40";
 
 function EditField({ label, icon: Icon, children }) {
   return (
@@ -398,7 +398,7 @@ function BookingEditForm({ booking, onSave, onCancel, onUpdatePaymentStatus, onU
 
   return (
     <div className="space-y-4 px-5 py-5 sm:px-6">
-      <p className="text-[10px] uppercase tracking-[0.28em] text-amber-600">Edit booking</p>
+      <p className="text-[10px] uppercase tracking-[0.28em] text-brand-600">Edit booking</p>
 
       <EditField label="Customer" icon={User}>
         <input className={editInputCls} value={form.customer} onChange={set("customer")} placeholder="Customer name" />
@@ -494,7 +494,7 @@ function BookingEditForm({ booking, onSave, onCancel, onUpdatePaymentStatus, onU
           type="button"
           onClick={save}
           disabled={busy}
-          className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-amber-500 px-4 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:opacity-60"
+          className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400 disabled:opacity-60"
         >
           {busy ? <><Loader2 className="h-4 w-4 animate-spin" />Saving…</> : "Save changes"}
         </button>
@@ -524,8 +524,8 @@ function RespondPanel({ booking, onRespond }) {
   };
 
   return (
-    <div className="flex-shrink-0 border-b border-slate-100 bg-amber-400/[0.06] px-5 py-4 sm:px-6">
-      <p className="text-[10px] uppercase tracking-[0.28em] text-amber-600">New website request</p>
+    <div className="flex-shrink-0 border-b border-slate-100 bg-brand-400/[0.06] px-5 py-4 sm:px-6">
+      <p className="text-[10px] uppercase tracking-[0.28em] text-brand-600">New website request</p>
       <p className="mt-1 text-sm text-slate-600">
         Accept to confirm the job, or reject to decline. The customer is notified by email (SMS if there's no email).
       </p>
@@ -684,7 +684,7 @@ export default function BookingDetailDrawer({
         <div className="flex flex-shrink-0 items-start justify-between border-b border-slate-100 px-5 py-4 sm:px-6 sm:py-5">
           <div className="min-w-0 flex-1">
             <p className="font-mono text-xs text-slate-500">{booking.id}</p>
-            <h2 id="drawer-booking-title" className="mt-1 truncate text-lg font-semibold text-[#0F1B33] sm:text-xl">
+            <h2 id="drawer-booking-title" className="mt-1 truncate text-lg font-semibold text-[#102A43] sm:text-xl">
               {booking.customer}
             </h2>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -705,14 +705,14 @@ export default function BookingDetailDrawer({
                 onClick={() => setEditMode(true)}
                 title="Edit booking"
                 aria-label="Edit booking"
-                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-amber-600"
+                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-brand-600"
               >
                 <Edit3 className="h-4 w-4" />
               </button>
             )}
             <button
               onClick={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-[#0F1B33]"
+              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-[#102A43]"
             >
               <X className="h-5 w-5" />
             </button>
@@ -767,10 +767,10 @@ export default function BookingDetailDrawer({
 
         {/* ETA banner for active jobs */}
         {isActive && booking.pickupTime && (
-          <div className="flex-shrink-0 border-b border-slate-100 bg-amber-400/[0.04] px-5 py-3 sm:px-6">
+          <div className="flex-shrink-0 border-b border-slate-100 bg-brand-400/[0.04] px-5 py-3 sm:px-6">
             <p className="text-xs text-slate-500">Pickup</p>
             <div className="flex items-baseline gap-3">
-              <span className="text-lg font-semibold text-[#0F1B33]">{booking.time}</span>
+              <span className="text-lg font-semibold text-[#102A43]">{booking.time}</span>
               <ETACountdown pickupTime={booking.pickupTime} className="text-sm" />
             </div>
           </div>
@@ -791,7 +791,7 @@ export default function BookingDetailDrawer({
           <div className="space-y-6 px-5 py-5 sm:px-6">
             {/* Contact */}
             <div>
-              <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-600">Contact</p>
+              <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-brand-600">Contact</p>
               <div className="space-y-3">
                 {booking.phone && (
                   <div className="flex items-center gap-3">
@@ -799,7 +799,7 @@ export default function BookingDetailDrawer({
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Phone</p>
                       <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                        <p className="text-sm text-[#0F1B33]">{booking.phone}</p>
+                        <p className="text-sm text-[#102A43]">{booking.phone}</p>
                         {phoneHref && (
                           <a
                             href={phoneHref}
@@ -842,7 +842,7 @@ export default function BookingDetailDrawer({
 
             {/* Journey */}
             <div>
-              <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-600">Journey</p>
+              <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-brand-600">Journey</p>
               <div className="space-y-3">
                 <Row icon={MapPin} label="Route" value={booking.route} />
                 <Row icon={MapPin} label="Pickup address" value={booking.pickupLocation || booking.airport || null} />
@@ -893,7 +893,7 @@ export default function BookingDetailDrawer({
                         type="button"
                         onClick={sendPaymentLink}
                         disabled={linkBusy}
-                        className="mt-3 inline-flex items-center gap-2 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-semibold text-black transition hover:bg-amber-400 disabled:opacity-60"
+                        className="mt-3 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-brand-400 disabled:opacity-60"
                       >
                         {linkBusy ? (
                           <><Loader2 className="h-3.5 w-3.5 animate-spin" />Sending…</>
@@ -915,7 +915,7 @@ export default function BookingDetailDrawer({
                           {linkResult.smsHref && (
                             <a
                               href={linkResult.smsHref}
-                              className="inline-flex items-center gap-2 rounded-xl border border-amber-500/40 px-3.5 py-2 text-xs font-semibold text-amber-300 transition hover:bg-amber-500/10"
+                              className="inline-flex items-center gap-2 rounded-xl border border-brand-500/40 px-3.5 py-2 text-xs font-semibold text-brand-300 transition hover:bg-brand-500/10"
                             >
                               <Send className="h-3.5 w-3.5" />Text link to customer
                             </a>
@@ -951,7 +951,7 @@ export default function BookingDetailDrawer({
             {/* Return journey (customer booked a return on the same request) */}
             {booking.returnJourney && (
               <div>
-                <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-600">Return journey</p>
+                <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-brand-600">Return journey</p>
                 <div className="space-y-3">
                   <Row icon={RotateCcw} label="Return route" value={booking.returnRoute} />
                   <Row icon={Plane} label="Return flight" value={booking.returnFlight && booking.returnFlight !== "—" ? booking.returnFlight : null} />
@@ -963,7 +963,7 @@ export default function BookingDetailDrawer({
 
             {/* Driver */}
             <div>
-              <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-amber-600">Driver</p>
+              <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-brand-600">Driver</p>
               <DriverPicker
                 currentDriverId={booking.driverId}
                 drivers={drivers}
@@ -974,11 +974,11 @@ export default function BookingDetailDrawer({
             {/* Notes */}
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-[10px] uppercase tracking-[0.28em] text-amber-600">Notes</p>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-brand-600">Notes</p>
                 {!editingNotes && (
                   <button
                     onClick={() => setEditingNotes(true)}
-                    className="flex min-h-[36px] items-center gap-1 px-2 text-[10px] text-slate-500 transition hover:text-amber-600"
+                    className="flex min-h-[36px] items-center gap-1 px-2 text-[10px] text-slate-500 transition hover:text-brand-600"
                   >
                     <Edit3 className="h-3 w-3" />
                     Edit
@@ -992,20 +992,20 @@ export default function BookingDetailDrawer({
                     onChange={(e) => setNotes(e.target.value)}
                     rows={4}
                     placeholder="Add notes…"
-                    className="w-full rounded-2xl border border-amber-400/20 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none placeholder:text-slate-400 resize-none"
+                    className="w-full rounded-2xl border border-brand-400/20 bg-slate-50 px-4 py-3 text-sm text-[#102A43] outline-none placeholder:text-slate-400 resize-none"
                     autoFocus
                   />
                   <div className="mt-2 flex gap-2">
                     <button
                       onClick={saveNotes}
                       disabled={saving}
-                      className="min-h-[44px] rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-black transition hover:bg-amber-400 disabled:opacity-50"
+                      className="min-h-[44px] rounded-xl bg-brand-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-400 disabled:opacity-50"
                     >
                       {saving ? "Saving…" : "Save"}
                     </button>
                     <button
                       onClick={() => { setNotes(booking.notes ?? ""); setEditingNotes(false); }}
-                      className="min-h-[44px] rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-500 transition hover:text-[#0F1B33]"
+                      className="min-h-[44px] rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-500 transition hover:text-[#102A43]"
                     >
                       Cancel
                     </button>
@@ -1039,7 +1039,7 @@ export default function BookingDetailDrawer({
             {onUpdateBooking && (
               <button
                 onClick={() => setEditMode(true)}
-                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-400"
               >
                 <Edit3 className="h-4 w-4" />
                 Edit Job
@@ -1049,7 +1049,7 @@ export default function BookingDetailDrawer({
             {booking.airport && booking.destination && (
               <button
                 onClick={() => onCreateReturn?.(booking)}
-                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-amber-400/20 bg-amber-400/5 px-4 py-2.5 text-sm font-medium text-amber-600 transition hover:bg-amber-400/10"
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-brand-400/20 bg-brand-400/5 px-4 py-2.5 text-sm font-medium text-brand-600 transition hover:bg-brand-400/10"
               >
                 <RefreshCw className="h-4 w-4" />
                 Create Return Journey
@@ -1069,7 +1069,7 @@ export default function BookingDetailDrawer({
               </button>
               <button
                 onClick={onClose}
-                className="min-h-[44px] rounded-2xl border border-slate-200 px-5 py-2.5 text-sm text-slate-500 transition hover:text-[#0F1B33]"
+                className="min-h-[44px] rounded-2xl border border-slate-200 px-5 py-2.5 text-sm text-slate-500 transition hover:text-[#102A43]"
               >
                 Close
               </button>
@@ -1094,7 +1094,7 @@ export default function BookingDetailDrawer({
             <div className="flex items-start gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-red-600"><ShieldCheck className="h-5 w-5" /></div>
               <div>
-                <h2 className="text-lg font-bold text-[#0F1B33]">Confirm job deletion</h2>
+                <h2 className="text-lg font-bold text-[#102A43]">Confirm job deletion</h2>
                 <p className="mt-1 text-sm text-slate-500">For security, re-enter your operator password before deleting this booking.</p>
               </div>
             </div>
@@ -1115,7 +1115,7 @@ export default function BookingDetailDrawer({
               onChange={(e) => setDeletePassword(e.target.value)}
               autoFocus
               onKeyDown={(e) => { if (e.key === "Enter" && deletePassword.trim() && !deleteBusy) confirmDelete(); }}
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none focus:border-red-400/50"
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#102A43] outline-none focus:border-red-400/50"
               placeholder="Enter password"
             />
             <div className="mt-5 flex gap-3">

@@ -68,9 +68,9 @@ export default function SetupChecklist({ drivers, hasBookings }) {
     <section className="card overflow-hidden" aria-label="Get set up">
       <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
         <div className="min-w-0 flex-1">
-          <h2 className="text-base font-semibold text-[#0F1B33]">Get {tenant.name} set up</h2>
+          <h2 className="text-base font-semibold text-[#102A43]">Get {tenant.name} set up</h2>
           <div className="mt-2 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-amber-500 transition-all" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+            <div className="h-full rounded-full bg-brand-500 transition-all" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
           </div>
         </div>
         <span className="text-xs text-slate-500">{doneCount} of {steps.length} done</span>
@@ -83,7 +83,7 @@ export default function SetupChecklist({ drivers, hasBookings }) {
           <li key={s.key}>
             <Link href={s.href} className="flex items-center gap-3 px-4 py-3 transition hover:bg-slate-50 sm:px-5">
               {s.done ? <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-emerald-500" /> : <Circle className="h-5 w-5 flex-shrink-0 text-slate-300" />}
-              <span className={`flex-1 text-sm ${s.done ? "text-slate-400 line-through" : "text-[#0F1B33]"}`}>
+              <span className={`flex-1 text-sm ${s.done ? "text-slate-400 line-through" : "text-[#102A43]"}`}>
                 {s.label}{s.optional && !s.done && <span className="ml-1.5 text-xs text-slate-400">(optional)</span>}
               </span>
               {!s.done && <ChevronRight className="h-4 w-4 text-slate-300" />}

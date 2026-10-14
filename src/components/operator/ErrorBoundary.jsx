@@ -31,14 +31,14 @@ export default class ErrorBoundary extends React.Component {
             <AlertTriangle className="h-7 w-7 text-red-600" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#0F1B33]">Something went wrong</p>
+            <p className="text-sm font-semibold text-[#102A43]">Something went wrong</p>
             <p className="mt-1 max-w-xs text-xs text-slate-500">
               {this.state.error?.message ?? "An unexpected error occurred on this page."}
             </p>
           </div>
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
-            className="flex items-center gap-2 rounded-2xl border border-slate-200 px-5 py-3 text-sm text-slate-600 transition hover:border-amber-400/20 hover:text-amber-600"
+            className="flex items-center gap-2 rounded-2xl border border-slate-200 px-5 py-3 text-sm text-slate-600 transition hover:border-brand-400/20 hover:text-brand-600"
           >
             <RefreshCw className="h-4 w-4" />
             Try again

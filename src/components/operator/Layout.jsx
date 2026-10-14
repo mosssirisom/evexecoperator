@@ -58,18 +58,18 @@ function NotificationPopover({
       className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-slate-200 bg-white shadow-2xl sm:w-80"
     >
       <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600">Notifications</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">Notifications</p>
         <div className="flex items-center gap-2">
           {total > 0 && (
             <button
               onClick={onClearBookings}
-              className="text-[10px] text-slate-500 hover:text-amber-600 transition"
+              className="text-[10px] text-slate-500 hover:text-brand-600 transition"
               title="Mark all as read"
             >
               Mark all read
             </button>
           )}
-          <button onClick={onClose} className="text-slate-500 hover:text-[#0F1B33] transition">
+          <button onClick={onClose} className="text-slate-500 hover:text-[#102A43] transition">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -92,7 +92,7 @@ function NotificationPopover({
                   <CalendarPlus className="h-3.5 w-3.5 text-emerald-600" />
                 </div>
                 <button onClick={() => onOpenBooking(b)} className="min-w-0 flex-1 text-left">
-                  <p className="truncate text-sm font-medium text-[#0F1B33]">{b.customer}</p>
+                  <p className="truncate text-sm font-medium text-[#102A43]">{b.customer}</p>
                   <p className="mt-0.5 truncate text-xs text-slate-500">{b.route}</p>
                   <p className="mt-0.5 text-[10px] text-slate-600">
                     {b.source === "website" ? "Online booking" : "New booking"}
@@ -101,7 +101,7 @@ function NotificationPopover({
                 </button>
                 <button
                   onClick={() => onDismissBooking(b.id)}
-                  className="mt-0.5 flex-shrink-0 text-slate-600 hover:text-[#0F1B33] transition"
+                  className="mt-0.5 flex-shrink-0 text-slate-600 hover:text-[#102A43] transition"
                   title="Dismiss"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -115,7 +115,7 @@ function NotificationPopover({
       <Link
         href="/operator/inbox"
         onClick={onClose}
-        className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-amber-600"
+        className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-brand-600"
       >
         <span>Quotes, missed calls &amp; messages</span>
         <span className="flex items-center gap-2">
@@ -152,11 +152,11 @@ function AccountMenu({ user, tenant, onSignOut }) {
         aria-label={`Account: ${display}`}
         className="glass flex h-10 items-center gap-2 rounded-2xl pl-1 pr-1 transition hover:bg-slate-100 sm:h-12 lg:pr-3"
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-400/15 text-xs font-semibold text-amber-700 sm:h-10 sm:w-10 sm:text-sm">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-400/15 text-xs font-semibold text-brand-700 sm:h-10 sm:w-10 sm:text-sm">
           {initialsOf(user?.name || user?.email)}
         </span>
         <span className="hidden min-w-0 text-left lg:block">
-          <span className="block max-w-[10rem] truncate text-sm font-medium text-[#0F1B33]">{display}</span>
+          <span className="block max-w-[10rem] truncate text-sm font-medium text-[#102A43]">{display}</span>
           <span className="block text-xs text-slate-500">{role}</span>
         </span>
         <ChevronDown className="hidden h-3.5 w-3.5 text-slate-400 lg:block" />
@@ -164,7 +164,7 @@ function AccountMenu({ user, tenant, onSignOut }) {
       {open && (
         <div role="menu" className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
           <div className="border-b border-slate-100 px-4 py-3">
-            <p className="truncate text-sm font-semibold text-[#0F1B33]">{display}</p>
+            <p className="truncate text-sm font-semibold text-[#102A43]">{display}</p>
             {user?.name && user?.email && <p className="truncate text-xs text-slate-500">{user.email}</p>}
             <p className="mt-1 text-xs text-slate-500">{role}{tenant?.name ? ` · ${tenant.name}` : ""}</p>
           </div>
@@ -285,16 +285,16 @@ export default function Layout({ children, onSignOut }) {
 
   return (
     <OperatorProvider value={operatorValue}>
-    <div className="min-h-screen bg-white text-[#0F1B33]">
+    <div className="min-h-screen bg-white text-[#102A43]">
       <Sidebar inboxCount={inboxCount} businessName={businessName} logoUrl={brandFrom(profile.tenant).logoUrl} onSignOut={onSignOut} />
-      <main className="ml-0 min-h-screen w-full max-w-full overflow-x-hidden pb-[calc(5rem+env(safe-area-inset-bottom))] sm:ml-20 sm:w-auto lg:ml-60 sm:pb-0 bg-[radial-gradient(circle_at_top_right,rgba(201,165,80,0.14),transparent_38%),linear-gradient(180deg,#EEF0F6_0%,#E4E7F0_100%)]">
+      <main className="ml-0 min-h-screen w-full max-w-full overflow-x-hidden pb-[calc(5rem+env(safe-area-inset-bottom))] sm:ml-20 sm:w-auto lg:ml-60 sm:pb-0 bg-[radial-gradient(circle_at_top_right,rgba(227,237,248,0.9),transparent_38%),linear-gradient(180deg,#F3F6F9_0%,#EDF2F7_100%)]">
         <header className="sticky top-0 z-40 border-b border-slate-100 bg-white/85 px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] sm:px-10 sm:pb-6 sm:pt-6 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
 
             {/* Page title — hidden when mobile search is open */}
             <div className={`min-w-0 flex-1 sm:flex-none ${searchOpen ? "hidden sm:block" : ""}`}>
-              <p className="text-xs uppercase tracking-[0.3em] text-amber-600">{meta.label}</p>
-              <h1 className="mt-1 text-xl font-semibold tracking-tight text-[#0F1B33] sm:text-3xl">
+              <p className="text-xs uppercase tracking-[0.3em] text-brand-600">{meta.label}</p>
+              <h1 className="mt-1 text-xl font-semibold tracking-tight text-[#102A43] sm:text-3xl">
                 {meta.title}
               </h1>
             </div>
@@ -312,13 +312,13 @@ export default function Layout({ children, onSignOut }) {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     aria-label="Search bookings and drivers"
                     placeholder="Search bookings, drivers…"
-                    className="w-full bg-transparent text-sm text-[#0F1B33] outline-none placeholder:text-slate-400"
+                    className="w-full bg-transparent text-sm text-[#102A43] outline-none placeholder:text-slate-400"
                   />
                 </div>
                 <button
                   type="button"
                   onClick={() => setSearchOpen(false)}
-                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:text-[#0F1B33]"
+                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:text-[#102A43]"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -336,7 +336,7 @@ export default function Layout({ children, onSignOut }) {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   aria-label="Search bookings, flights and drivers"
                   placeholder="Search bookings, flights, drivers…"
-                  className="w-full bg-transparent text-sm text-[#0F1B33] outline-none placeholder:text-slate-400"
+                  className="w-full bg-transparent text-sm text-[#102A43] outline-none placeholder:text-slate-400"
                 />
               </div>
             </form>
@@ -350,7 +350,7 @@ export default function Layout({ children, onSignOut }) {
                 onClick={() => openNewBooking()}
                 title="New Booking"
                 aria-label="New Booking"
-                className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gold-gradient text-navy-900 shadow-gold-sm transition hover:shadow-gold-md active:scale-95 sm:h-12 sm:w-12"
+                className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-gradient text-white shadow-brand-sm transition hover:shadow-brand-md active:scale-95 sm:h-12 sm:w-12"
               >
                 <Plus className="h-5 w-5" strokeWidth={2.75} />
               </button>

@@ -81,7 +81,7 @@ export default function TeamSettings({ toast }) {
           return (
             <div key={m.userId} className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-[#0F1B33]">
+                <p className="truncate text-sm font-medium text-[#102A43]">
                   {m.name || m.email}{isMe && <span className="ml-1.5 text-xs font-normal text-slate-500">(you)</span>}
                 </p>
                 <p className="truncate text-xs text-slate-500">
@@ -95,7 +95,7 @@ export default function TeamSettings({ toast }) {
                   disabled={busy === m.userId}
                   aria-label={`Role for ${m.email}`}
                   onChange={(e) => run(m.userId, () => api("PATCH", { userId: m.userId, role: e.target.value }), `${m.email} is now ${roleLabel(e.target.value)}`)}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-[#0F1B33]"
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-[#102A43]"
                 >
                   {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
@@ -106,7 +106,7 @@ export default function TeamSettings({ toast }) {
                 <button
                   onClick={() => run(m.userId, () => api("POST", { action: "resend", userId: m.userId }), `Invite resent to ${m.email}`)}
                   disabled={busy === m.userId}
-                  className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 hover:text-amber-600 disabled:opacity-50"
+                  className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 hover:text-brand-600 disabled:opacity-50"
                 >
                   <RefreshCw className="h-3.5 w-3.5" /> Resend
                 </button>
@@ -127,8 +127,8 @@ export default function TeamSettings({ toast }) {
       </div>
 
       {state.canManage ? (
-        <form onSubmit={invite} className="space-y-3 rounded-2xl border border-amber-400/20 bg-amber-400/[0.04] p-4">
-          <p className="flex items-center gap-2 text-sm font-semibold text-[#0F1B33]"><UserPlus className="h-4 w-4 text-amber-600" /> Invite someone</p>
+        <form onSubmit={invite} className="space-y-3 rounded-2xl border border-brand-400/20 bg-brand-400/[0.04] p-4">
+          <p className="flex items-center gap-2 text-sm font-semibold text-[#102A43]"><UserPlus className="h-4 w-4 text-brand-600" /> Invite someone</p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3">
               <Mail className="h-4 w-4 flex-shrink-0 text-slate-400" />
@@ -137,7 +137,7 @@ export default function TeamSettings({ toast }) {
             <select value={role} onChange={(e) => setRole(e.target.value)} aria-label="Role" className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm">
               {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
-            <button type="submit" disabled={busy === "invite" || !email.trim()} className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-50">
+            <button type="submit" disabled={busy === "invite" || !email.trim()} className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-400 disabled:opacity-50">
               {busy === "invite" ? "Sending…" : "Send invite"}
             </button>
           </div>

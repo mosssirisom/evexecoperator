@@ -8,9 +8,9 @@
   --bg-primary:   #070d1c;
   --bg-secondary: #0c1528;
   --bg-tertiary:  #111e38;
-  --border:       rgba(201, 165, 80, 0.12);
-  --gold:         #C9A550;
-  --gold-light:   #E8C97A;
+  --border:       rgba(16, 42, 67, 0.12);
+  --brand:        #102A43;
+  --brand-light:  #E3EDF8;
 }
 
 * {
@@ -32,8 +32,8 @@ body {
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(201,165,80,0.25); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(201,165,80,0.4); }
+::-webkit-scrollbar-thumb { background: rgba(16,42,67,0.25); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(16,42,67,0.4); }
 
 /* Gold shimmer animation for active status indicators */
 @keyframes gold-pulse {

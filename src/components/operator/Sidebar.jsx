@@ -73,7 +73,7 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", logo
           tablets, full labelled sidebar from lg. */}
       <aside
         aria-label="Main navigation"
-        className="fixed left-0 top-0 z-50 hidden h-screen w-20 flex-col border-r border-white/5 bg-[#050B17] py-5 sm:flex lg:w-60 lg:px-4"
+        className="fixed left-0 top-0 z-50 hidden h-screen w-20 flex-col border-r border-white/5 bg-[#0B1F33] py-5 sm:flex lg:w-60 lg:px-4"
       >
         <Link href="/operator/today" className="mb-8 flex items-center justify-center gap-3 lg:justify-start lg:px-2" title={businessName}>
           {logoUrl ? (
@@ -83,7 +83,7 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", logo
               <img src={logoUrl} alt="" className="max-h-full max-w-full object-contain" />
             </span>
           ) : (
-            <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-amber-400/25 bg-amber-400/10 text-sm font-bold text-amber-300">
+            <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-brand-400/25 bg-brand-400/10 text-sm font-bold text-brand-300">
               {initialsOf(businessName)}
             </span>
           )}
@@ -105,14 +105,14 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", logo
                 aria-current={active ? "page" : undefined}
                 className={`relative flex flex-col items-center gap-1 rounded-2xl px-1 py-2.5 text-[10px] font-medium transition lg:flex-row lg:gap-3 lg:px-3 lg:py-2.5 lg:text-sm ${
                   active
-                    ? "bg-amber-400/10 text-amber-300"
+                    ? "bg-brand-400/10 text-brand-300"
                     : "text-slate-400 hover:bg-white/5 hover:text-white"
                 }`}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
                 <span className="lg:flex-1">{item.label}</span>
                 <Badge count={count} className="absolute right-2 top-1.5 lg:static" />
-                {active && <span className="absolute -left-2 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-amber-400 lg:-left-4" />}
+                {active && <span className="absolute -left-2 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-brand-400 lg:-left-4" />}
               </Link>
             );
           })}
@@ -129,7 +129,7 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", logo
                 target="_blank"
                 rel="noopener noreferrer"
                 title={p.label}
-                className="flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] text-slate-500 transition hover:bg-white/5 hover:text-amber-300 lg:flex-row lg:gap-3 lg:px-3 lg:text-xs"
+                className="flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] text-slate-500 transition hover:bg-white/5 hover:text-brand-300 lg:flex-row lg:gap-3 lg:px-3 lg:text-xs"
               >
                 <Icon className="h-4 w-4 flex-shrink-0" />
                 <span className="lg:flex-1">{p.label}</span>
@@ -143,7 +143,7 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", logo
       {/* Phone: four main tabs + More */}
       <nav
         aria-label="Main navigation"
-        className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-white/5 bg-[#050B17]/95 px-1 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] pt-1 backdrop-blur-xl sm:hidden"
+        className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-white/5 bg-[#0B1F33]/95 px-1 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] pt-1 backdrop-blur-xl sm:hidden"
       >
         {navItems.filter((i) => i.mobile).map((item) => {
           const Icon = item.icon;
@@ -154,7 +154,7 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", logo
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`relative flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 ${active ? "text-amber-300" : "text-slate-500"}`}
+              className={`relative flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 ${active ? "text-brand-300" : "text-slate-500"}`}
             >
               <Icon className="h-5 w-5" />
               <span className="text-[10px] font-medium">{item.label}</span>
@@ -166,7 +166,7 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", logo
           onClick={() => setMoreOpen(true)}
           aria-haspopup="dialog"
           aria-expanded={moreOpen}
-          className={`flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 ${moreActive ? "text-amber-300" : "text-slate-500"}`}
+          className={`flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 ${moreActive ? "text-brand-300" : "text-slate-500"}`}
         >
           <MoreHorizontal className="h-5 w-5" />
           <span className="text-[10px] font-medium">More</span>
@@ -178,7 +178,7 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", logo
           <button aria-label="Close" className="absolute inset-0 bg-black/50" onClick={() => setMoreOpen(false)} />
           <div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 shadow-2xl">
             <div className="mb-2 flex items-center justify-between px-2">
-              <p className="text-sm font-semibold text-[#0F1B33]">{businessName}</p>
+              <p className="text-sm font-semibold text-[#102A43]">{businessName}</p>
               <button onClick={() => setMoreOpen(false)} aria-label="Close" className="flex h-10 w-10 items-center justify-center rounded-2xl text-slate-500">
                 <X className="h-4 w-4" />
               </button>
@@ -191,7 +191,7 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", logo
                   key={item.href}
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex min-h-[48px] items-center gap-3 rounded-2xl px-3 text-sm ${active ? "bg-amber-400/10 text-amber-700" : "text-slate-700"}`}
+                  className={`flex min-h-[48px] items-center gap-3 rounded-2xl px-3 text-sm ${active ? "bg-brand-400/10 text-brand-700" : "text-slate-700"}`}
                 >
                   <Icon className="h-5 w-5 text-slate-500" /> {item.label}
                 </Link>

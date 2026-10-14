@@ -51,25 +51,25 @@ function CreateTenantForm({ onCreated, toast }) {
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Business name"
-        className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-amber-400"
+        className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-400"
       />
       <input
         value={slug}
         onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
         placeholder="slug-like-this"
-        className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-amber-400"
+        className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-400"
       />
       <input
         value={contactEmail}
         onChange={(e) => setContactEmail(e.target.value)}
         placeholder="Contact email (optional)"
         type="email"
-        className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-amber-400"
+        className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-400"
       />
       <button
         type="submit"
         disabled={saving}
-        className="sm:col-span-3 flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:opacity-50"
+        className="sm:col-span-3 flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-400 disabled:opacity-50"
       >
         <Plus className="h-4 w-4" />
         {saving ? "Creating…" : "Create tenant"}
@@ -109,7 +109,7 @@ function InviteForm({ tenants, toast }) {
       <select
         value={tenantId}
         onChange={(e) => setTenantId(e.target.value)}
-        className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-amber-400"
+        className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-400"
       >
         <option value="">Select tenant…</option>
         {tenants.map((t) => (
@@ -123,12 +123,12 @@ function InviteForm({ tenants, toast }) {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="person@example.com"
         type="email"
-        className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-amber-400"
+        className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-400"
       />
       <button
         type="submit"
         disabled={sending}
-        className="flex items-center justify-center gap-2 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-2.5 text-sm font-semibold text-amber-700 transition hover:bg-amber-400/20 disabled:opacity-50"
+        className="flex items-center justify-center gap-2 rounded-xl border border-brand-400/40 bg-brand-400/10 px-4 py-2.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-400/20 disabled:opacity-50"
       >
         <UserPlus className="h-4 w-4" />
         {sending ? "Inviting…" : "Invite as operator_admin"}
@@ -167,7 +167,7 @@ export default function PlatformSettings() {
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Tenants</p>
           <button
             onClick={loadTenants}
-            className="flex items-center gap-1.5 text-xs text-slate-500 transition hover:text-amber-600"
+            className="flex items-center gap-1.5 text-xs text-slate-500 transition hover:text-brand-600"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
             Refresh
@@ -192,11 +192,11 @@ export default function PlatformSettings() {
               className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-400/10 text-amber-600">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-400/10 text-brand-600">
                   <Building2 className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-[#0F1B33]">{t.name}</p>
+                  <p className="text-sm font-medium text-[#102A43]">{t.name}</p>
                   <p className="text-xs text-slate-500">{t.slug}</p>
                 </div>
               </div>

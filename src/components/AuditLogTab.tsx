@@ -48,7 +48,7 @@ function AuditLogEntryCard({ entry }: { entry: DbAuditLogEntry }) {
     <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-card">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <Icon size={12} className="text-amber-600/80 shrink-0" />
+          <Icon size={12} className="text-brand-600/80 shrink-0" />
           <p className="text-sm font-semibold text-slate-700 truncate">{config.label}</p>
         </div>
         {when && <span className="text-[10px] text-slate-600 shrink-0 whitespace-nowrap">{when}</span>}

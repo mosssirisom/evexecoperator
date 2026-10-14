@@ -42,7 +42,7 @@ export default function DailyView({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 py-1">
-        <Calendar size={14} className="text-amber-600/80" />
+        <Calendar size={14} className="text-brand-600/80" />
         <h3 className="text-sm font-semibold text-slate-600">
           {fmtDayDate(date)}
         </h3>

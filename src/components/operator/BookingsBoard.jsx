@@ -24,16 +24,16 @@ function Card({ b, today, onOpen }) {
   return (
     <button
       onClick={() => onOpen(b)}
-      className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-card transition hover:-translate-y-0.5 hover:border-amber-300"
+      className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-card transition hover:-translate-y-0.5 hover:border-brand-300"
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-[#0F1B33]">
+        <p className="text-sm font-semibold text-[#102A43]">
           {b.time}
           {b.travelDate && b.travelDate !== today && <span className="ml-1.5 text-xs font-normal text-slate-500">{fmtDate(b.travelDate)}</span>}
         </p>
-        <span className="text-xs font-medium text-amber-600">{b.price}</span>
+        <span className="text-xs font-medium text-brand-600">{b.price}</span>
       </div>
-      <p className="mt-1 truncate text-sm text-[#0F1B33]">{b.customer}</p>
+      <p className="mt-1 truncate text-sm text-[#102A43]">{b.customer}</p>
       <p className="truncate text-xs text-slate-500">{b.route}</p>
       <div className="mt-2 flex items-center justify-between gap-2">
         <span className={`truncate text-[11px] ${b.driverId ? "text-slate-500" : "text-red-600"}`}>{b.driverId ? b.driver : "No driver"}</span>
@@ -80,7 +80,7 @@ export default function BookingsBoard() {
           <section key={c.key} className="w-[78vw] max-w-[300px] flex-shrink-0 snap-start rounded-3xl bg-slate-100/70 p-2 sm:w-72 lg:w-auto lg:max-w-none">
             <div className="flex items-center gap-2 px-2 pb-2 pt-1">
               <span className={`h-2 w-2 rounded-full ${c.accent}`} />
-              <h3 className="flex-1 text-sm font-semibold text-[#0F1B33]">{c.title}</h3>
+              <h3 className="flex-1 text-sm font-semibold text-[#102A43]">{c.title}</h3>
               <span className="text-xs text-slate-500">{columns[c.key].length}</span>
             </div>
             <p className="px-2 pb-2 text-[11px] text-slate-500">{c.hint}</p>

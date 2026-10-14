@@ -66,22 +66,22 @@ function SetPasswordContent() {
     router.replace("/operator/today");
   }
 
-  const input = "mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none focus:border-amber-400/60";
+  const input = "mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#102A43] outline-none focus:border-brand-400/60";
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#020813] px-4 py-10">
+    <div className="flex min-h-screen items-center justify-center bg-[#0B1F33] px-4 py-10">
       <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
-        <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Operator app</p>
+        <p className="text-xs uppercase tracking-[0.28em] text-brand-600">Operator app</p>
         {stage === "verifying" && <p className="mt-4 text-sm text-slate-600">Checking your link…</p>}
         {stage === "error" && (
           <>
-            <h1 className="mt-2 text-xl font-semibold text-[#0F1B33]">Link not valid</h1>
+            <h1 className="mt-2 text-xl font-semibold text-[#102A43]">Link not valid</h1>
             <p role="alert" className="mt-3 text-sm text-slate-600">{error}</p>
             <a href="/operator/today" className="mt-5 block rounded-2xl border border-slate-200 px-4 py-3 text-center text-sm font-medium text-slate-700">Go to sign in</a>
           </>
         )}
         {stage === "form" && (
           <form onSubmit={submit} className="mt-2 space-y-4">
-            <h1 className="text-xl font-semibold text-[#0F1B33]">{type === "invite" ? "Welcome — set your password" : "Choose a new password"}</h1>
+            <h1 className="text-xl font-semibold text-[#102A43]">{type === "invite" ? "Welcome — set your password" : "Choose a new password"}</h1>
             {needsName && (
               <label className="block text-xs font-medium text-slate-600">Your name
                 <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" className={input} />
@@ -94,7 +94,7 @@ function SetPasswordContent() {
               <input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" className={input} />
             </label>
             {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
-            <button type="submit" disabled={busy} className="w-full rounded-2xl bg-amber-500 px-4 py-3 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-50">
+            <button type="submit" disabled={busy} className="w-full rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-400 disabled:opacity-50">
               {busy ? "Saving…" : "Save and continue"}
             </button>
           </form>

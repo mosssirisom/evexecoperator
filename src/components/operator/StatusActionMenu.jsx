@@ -68,7 +68,7 @@ export default function StatusActionMenu({ bookingId, currentStatus, onUpdate, d
         >
           {confirmCancel ? (
             <div className="px-4 py-3">
-              <p className="text-xs font-medium text-[#0F1B33]">Cancel this booking?</p>
+              <p className="text-xs font-medium text-[#102A43]">Cancel this booking?</p>
               <p className="mt-0.5 text-[10px] text-slate-500">The customer will be texted that it's cancelled.</p>
               <div className="mt-3 flex gap-2">
                 <button
@@ -79,7 +79,7 @@ export default function StatusActionMenu({ bookingId, currentStatus, onUpdate, d
                 </button>
                 <button
                   onClick={() => setConfirmCancel(false)}
-                  className="flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-xs text-slate-500 transition hover:text-[#0F1B33]"
+                  className="flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-xs text-slate-500 transition hover:text-[#102A43]"
                 >
                   Keep Job
                 </button>
@@ -99,7 +99,7 @@ export default function StatusActionMenu({ bookingId, currentStatus, onUpdate, d
                   onClick={() => applyStatus(reverse)}
                   className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-slate-700 transition hover:bg-slate-100"
                 >
-                  <RotateCcw className="h-3.5 w-3.5 text-amber-600" />
+                  <RotateCcw className="h-3.5 w-3.5 text-brand-600" />
                   {reverseLabel(currentStatus)}
                 </button>
               )}

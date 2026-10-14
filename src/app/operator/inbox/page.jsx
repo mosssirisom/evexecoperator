@@ -32,7 +32,7 @@ export default function InboxPage() {
     <div className="mx-auto w-full max-w-3xl px-4 py-4 sm:px-6 lg:px-10 lg:py-8">
       {inbox.loading ? (
         <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-600">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-gold/30 border-t-gold" />
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand/30 border-t-brand" />
           Loading…
         </div>
       ) : (

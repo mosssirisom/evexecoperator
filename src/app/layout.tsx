@@ -22,7 +22,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#E9EBF2",
+  themeColor: "#F3F6F9",
 };
 
 export default function RootLayout({
@@ -32,7 +32,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-[#E9EBF2] text-[#0F1B33] antialiased">
+      <body className="min-h-screen bg-[#E9EBF2] text-[#102A43] antialiased">
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>

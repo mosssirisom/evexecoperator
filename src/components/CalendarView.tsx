@@ -127,14 +127,14 @@ export default function CalendarView({
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {viewMode === "month" ? "Monthly total" : "Weekly total"}{" "}
-            <span className="text-amber-600 font-semibold">
+            <span className="text-brand-600 font-semibold">
               £{(viewMode === "month" ? monthTotal : weekTotal).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
             </span>
           </p>
         </div>
         <div className="flex items-center gap-1">
           {todayCount > 0 && (
-            <span className="hidden sm:inline-flex items-center gap-1 mr-1 px-2 py-1 rounded-full text-[10px] font-semibold text-amber-600 bg-gold/10 border border-gold/20">
+            <span className="hidden sm:inline-flex items-center gap-1 mr-1 px-2 py-1 rounded-full text-[10px] font-semibold text-brand-600 bg-brand/10 border border-brand/20">
               {todayCount} today
             </span>
           )}
@@ -144,7 +144,7 @@ export default function CalendarView({
             className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
               onToday
                 ? "text-slate-600 border-slate-100 cursor-default"
-                : "text-amber-600 border-gold/25 hover:bg-gold/10"
+                : "text-brand-600 border-brand/25 hover:bg-brand/10"
             }`}
           >
             Today
@@ -173,7 +173,7 @@ export default function CalendarView({
               onClick={() => setViewMode(mode)}
               className={`px-3 py-1 rounded-md text-[11px] font-semibold capitalize transition-colors ${
                 viewMode === mode
-                  ? "bg-gold/15 text-amber-600"
+                  ? "bg-brand/15 text-brand-600"
                   : "text-slate-500 hover:text-slate-600"
               }`}
             >
@@ -188,7 +188,7 @@ export default function CalendarView({
             Confirmed
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-gold" />
+            <span className="w-2 h-2 rounded-full bg-brand" />
             Pending
           </span>
         </div>
@@ -224,16 +224,16 @@ export default function CalendarView({
                     relative flex flex-col items-center justify-start
                     py-2 px-1 rounded-xl transition-all
                     ${isSelected
-                      ? "bg-gold text-navy-900 shadow-gold-md"
+                      ? "bg-brand text-white shadow-brand-md"
                       : isTodayDate
-                      ? "bg-slate-100 text-slate-800 ring-2 ring-gold/50"
+                      ? "bg-slate-100 text-slate-800 ring-2 ring-brand/50"
                       : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
                     }
                   `}
                 >
                   <span
                     className={`text-sm font-semibold leading-none mb-1.5 ${
-                      isSelected ? "text-navy-900" : ""
+                      isSelected ? "text-white" : ""
                     }`}
                   >
                     {format(day, "d")}
@@ -246,14 +246,14 @@ export default function CalendarView({
                         <Plane
                           size={9}
                           className={
-                            isSelected ? "text-navy-800" : "text-amber-600"
+                            isSelected ? "text-white" : "text-brand-600"
                           }
                         />
                       ) : (
                         <Car
                           size={9}
                           className={
-                            isSelected ? "text-navy-800" : "text-slate-500"
+                            isSelected ? "text-white" : "text-slate-500"
                           }
                         />
                       )}
@@ -270,7 +270,7 @@ export default function CalendarView({
                         {pending > 0 && (
                           <span
                             className={`w-1 h-1 rounded-full ${
-                              isSelected ? "bg-slate-100" : "bg-gold"
+                              isSelected ? "bg-slate-100" : "bg-brand"
                             }`}
                           />
                         )}
@@ -298,21 +298,21 @@ export default function CalendarView({
                 onClick={() => onDateSelect(day)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all ${
                   isSelected
-                    ? "bg-gold border-gold text-navy-900 shadow-gold-md"
+                    ? "bg-brand border-brand text-white shadow-brand-md"
                     : isTodayDate
-                    ? "bg-slate-100 border-gold/40 ring-2 ring-gold/50 text-slate-800"
-                    : "bg-white border-slate-200 text-slate-600 hover:border-gold/20"
+                    ? "bg-slate-100 border-brand/40 ring-2 ring-brand/50 text-slate-800"
+                    : "bg-white border-slate-200 text-slate-600 hover:border-brand/20"
                 }`}
               >
                 {/* Date block */}
                 <div className="flex flex-col items-center justify-center w-11 shrink-0">
                   <span className={`text-[10px] font-semibold uppercase tracking-wide ${
-                    isSelected ? "text-navy-900/70" : "text-slate-500"
+                    isSelected ? "text-white/70" : "text-slate-500"
                   }`}>
                     {format(day, "EEE")}
                   </span>
                   <span className={`text-lg font-bold leading-none mt-0.5 ${
-                    isSelected ? "text-navy-900" : "text-slate-800"
+                    isSelected ? "text-white" : "text-slate-800"
                   }`}>
                     {format(day, "d")}
                   </span>
@@ -321,20 +321,20 @@ export default function CalendarView({
                 {/* Summary */}
                 <div className="flex-1 min-w-0">
                   {active.length === 0 ? (
-                    <span className={`text-xs ${isSelected ? "text-navy-900/60" : "text-slate-600"}`}>
+                    <span className={`text-xs ${isSelected ? "text-white/60" : "text-slate-600"}`}>
                       No transfers
                     </span>
                   ) : (
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className={`flex items-center gap-1.5 text-xs font-semibold ${
-                        isSelected ? "text-navy-900" : "text-slate-700"
+                        isSelected ? "text-white" : "text-slate-700"
                       }`}>
                         {hasAirport ? <Plane size={12} /> : <Car size={12} />}
                         {active.length} job{active.length !== 1 ? "s" : ""}
                       </span>
                       {confirmed > 0 && (
                         <span className={`flex items-center gap-1 text-[10px] font-medium ${
-                          isSelected ? "text-navy-900/70" : "text-emerald-600"
+                          isSelected ? "text-white/70" : "text-emerald-600"
                         }`}>
                           <span className="w-1.5 h-1.5 rounded-full bg-current" />
                           {confirmed}
@@ -342,7 +342,7 @@ export default function CalendarView({
                       )}
                       {pending > 0 && (
                         <span className={`flex items-center gap-1 text-[10px] font-medium ${
-                          isSelected ? "text-navy-900/70" : "text-amber-600"
+                          isSelected ? "text-white/70" : "text-brand-600"
                         }`}>
                           <span className="w-1.5 h-1.5 rounded-full bg-current" />
                           {pending}
@@ -354,7 +354,7 @@ export default function CalendarView({
 
                 {/* Revenue */}
                 {revenue > 0 && (
-                  <span className={`text-xs font-bold shrink-0 ${isSelected ? "text-navy-900" : "text-amber-600"}`}>
+                  <span className={`text-xs font-bold shrink-0 ${isSelected ? "text-white" : "text-brand-600"}`}>
                     £{revenue.toLocaleString("en-GB")}
                   </span>
                 )}

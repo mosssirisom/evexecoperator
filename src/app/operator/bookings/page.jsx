@@ -38,7 +38,7 @@ function BookingsPageContent() {
                 role="tab"
                 aria-selected={active}
                 className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition sm:px-4 ${
-                  active ? "bg-amber-400/10 text-amber-700" : "text-slate-500 hover:text-[#0F1B33]"
+                  active ? "bg-brand-400/10 text-brand-700" : "text-slate-500 hover:text-[#102A43]"
                 }`}
               >
                 <v.icon className="h-4 w-4" /> {v.label}

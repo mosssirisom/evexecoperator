@@ -45,7 +45,7 @@ export default function DriverDropdown({
             key={driver.id}
             onClick={() => choose(driver.id)}
             className={`w-full text-left px-4 py-3 transition-colors ${
-              driver.id === selectedDriverId ? "bg-gold/10 text-amber-600" : "text-slate-700 hover:bg-slate-100"
+              driver.id === selectedDriverId ? "bg-brand/10 text-brand-600" : "text-slate-700 hover:bg-slate-100"
             }`}
           >
             <div className="flex items-center gap-1.5">
@@ -75,11 +75,11 @@ export default function DriverDropdown({
           border border-slate-200 transition-all
           ${disabled
             ? "opacity-50 cursor-not-allowed bg-white"
-            : "bg-slate-100 hover:bg-slate-200 hover:border-gold/30 cursor-pointer"
+            : "bg-slate-100 hover:bg-slate-200 hover:border-brand/30 cursor-pointer"
           }
         `}
       >
-        <User size={13} className="text-amber-600/80 shrink-0" />
+        <User size={13} className="text-brand-600/80 shrink-0" />
         <span className={selected ? "text-slate-700" : "text-slate-500"}>
           {selected ? selected.name : "Unassigned"}
         </span>
@@ -100,7 +100,7 @@ export default function DriverDropdown({
           {/* Mobile: bottom sheet with a scrollable list — swipe stays in the list */}
           <div className="fixed inset-x-0 bottom-0 z-50 flex max-h-[75vh] flex-col rounded-t-3xl border-t border-slate-200 bg-white shadow-2xl sm:hidden">
             <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3">
-              <p className="text-sm font-semibold text-[#0F1B33]">Assign driver</p>
+              <p className="text-sm font-semibold text-[#102A43]">Assign driver</p>
               <button
                 onClick={() => setOpen(false)}
                 className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 text-slate-500"

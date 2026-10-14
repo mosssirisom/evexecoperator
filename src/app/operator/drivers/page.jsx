@@ -18,7 +18,7 @@ function statusBadge(status) {
   if (status === "En route" || status === "Passenger onboard")
     return "text-blue-600 bg-blue-400/10 border-blue-400/20";
   if (status === "Available soon")
-    return "text-amber-600 bg-amber-400/10 border-amber-400/20";
+    return "text-brand-600 bg-brand-400/10 border-brand-400/20";
   return "text-slate-500 bg-slate-500/10 border-slate-500/20";
 }
 
@@ -72,12 +72,12 @@ function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
         {/* Header */}
         <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 px-6 py-5">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Fleet</p>
-            <h2 className="mt-1 text-xl font-semibold text-[#0F1B33]">{title}</h2>
+            <p className="text-xs uppercase tracking-[0.28em] text-brand-600">Fleet</p>
+            <h2 className="mt-1 text-xl font-semibold text-[#102A43]">{title}</h2>
           </div>
           <button
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-[#0F1B33]"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-[#102A43]"
           >
             <X className="h-4 w-4" />
           </button>
@@ -98,7 +98,7 @@ function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
                   onChange={set(key)}
                   placeholder={placeholder}
                   required={key === "name" || key === "email"}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none placeholder:text-slate-400 transition focus:border-amber-400/40"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#102A43] outline-none placeholder:text-slate-400 transition focus:border-brand-400/40"
                 />
               </div>
             ))}
@@ -113,14 +113,14 @@ function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm text-slate-500 transition hover:text-[#0F1B33]"
+                className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm text-slate-500 transition hover:text-[#102A43]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting || !canSubmit}
-                className="flex-1 rounded-2xl bg-amber-500 py-3 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex-1 rounded-2xl bg-brand-500 py-3 text-sm font-semibold text-white transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? "Saving…" : submitLabel}
               </button>
@@ -155,7 +155,7 @@ function DeleteDriverModal({ driver, onClose, onConfirm }) {
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-red-400/20 bg-red-400/10">
           <Trash2 className="h-5 w-5 text-red-600" />
         </div>
-        <h2 className="text-lg font-semibold text-[#0F1B33]">Remove {driver.name}?</h2>
+        <h2 className="text-lg font-semibold text-[#102A43]">Remove {driver.name}?</h2>
         <p className="mt-2 text-sm text-slate-500">
           This will permanently remove the driver from the fleet. Any bookings currently assigned to them will become unassigned.
         </p>
@@ -168,7 +168,7 @@ function DeleteDriverModal({ driver, onClose, onConfirm }) {
           <button
             onClick={onClose}
             disabled={deleting}
-            className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm text-slate-500 transition hover:text-[#0F1B33] disabled:opacity-50"
+            className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm text-slate-500 transition hover:text-[#102A43] disabled:opacity-50"
           >
             Cancel
           </button>
@@ -203,14 +203,14 @@ function AssignJobModal({ driver, bookings, onAssign, onClose }) {
       <div className="relative z-10 flex w-full max-w-lg flex-col rounded-3xl border border-slate-200 bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Fleet</p>
-            <h2 className="mt-1 text-xl font-semibold text-[#0F1B33]">
+            <p className="text-xs uppercase tracking-[0.28em] text-brand-600">Fleet</p>
+            <h2 className="mt-1 text-xl font-semibold text-[#102A43]">
               Assign job to {driver.name}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-[#0F1B33]"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-[#102A43]"
           >
             <X className="h-4 w-4" />
           </button>
@@ -227,7 +227,7 @@ function AssignJobModal({ driver, bookings, onAssign, onClose }) {
                 <button
                   key={b.id}
                   onClick={() => onAssign(b)}
-                  className="w-full rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left transition hover:border-amber-400/30 hover:bg-amber-400/[0.05]"
+                  className="w-full rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left transition hover:border-brand-400/30 hover:bg-brand-400/[0.05]"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
@@ -239,11 +239,11 @@ function AssignJobModal({ driver, bookings, onAssign, onClose }) {
                           {b.status}
                         </span>
                       </div>
-                      <p className="mt-1 font-medium text-[#0F1B33]">{b.customer}</p>
+                      <p className="mt-1 font-medium text-[#102A43]">{b.customer}</p>
                       <p className="mt-0.5 truncate text-xs text-slate-500">{b.route}</p>
                     </div>
                     <div className="flex-shrink-0 text-right">
-                      <p className="text-sm font-semibold text-amber-600">{b.price}</p>
+                      <p className="text-sm font-semibold text-brand-600">{b.price}</p>
                       <p className="mt-0.5 text-xs text-slate-500">{b.time}</p>
                     </div>
                   </div>
@@ -256,7 +256,7 @@ function AssignJobModal({ driver, bookings, onAssign, onClose }) {
         <div className="border-t border-slate-100 p-4">
           <button
             onClick={onClose}
-            className="w-full rounded-2xl border border-slate-200 py-3 text-sm text-slate-500 transition hover:text-[#0F1B33]"
+            className="w-full rounded-2xl border border-slate-200 py-3 text-sm text-slate-500 transition hover:text-[#102A43]"
           >
             Cancel
           </button>
@@ -326,7 +326,7 @@ function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob, onEdit, onDe
           key={s}
           onClick={() => { onUpdateStatus(driver.id, s); onClose(); }}
           className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-slate-100 ${
-            driver.status === s ? "text-amber-600" : "text-slate-500"
+            driver.status === s ? "text-brand-600" : "text-slate-500"
           }`}
         >
           <span
@@ -370,11 +370,11 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
     <div className="card relative flex flex-col gap-5 p-6">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-400/10 text-xl font-semibold text-amber-600">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-400/10 text-xl font-semibold text-brand-600">
             {driver.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
           </div>
           <div>
-            <h3 className="font-semibold text-[#0F1B33]">{driver.name}</h3>
+            <h3 className="font-semibold text-[#102A43]">{driver.name}</h3>
             <p className="mt-0.5 text-xs text-slate-500">{driver.plate}</p>
           </div>
         </div>
@@ -412,7 +412,7 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
         </div>
         <a
           href={`tel:${driver.phone}`}
-          className="flex items-center gap-2 text-slate-500 transition hover:text-[#0F1B33]"
+          className="flex items-center gap-2 text-slate-500 transition hover:text-[#102A43]"
         >
           <Phone className="h-4 w-4 text-slate-600" />
           {driver.phone}
@@ -420,7 +420,7 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
         {driver.email && (
           <a
             href={`mailto:${driver.email}`}
-            className="flex items-center gap-2 truncate text-slate-500 transition hover:text-[#0F1B33]"
+            className="flex items-center gap-2 truncate text-slate-500 transition hover:text-[#102A43]"
           >
             <Mail className="h-4 w-4 flex-shrink-0 text-slate-600" />
             {driver.email}
@@ -434,12 +434,12 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
 
       <div className="flex items-center justify-between border-t border-slate-100 pt-4">
         <div className="text-center">
-          <p className="text-lg font-semibold text-[#0F1B33]">{driver.completedToday}</p>
+          <p className="text-lg font-semibold text-[#102A43]">{driver.completedToday}</p>
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Today</p>
         </div>
         <button
           onClick={() => onEdit(driver)}
-          className="min-h-[44px] rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-600 transition hover:border-amber-400/20 hover:text-amber-600"
+          className="min-h-[44px] rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-600 transition hover:border-brand-400/20 hover:text-brand-600"
         >
           Edit
         </button>
@@ -547,7 +547,7 @@ export default function DriversPage() {
         {/* Stats strip */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {[
-            { label: "Total Drivers", value: drivers.length, icon: CheckCircle2, color: "text-[#0F1B33]" },
+            { label: "Total Drivers", value: drivers.length, icon: CheckCircle2, color: "text-[#102A43]" },
             { label: "On Job", value: active, icon: Car, color: "text-blue-600" },
             { label: "Available", value: available, icon: CheckCircle2, color: "text-emerald-600" },
             { label: "Off Duty", value: offDuty < 0 ? 0 : offDuty, icon: UserX, color: "text-slate-500" },
@@ -566,22 +566,22 @@ export default function DriversPage() {
         {/* Section header + Add Driver */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Fleet</p>
-            <h2 className="mt-1 text-2xl font-semibold text-[#0F1B33]">Active Drivers</h2>
+            <p className="text-xs uppercase tracking-[0.28em] text-brand-600">Fleet</p>
+            <h2 className="mt-1 text-2xl font-semibold text-[#102A43]">Active Drivers</h2>
           </div>
           <div className="flex items-center gap-2">
             <a
               href={PORTALS.driverApp.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2.5 text-sm text-slate-600 transition hover:border-amber-400/20 hover:text-amber-600"
+              className="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2.5 text-sm text-slate-600 transition hover:border-brand-400/20 hover:text-brand-600"
             >
               <ExternalLink className="h-4 w-4" />
               <span className="hidden sm:inline">Driver Portal</span>
             </a>
             <button
               onClick={() => setAddModal(true)}
-              className="flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400 sm:px-5 sm:py-3"
+              className="flex items-center gap-2 rounded-2xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-400 sm:px-5 sm:py-3"
             >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Add Driver</span>
@@ -608,7 +608,7 @@ export default function DriversPage() {
               <p className="text-sm text-slate-600">No drivers in the fleet yet.</p>
               <button
                 onClick={() => setAddModal(true)}
-                className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-500 transition hover:text-amber-600"
+                className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-500 transition hover:text-brand-600"
               >
                 + Add your first driver
               </button>
@@ -620,8 +620,8 @@ export default function DriversPage() {
         <div className="card p-6">
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Schedule</p>
-              <h2 className="mt-2 text-2xl font-semibold text-[#0F1B33]">Today's Jobs</h2>
+              <p className="text-xs uppercase tracking-[0.28em] text-brand-600">Schedule</p>
+              <h2 className="mt-2 text-2xl font-semibold text-[#102A43]">Today's Jobs</h2>
               <p className="mt-1 text-sm text-slate-500">
                 {todayJobs.length === 0
                   ? "No scheduled jobs for today"
@@ -630,7 +630,7 @@ export default function DriversPage() {
             </div>
             <button
               onClick={() => router.push("/operator/bookings")}
-              className="min-h-[36px] px-2 text-xs text-slate-500 transition hover:text-amber-600"
+              className="min-h-[36px] px-2 text-xs text-slate-500 transition hover:text-brand-600"
             >
               Full dispatch board →
             </button>
@@ -642,7 +642,7 @@ export default function DriversPage() {
               <p className="text-sm text-slate-600">No pickups with a scheduled time for today.</p>
               <button
                 onClick={() => router.push("/operator/bookings")}
-                className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-500 transition hover:text-amber-600"
+                className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-500 transition hover:text-brand-600"
               >
                 Go to Dispatch Board
               </button>
@@ -654,19 +654,19 @@ export default function DriversPage() {
                 <button
                   key={b.id}
                   onClick={() => router.push("/operator/bookings")}
-                  className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 text-left transition hover:border-amber-400/20 hover:bg-slate-50"
+                  className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 text-left transition hover:border-brand-400/20 hover:bg-slate-50"
                 >
                   <div className="w-12 flex-shrink-0 text-center">
-                    <p className="text-sm font-semibold text-[#0F1B33]">{b.time}</p>
+                    <p className="text-sm font-semibold text-[#102A43]">{b.time}</p>
                   </div>
                   <div className="h-8 w-px flex-shrink-0 bg-slate-100" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-[#0F1B33]">{b.customer}</p>
+                    <p className="truncate text-sm font-medium text-[#102A43]">{b.customer}</p>
                     <p className="truncate text-xs text-slate-500">{b.route}</p>
                     <p className="mt-0.5 truncate text-xs text-slate-600">{b.driver}</p>
                   </div>
                   <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                    <span className="text-sm font-semibold text-amber-600">{b.price}</span>
+                    <span className="text-sm font-semibold text-brand-600">{b.price}</span>
                     <span
                       className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${bookingStatusColor(b.status)}`}
                     >

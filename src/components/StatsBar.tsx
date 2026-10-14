@@ -38,7 +38,7 @@ export default function StatsBar({ stats }: Props) {
           key={label}
           className="flex flex-col items-center justify-center py-4 px-2 gap-1.5"
         >
-          <Icon size={16} className="text-amber-600/80" />
+          <Icon size={16} className="text-brand-600/80" />
           <span className="text-sm font-bold text-slate-800">{value}</span>
           <span className="text-[10px] text-slate-500 text-center leading-tight whitespace-pre">
             {label}

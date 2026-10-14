@@ -60,7 +60,7 @@ function statusChip(status) {
     case "Paid":  return "border-emerald-400/30 bg-emerald-400/10 text-emerald-600";
     case "Sent":  return "border-blue-400/30 bg-blue-400/10 text-blue-600";
     case "Void":  return "border-slate-500/30 bg-slate-500/10 text-slate-500";
-    default:      return "border-amber-400/30 bg-amber-400/10 text-amber-600"; // Draft
+    default:      return "border-brand-400/30 bg-brand-400/10 text-brand-600"; // Draft
   }
 }
 
@@ -96,7 +96,7 @@ function journeyLines(j) {
 }
 
 const inputCls =
-  "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#0F1B33] placeholder:text-slate-400 outline-none transition focus:border-amber-400/40";
+  "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#102A43] placeholder:text-slate-400 outline-none transition focus:border-brand-400/40";
 const labelCls = "mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500";
 
 // The business's logo (Settings → Branding); EV Exec's built-in badge for EV
@@ -200,7 +200,7 @@ function JobPicker({ jobs, loading, invoiceFor, onPick, onOpenInvoice }) {
         {[["todo", `To invoice (${todoCount})`], ["all", "All jobs"]].map(([k, label]) => (
           <button key={k} type="button" onClick={() => setView(k)}
             className={`rounded-full border px-3 py-1 text-[11px] font-medium transition ${
-              view === k ? "border-amber-400/40 bg-amber-400/10 text-amber-600" : "border-slate-200 text-slate-500 hover:text-slate-600"}`}>
+              view === k ? "border-brand-400/40 bg-brand-400/10 text-brand-600" : "border-slate-200 text-slate-500 hover:text-slate-600"}`}>
             {label}
           </button>
         ))}
@@ -219,16 +219,16 @@ function JobPicker({ jobs, loading, invoiceFor, onPick, onOpenInvoice }) {
             return (
               <button key={j.id} type="button"
                 onClick={() => (inv ? onOpenInvoice(inv) : onPick(j.id))}
-                className="flex w-full items-start gap-3 rounded-xl border border-slate-100 bg-white p-2.5 text-left transition hover:border-amber-400/40">
+                className="flex w-full items-start gap-3 rounded-xl border border-slate-100 bg-white p-2.5 text-left transition hover:border-brand-400/40">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-[#0F1B33]">{j.customer || "No name"}</p>
+                  <p className="truncate text-sm font-semibold text-[#102A43]">{j.customer || "No name"}</p>
                   <p className="truncate text-xs text-slate-600">{dash(j.route)}</p>
                   <p className="truncate text-[11px] text-slate-500">
                     {when || "No date"} · {j.id}{isReturnLeg(j) ? " · Return leg" : ""}
                   </p>
                 </div>
                 <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                  <span className="text-sm font-bold text-amber-600">{j.price}</span>
+                  <span className="text-sm font-bold text-brand-600">{j.price}</span>
                   {inv ? (
                     <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusChip(inv.status)}`}>{inv.number} · Open</span>
                   ) : (
@@ -357,22 +357,22 @@ function InvoiceModal({ open, onClose, onCreate, bookings, jobsLoading, invoiceF
     <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center">
       <div className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white sm:max-w-lg sm:rounded-3xl">
         <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 px-5 py-4">
-          <h2 className="text-lg font-semibold text-[#0F1B33]">New Invoice</h2>
-          <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:text-[#0F1B33]">
+          <h2 className="text-lg font-semibold text-[#102A43]">New Invoice</h2>
+          <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:text-[#102A43]">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {selectedJob ? (
-            <div className="flex items-start gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/5 p-3">
+            <div className="flex items-start gap-3 rounded-2xl border border-brand-400/30 bg-brand-400/5 p-3">
               <div className="min-w-0 flex-1">
                 <p className={labelCls + " mb-1"}>Invoicing job</p>
-                <p className="truncate text-sm font-semibold text-[#0F1B33]">{selectedJob.customer} · {selectedJob.id}</p>
+                <p className="truncate text-sm font-semibold text-[#102A43]">{selectedJob.customer} · {selectedJob.id}</p>
                 <p className="truncate text-xs text-slate-600">{dash(selectedJob.route)}</p>
                 <p className="truncate text-[11px] text-slate-500">{[fmtDate(selectedJob.travelDate), dash(selectedJob.time)].filter(Boolean).join(" ")} · {selectedJob.price}</p>
               </div>
-              <button type="button" onClick={() => prefillFromBooking("")} className="flex-shrink-0 rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:text-[#0F1B33]">Change</button>
+              <button type="button" onClick={() => prefillFromBooking("")} className="flex-shrink-0 rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:text-[#102A43]">Change</button>
             </div>
           ) : (
             <div>
@@ -402,7 +402,7 @@ function InvoiceModal({ open, onClose, onCreate, bookings, jobsLoading, invoiceF
 
           {/* Journey details */}
           <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
-            <p className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-amber-600/80">
+            <p className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-brand-600/80">
               <MapPin className="h-3 w-3" /> Journey details
             </p>
             <div className="grid grid-cols-2 gap-3">
@@ -462,7 +462,7 @@ function InvoiceModal({ open, onClose, onCreate, bookings, jobsLoading, invoiceF
                 </div>
               ))}
             </div>
-            <button onClick={addItem} className="mt-2 inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700">
+            <button onClick={addItem} className="mt-2 inline-flex items-center gap-1.5 text-xs text-brand-600 hover:text-brand-700">
               <Plus className="h-3.5 w-3.5" /> Add charge
             </button>
           </div>
@@ -492,7 +492,7 @@ function InvoiceModal({ open, onClose, onCreate, bookings, jobsLoading, invoiceF
           <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm">
             <div className="flex justify-between text-slate-500"><span>Subtotal</span><span>{money(totals.subtotal)}</span></div>
             {vatRate > 0 && <div className="mt-1 flex justify-between text-slate-500"><span>VAT ({Math.round(vatRate * 100)}%)</span><span>{money(totals.vatAmount)}</span></div>}
-            <div className="mt-2 flex justify-between border-t border-slate-100 pt-2 text-base font-semibold text-[#0F1B33]"><span>Total</span><span className="text-amber-600">{money(totals.total)}</span></div>
+            <div className="mt-2 flex justify-between border-t border-slate-100 pt-2 text-base font-semibold text-[#102A43]"><span>Total</span><span className="text-brand-600">{money(totals.total)}</span></div>
           </div>
 
           {err && <p className="rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-600">{err}</p>}
@@ -500,7 +500,7 @@ function InvoiceModal({ open, onClose, onCreate, bookings, jobsLoading, invoiceF
 
         <div className="flex flex-shrink-0 gap-2 border-t border-slate-100 px-5 py-4">
           <button onClick={onClose} disabled={busy} className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-semibold text-slate-600 hover:border-slate-300 disabled:opacity-50">Cancel</button>
-          <button onClick={submit} disabled={busy} className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-amber-500 py-3 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-60">
+          <button onClick={submit} disabled={busy} className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-brand-500 py-3 text-sm font-semibold text-white hover:bg-brand-400 disabled:opacity-60">
             {busy ? "Creating…" : "Create Invoice"}
           </button>
         </div>
@@ -704,7 +704,7 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
       <div className="w-full max-w-2xl">
         {/* Action bar — hidden when printing */}
         <div className="no-print mb-3 flex flex-wrap items-center justify-between gap-2">
-          <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:text-[#0F1B33]">← Back</button>
+          <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:text-[#102A43]">← Back</button>
           <div className="flex flex-wrap items-center gap-2">
             {inv.status !== "Sent" && inv.status !== "Paid" && (
               <button onClick={() => onStatus(inv.id, "Sent")} className="inline-flex items-center gap-1.5 rounded-xl border border-blue-400/30 bg-blue-400/10 px-3 py-2 text-xs font-medium text-blue-600 hover:bg-blue-400/20"><Send className="h-3.5 w-3.5" />Mark Sent</button>
@@ -713,18 +713,18 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
               <button onClick={() => onStatus(inv.id, "Paid")} className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-600 hover:bg-emerald-400/20"><Check className="h-3.5 w-3.5" />Mark Paid</button>
             )}
             {inv.status !== "Void" && (
-              <button onClick={() => onStatus(inv.id, "Void")} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-500 hover:text-[#0F1B33]">Void</button>
+              <button onClick={() => onStatus(inv.id, "Void")} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-500 hover:text-[#102A43]">Void</button>
             )}
             <button onClick={() => onDelete(inv)} className="inline-flex items-center gap-1.5 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-500/20"><Trash2 className="h-3.5 w-3.5" />Delete</button>
             <button onClick={emailToCustomer} disabled={sending} className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-600 hover:bg-emerald-400/20 disabled:opacity-60">
               {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
               {sending ? "Sending…" : "Email to Customer"}
             </button>
-            <button onClick={downloadImage} disabled={savingImg} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:border-slate-300 hover:text-[#0F1B33] disabled:opacity-60">
+            <button onClick={downloadImage} disabled={savingImg} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:border-slate-300 hover:text-[#102A43] disabled:opacity-60">
               {savingImg ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageDown className="h-3.5 w-3.5" />}
               {savingImg ? "Building…" : "Save Image"}
             </button>
-            <button onClick={downloadPdf} disabled={downloading} className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-xs font-semibold text-black hover:bg-amber-400 disabled:opacity-60">
+            <button onClick={downloadPdf} disabled={downloading} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-400 disabled:opacity-60">
               {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
               {downloading ? "Building…" : "Save PDF (A4)"}
             </button>
@@ -1016,9 +1016,9 @@ export default function InvoicesPage() {
         {/* Stats */}
         <div className="grid min-w-0 grid-cols-3 gap-3 sm:gap-4">
           {[
-            { label: "Outstanding", value: money(stats.outstanding), icon: Clock, color: "text-amber-600" },
+            { label: "Outstanding", value: money(stats.outstanding), icon: Clock, color: "text-brand-600" },
             { label: "Paid", value: money(stats.paid), icon: CircleDollarSign, color: "text-emerald-600" },
-            { label: "Unpaid", value: stats.unpaidCount, icon: FileText, color: "text-[#0F1B33]" },
+            { label: "Unpaid", value: stats.unpaidCount, icon: FileText, color: "text-[#102A43]" },
           ].map((s) => (
             <div key={s.label} className="card min-w-0 p-3 sm:p-5">
               <div className="mb-2 flex items-center justify-between">
@@ -1033,10 +1033,10 @@ export default function InvoicesPage() {
         {/* Header + New */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Billing</p>
-            <h2 className="mt-1 text-2xl font-semibold text-[#0F1B33]">Invoices</h2>
+            <p className="text-xs uppercase tracking-[0.28em] text-brand-600">Billing</p>
+            <h2 className="mt-1 text-2xl font-semibold text-[#102A43]">Invoices</h2>
           </div>
-          <button onClick={() => setModalOpen(true)} className="flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400 sm:px-5 sm:py-3">
+          <button onClick={() => setModalOpen(true)} className="flex items-center gap-2 rounded-2xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-400 sm:px-5 sm:py-3">
             <Plus className="h-4 w-4" /> New Invoice
           </button>
         </div>
@@ -1051,7 +1051,7 @@ export default function InvoicesPage() {
           {["All", "Draft", "Sent", "Paid", "Void"].map((f) => (
             <button key={f} onClick={() => setFilter(f)}
               className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                filter === f ? "border-amber-400/40 bg-amber-400/10 text-amber-600" : "border-slate-200 text-slate-500 hover:text-slate-600"}`}>
+                filter === f ? "border-brand-400/40 bg-brand-400/10 text-brand-600" : "border-slate-200 text-slate-500 hover:text-slate-600"}`}>
               {f}
             </button>
           ))}
@@ -1066,7 +1066,7 @@ export default function InvoicesPage() {
               <FileText className="mb-3 h-8 w-8 text-slate-700" />
               <p className="text-sm text-slate-600">{invoices.length === 0 ? "No invoices yet." : search.trim() ? "No invoices match your search." : `No ${filter.toLowerCase()} invoices.`}</p>
               {invoices.length === 0 && (
-                <button onClick={() => setModalOpen(true)} className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-500 hover:text-amber-600">
+                <button onClick={() => setModalOpen(true)} className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-500 hover:text-brand-600">
                   + Create your first invoice
                 </button>
               )}
@@ -1075,19 +1075,19 @@ export default function InvoicesPage() {
             <div className="space-y-2">
               {filtered.map((inv) => (
                 <button key={inv.id} onClick={() => setPreview(inv)}
-                  className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 text-left transition hover:border-amber-400/20 hover:bg-slate-50">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-amber-400/10">
-                    <FileText className="h-4 w-4 text-amber-600" />
+                  className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 text-left transition hover:border-brand-400/20 hover:bg-slate-50">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-brand-400/10">
+                    <FileText className="h-4 w-4 text-brand-600" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[#0F1B33]">{inv.customer}</p>
+                    <p className="truncate text-sm font-semibold text-[#102A43]">{inv.customer}</p>
                     <p className="truncate text-xs text-slate-500">
                       {inv.number}{inv.bookingRef ? ` · ${inv.bookingRef}` : ""}{inv.journey?.date ? ` · Travel ${fmtDate(inv.journey.date)}` : inv.issueDate ? ` · Issued ${fmtDate(inv.issueDate)}` : ""}
                       {inv.journey?.pickup || inv.journey?.dropoff ? ` · ${[inv.journey.pickup, inv.journey.dropoff].filter(Boolean).join(" → ")}` : ""}
                     </p>
                   </div>
                   <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                    <span className="text-sm font-bold text-amber-600">{money(inv.total)}</span>
+                    <span className="text-sm font-bold text-brand-600">{money(inv.total)}</span>
                     <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusChip(inv.status)}`}>{inv.status}</span>
                   </div>
                 </button>
