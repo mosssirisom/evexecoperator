@@ -83,13 +83,13 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", logo
               <img src={logoUrl} alt="" className="max-h-full max-w-full object-contain" />
             </span>
           ) : (
-            <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-brand-400/25 bg-brand-400/10 text-sm font-bold text-brand-300">
+            <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-sm font-bold text-white">
               {initialsOf(businessName)}
             </span>
           )}
           <span className="hidden min-w-0 lg:block">
             <span className="block truncate text-sm font-semibold text-white">{businessName}</span>
-            <span className="block text-[11px] text-slate-500">Operator</span>
+            <span className="block text-[11px] text-slate-400">Operator</span>
           </span>
         </Link>
 
@@ -105,14 +105,14 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", logo
                 aria-current={active ? "page" : undefined}
                 className={`relative flex flex-col items-center gap-1 rounded-2xl px-1 py-2.5 text-[10px] font-medium transition lg:flex-row lg:gap-3 lg:px-3 lg:py-2.5 lg:text-sm ${
                   active
-                    ? "bg-brand-400/10 text-brand-300"
+                    ? "bg-white/10 text-white"
                     : "text-slate-400 hover:bg-white/5 hover:text-white"
                 }`}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
                 <span className="lg:flex-1">{item.label}</span>
                 <Badge count={count} className="absolute right-2 top-1.5 lg:static" />
-                {active && <span className="absolute -left-2 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-brand-400 lg:-left-4" />}
+                {active && <span className="absolute -left-2 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-brand-300 lg:-left-4" />}
               </Link>
             );
           })}
@@ -129,7 +129,7 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", logo
                 target="_blank"
                 rel="noopener noreferrer"
                 title={p.label}
-                className="flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] text-slate-500 transition hover:bg-white/5 hover:text-brand-300 lg:flex-row lg:gap-3 lg:px-3 lg:text-xs"
+                className="flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] text-slate-400 transition hover:bg-white/5 hover:text-white lg:flex-row lg:gap-3 lg:px-3 lg:text-xs"
               >
                 <Icon className="h-4 w-4 flex-shrink-0" />
                 <span className="lg:flex-1">{p.label}</span>
@@ -154,7 +154,7 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", logo
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`relative flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 ${active ? "text-brand-300" : "text-slate-500"}`}
+              className={`relative flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 ${active ? "text-white" : "text-slate-400"}`}
             >
               <Icon className="h-5 w-5" />
               <span className="text-[10px] font-medium">{item.label}</span>
@@ -166,7 +166,7 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", logo
           onClick={() => setMoreOpen(true)}
           aria-haspopup="dialog"
           aria-expanded={moreOpen}
-          className={`flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 ${moreActive ? "text-brand-300" : "text-slate-500"}`}
+          className={`flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 ${moreActive ? "text-white" : "text-slate-400"}`}
         >
           <MoreHorizontal className="h-5 w-5" />
           <span className="text-[10px] font-medium">More</span>
