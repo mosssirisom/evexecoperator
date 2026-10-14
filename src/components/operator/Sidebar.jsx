@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Sun,
+  Contact,
   Users,
   BarChart3,
   Settings,
@@ -27,6 +28,7 @@ const navItems = [
   { label: "Today", icon: Sun, href: "/operator/today", mobile: true },
   { label: "Bookings", icon: CalendarDays, href: "/operator/bookings", mobile: true },
   { label: "Inbox", icon: Inbox, href: "/operator/inbox", mobile: true, badge: "inbox" },
+  { label: "Customers", icon: Contact, href: "/operator/customers" },
   { label: "Drivers", icon: Users, href: "/operator/drivers", mobile: true },
   { label: "Invoices", icon: FileText, href: "/operator/invoices" },
   { label: "Analytics", icon: BarChart3, href: "/operator/analytics" },
