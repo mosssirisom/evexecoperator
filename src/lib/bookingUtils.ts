@@ -78,6 +78,19 @@ export function quoteToPrefill(quote: DbQuoteRequest): BookingPrefill {
   return prefill;
 }
 
+const norm = (v: string | null | undefined) => String(v ?? "").trim().toLowerCase();
+
+/** True when the quote's return (if it names one) is the outbound trip reversed. */
+function isReverseReturn(quote: DbQuoteRequest, pickup?: string, dropoff?: string): boolean {
+  const rp = norm(quote.return_pickup);
+  const rd = norm(quote.return_destination);
+  const ra = norm(quote.return_airport);
+  if (rp && rp !== norm(dropoff)) return false;
+  if (rd && rd !== norm(pickup)) return false;
+  if (ra && ra !== norm(pickup) && ra !== norm(dropoff)) return false;
+  return true;
+}
+
 // The quote as initial values for the operator New Booking form
 // (components/operator/BookingModal). A requested return becomes a ticked
 // return journey with its date/time/flight, so the return leg is created too.
@@ -94,7 +107,10 @@ export function quoteToBookingForm(quote: DbQuoteRequest): Record<string, string
     time: p.travel_time ?? "",
     notes: p.notes ?? "",
   };
-  if (quote.return_required) {
+  // Only tick the return when it really is the reverse trip: the form books the
+  // return leg as drop-off → pickup, so a different return route (another
+  // airport, another address) is left in the notes for the operator to book.
+  if (quote.return_required && isReverseReturn(quote, p.pickup, p.dropoff)) {
     form.returnJourney = true;
     form.returnDate = quote.return_date ?? "";
     form.returnTime = quote.return_time ? quote.return_time.slice(0, 5) : "";
