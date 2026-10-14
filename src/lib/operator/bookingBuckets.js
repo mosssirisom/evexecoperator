@@ -35,3 +35,19 @@ export function boardColumn(b, today) {
   if (needsDriver(b)) return "driver";
   return "assigned";
 }
+
+/** Finished: done/cancelled, or dated before today and not on the road. */
+export const isPast = (b, today) =>
+  DONE_STATUSES.includes(b.status) || (Boolean(b.travelDate) && b.travelDate < today && !ON_ROAD_STATUSES.includes(b.status));
+
+/** Something the office has to do: reply, find a driver (not yet past), or chase payment. */
+export const needsAction = (b, today) =>
+  awaitingReply(b) || (needsDriver(b) && !isPast(b, today)) || unpaidCompleted(b);
+
+/** Which Bookings → List views a booking appears in. */
+export const LIST_VIEWS = {
+  upcoming: (b, today) => !isPast(b, today),
+  action: (b, today) => needsAction(b, today),
+  past: (b, today) => isPast(b, today),
+  all: () => true,
+};

@@ -852,7 +852,11 @@ export default function BookingDetailDrawer({
                 <Row icon={Briefcase} label="Bags" value={booking.luggage || null} />
                 <Row icon={Car} label="Vehicle" value={booking.vehicleType} />
                 <Row icon={Clock} label="Pickup time" value={
-                  booking.pickupTime
+                  // The booking's own UK date and time first, so the device's
+                  // timezone can never shift it.
+                  booking.travelDate && booking.time && booking.time !== "—"
+                    ? `${fmtDayDate(booking.travelDate)} ${booking.time}`
+                    : booking.pickupTime
                     ? `${fmtDayDate(booking.pickupTime)} ${fmtTime(booking.pickupTime)}`
                     : booking.time !== "—" ? booking.time : null
                 } />
