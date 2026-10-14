@@ -82,5 +82,41 @@ export function useTenantProfile() {
     return data;
   }, [tenant]);
 
-  return { tenant, canEdit, user, loading, error, save, savePricing, reload: load };
+  // Logo and colours (brand.logo_url, brand.colors) through
+  // update_tenant_branding: admins only, checked again in the database.
+  // Logos go in the business's own folder of the public brand-assets bucket.
+  const uploadLogo = useCallback(async (file) => {
+    if (!tenant) throw new Error("No business to update.");
+    const ext = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" }[file.type] || "png";
+    const path = `${tenant.id}/logo-${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("brand-assets").upload(path, file, {
+      contentType: file.type,
+      cacheControl: "31536000",
+      upsert: false,
+    });
+    if (upErr) throw new Error(upErr.message);
+    return supabase.storage.from("brand-assets").getPublicUrl(path).data.publicUrl;
+  }, [tenant]);
+
+  const saveBranding = useCallback(async ({ logoUrl, primary, accent }) => {
+    if (!tenant) throw new Error("No business to update.");
+    const previous = tenant.brand?.logo_url || null;
+    const { data, error: rpcErr } = await supabase.rpc("update_tenant_branding", {
+      p_tenant_id: tenant.id,
+      p_logo_url: logoUrl || null,
+      p_primary: primary || null,
+      p_accent: accent || null,
+    });
+    if (rpcErr) throw new Error(rpcErr.message);
+    setTenant(data);
+    // Tidy up the replaced logo file (best effort; the new one is already saved).
+    const marker = `/brand-assets/${tenant.id}/`;
+    if (previous && previous !== (logoUrl || null) && previous.includes(marker)) {
+      const oldPath = previous.slice(previous.indexOf(marker) + "/brand-assets/".length);
+      supabase.storage.from("brand-assets").remove([oldPath]).catch(() => {});
+    }
+    return data;
+  }, [tenant]);
+
+  return { tenant, canEdit, user, loading, error, save, savePricing, uploadLogo, saveBranding, reload: load };
 }

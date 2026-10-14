@@ -24,6 +24,8 @@ import {
   UsersRound,
   Plus,
   Trash2,
+  Palette,
+  ImageUp,
 } from "lucide-react";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { isConfigured, supabase } from "@/lib/supabase";
@@ -35,6 +37,7 @@ import PlatformSettings from "@/components/operator/PlatformSettings";
 import { fmtDateTime } from "@/lib/dates";
 import { useTenantProfile } from "@/hooks/operator/useTenantProfile";
 import { pricingForSave, pricingFromTenant, pricingProblem } from "@/lib/prices";
+import { BUILT_IN_LOGO_SRC, DEFAULT_ACCENT, DEFAULT_PRIMARY, EV_EXEC_TENANT_ID, brandFrom, brandWarning, isHexColour, logoFileProblem } from "@/lib/brand";
 import { useOperator } from "@/components/operator/OperatorContext";
 import AuditLogTab from "@/components/AuditLogTab";
 import TeamSettings from "@/components/operator/TeamSettings";
@@ -42,6 +45,7 @@ import { useAuditLog } from "@/hooks/useAuditLog";
 
 const SECTIONS = [
   { key: "business", label: "Business", icon: Building2 },
+  { key: "branding", label: "Branding", icon: Palette },
   { key: "team", label: "Team", icon: UsersRound },
   { key: "notifications", label: "Notifications", icon: Bell },
   { key: "prices", label: "Prices", icon: Car },
@@ -376,6 +380,211 @@ function NotificationCenter() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Logo and colours (tenants.brand), saved through update_tenant_branding
+// (admins only, checked again in the database). Shown in the sidebar and on
+// invoices, including the PDFs customers download from their account.
+function ColourField({ label, hint, value, onChange, disabled }) {
+  return (
+    <div>
+      <p className="mb-1.5 text-xs font-medium text-[#0F1B33]">{label}</p>
+      <div className="flex items-center gap-3">
+        <input
+          type="color"
+          value={isHexColour(value) ? value : "#000000"}
+          onChange={(e) => onChange(e.target.value.toUpperCase())}
+          disabled={disabled}
+          aria-label={`${label} picker`}
+          className="h-11 w-14 cursor-pointer rounded-xl border border-slate-200 bg-white p-1 disabled:cursor-not-allowed"
+        />
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value.toUpperCase().slice(0, 7))}
+          disabled={disabled}
+          aria-label={label}
+          spellCheck={false}
+          className={`w-28 rounded-xl border bg-white px-3 py-2.5 font-mono text-sm uppercase text-[#0F1B33] outline-none focus:border-amber-400 disabled:bg-slate-50 ${isHexColour(value) ? "border-slate-200" : "border-red-300"}`}
+        />
+      </div>
+      {hint && <p className="mt-1.5 text-[11px] text-slate-500">{hint}</p>}
+    </div>
+  );
+}
+
+function BrandPreview({ name, logoSrc, primary, accent }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white" aria-label="Preview">
+      <div className="flex items-center justify-between gap-4 px-5 py-5" style={{ background: primary }}>
+        <div className="flex min-w-0 items-center gap-3">
+          {logoSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoSrc} alt="" className="h-12 w-auto max-w-[160px] object-contain" />
+          ) : (
+            <span className="truncate text-lg font-semibold tracking-[0.18em]" style={{ color: accent }}>{name.toUpperCase()}</span>
+          )}
+        </div>
+        <div className="text-right">
+          <p className="text-lg font-light tracking-[0.3em]" style={{ color: accent }}>INVOICE</p>
+          <div className="ml-auto mt-1 h-0.5 w-14" style={{ background: accent }} />
+        </div>
+      </div>
+      <div className="flex items-center justify-between px-5 py-4 text-sm">
+        <span className="text-slate-500">Airport transfer</span>
+        <span className="font-semibold text-[#0F1B33]">£90.00</span>
+      </div>
+      <div className="flex items-center justify-between px-5 py-3 text-sm font-bold uppercase tracking-wider" style={{ background: primary, color: accent }}>
+        <span>Total</span><span>£90.00</span>
+      </div>
+    </div>
+  );
+}
+
+function BrandingSettings({ toast }) {
+  const { tenant, canEdit, loading, error, uploadLogo, saveBranding } = useTenantProfile();
+  const { profile } = useOperator();
+  const [form, setForm] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+
+  useEffect(() => {
+    if (tenant && !form) {
+      const b = brandFrom(tenant);
+      setForm({ logoUrl: b.logoUrl, primary: b.primary, accent: b.accent });
+    }
+  }, [tenant, form]);
+
+  if (loading && !form) return <p className="text-sm text-slate-500">Loading branding…</p>;
+  if (!tenant || !form) return <p className="text-sm text-red-600">{error || "No business is linked to this account."}</p>;
+
+  const off = !canEdit || busy || uploading;
+  const builtIn = !form.logoUrl && tenant.id === EV_EXEC_TENANT_ID;
+  const logoSrc = form.logoUrl || (builtIn ? BUILT_IN_LOGO_SRC : null);
+  const warning = brandWarning(form.primary, form.accent);
+
+  const pickFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    const problem = logoFileProblem(file);
+    if (problem) { toast({ message: problem, type: "error" }); return; }
+    setUploading(true);
+    try {
+      const url = await uploadLogo(file);
+      setForm((f) => ({ ...f, logoUrl: url }));
+    } catch (err) {
+      toast({ message: err?.message || "Could not upload the logo", type: "error" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!isHexColour(form.primary) || !isHexColour(form.accent)) {
+      toast({ message: "Colours must be hex codes like #0B132B.", type: "error" });
+      return;
+    }
+    setBusy(true);
+    try {
+      const saved = await saveBranding(form);
+      const b = brandFrom(saved);
+      setForm({ logoUrl: b.logoUrl, primary: b.primary, accent: b.accent });
+      profile.reload?.(); // sidebar and invoices pick it up
+      toast({ message: "Branding saved for everyone on your team", type: "success" });
+    } catch (err) {
+      toast({ message: err?.message || "Could not save branding", type: "error" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      {!canEdit && (
+        <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+          Only an admin can change the logo and colours.
+        </p>
+      )}
+
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <div className="space-y-7">
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-[#0F1B33]">Logo</p>
+            <p className="mb-3 text-[11px] leading-relaxed text-slate-500">
+              PNG, JPEG or WebP, up to 1 MB. A logo with a transparent background looks best on the main colour.
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="flex h-16 w-28 items-center justify-center overflow-hidden rounded-xl border border-slate-200 p-2" style={{ background: form.primary }}>
+                {logoSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logoSrc} alt="Current logo" className="max-h-full max-w-full object-contain" />
+                ) : (
+                  <span className="text-[10px] uppercase tracking-[0.2em]" style={{ color: form.accent }}>No logo</span>
+                )}
+              </span>
+              {canEdit && (
+                <>
+                  <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={pickFile} />
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={off}
+                    className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-[#0F1B33] transition hover:border-amber-300 disabled:opacity-50"
+                  >
+                    <ImageUp className="h-4 w-4" /> {uploading ? "Uploading…" : form.logoUrl ? "Replace logo" : "Upload logo"}
+                  </button>
+                  {form.logoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, logoUrl: null }))}
+                      disabled={off}
+                      className="rounded-xl px-3 py-2.5 text-sm text-slate-500 transition hover:text-red-600 disabled:opacity-50"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+            {builtIn && <p className="mt-2 text-[11px] text-slate-500">Showing the built-in EV Exec badge.</p>}
+          </div>
+
+          <ColourField
+            label="Main colour"
+            hint="Behind your logo on invoice headers and footers."
+            value={form.primary}
+            onChange={(v) => setForm((f) => ({ ...f, primary: v }))}
+            disabled={off}
+          />
+          <ColourField
+            label="Accent colour"
+            hint="Headings, lines and icons on the main colour."
+            value={form.accent}
+            onChange={(v) => setForm((f) => ({ ...f, accent: v }))}
+            disabled={off}
+          />
+          {warning && <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">{warning}</p>}
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setForm((f) => ({ ...f, primary: DEFAULT_PRIMARY, accent: DEFAULT_ACCENT }))}
+              disabled={off}
+              className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-[#0F1B33] hover:underline disabled:opacity-50"
+            >
+              Use the standard navy and gold
+            </button>
+          )}
+        </div>
+
+        <div>
+          <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-slate-500">Invoice preview</p>
+          <BrandPreview name={tenant.name || "Your business"} logoSrc={logoSrc} primary={isHexColour(form.primary) ? form.primary : DEFAULT_PRIMARY} accent={isHexColour(form.accent) ? form.accent : DEFAULT_ACCENT} />
+        </div>
+      </div>
+
+      {canEdit && <SaveButton onClick={handleSave} busy={busy} disabled={uploading} label="Save Branding" />}
     </div>
   );
 }
@@ -795,6 +1004,7 @@ export default function Settings() {
 
   const sectionContent = {
     business: <BusinessSettings toast={toast} />,
+    branding: <BrandingSettings toast={toast} />,
     team: <TeamSettings toast={toast} />,
     notifications: <NotificationCenter />,
     prices: <PriceSettings toast={toast} />,
