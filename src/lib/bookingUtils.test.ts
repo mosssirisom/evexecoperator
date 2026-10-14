@@ -138,6 +138,29 @@ describe("quoteToBookingForm", () => {
     expect(form.returnJourney).toBeUndefined();
   });
 
+  it("leaves the return unticked when the quote's return route isn't the reverse", () => {
+    const form = quoteToBookingForm(makeQuote({
+      pickup_location: "Lytham St Annes",
+      destination: "Manchester Airport",
+      return_required: true,
+      return_date: "2026-11-09",
+      return_pickup: "Liverpool Airport",
+    }));
+    expect(form.returnJourney).toBeUndefined();
+    expect(String(form.notes)).toContain("Liverpool Airport");
+  });
+
+  it("ticks the return when the quote's return route is the reverse", () => {
+    const form = quoteToBookingForm(makeQuote({
+      pickup_location: "Lytham St Annes",
+      destination: "Manchester Airport",
+      return_required: true,
+      return_pickup: "manchester airport",
+      return_destination: "Lytham St Annes",
+    }));
+    expect(form.returnJourney).toBe(true);
+  });
+
   it("ticks the return journey when the quote asks for one", () => {
     const form = quoteToBookingForm(makeQuote({
       return_required: true,
