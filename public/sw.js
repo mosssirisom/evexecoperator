@@ -15,14 +15,14 @@ self.addEventListener("push", (event) => {
     badge: "/icon-192.png",
     tag: data.tag || undefined,
     renotify: !!data.tag,
-    data: { url: data.url || "/operator/dispatch" },
+    data: { url: data.url || "/operator/today" },
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || "/operator/dispatch";
+  const url = (event.notification.data && event.notification.data.url) || "/operator/today";
   event.waitUntil((async () => {
     const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     for (const client of all) {

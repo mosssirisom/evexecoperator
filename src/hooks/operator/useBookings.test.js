@@ -11,6 +11,8 @@ const { mockChain, mockSupabase } = vi.hoisted(() => {
     select: vi.fn(),
     order:  vi.fn(),
     range:  vi.fn(),
+    or:     vi.fn(),
+    lt:     vi.fn(),
     eq:     vi.fn(),
     single: vi.fn(),
     insert: vi.fn(),
@@ -42,7 +44,7 @@ vi.mock("@/lib/operator/driverApp", () => ({
   updateJobStatus:        vi.fn().mockResolvedValue({ ok: true }),
 }));
 
-import { useBookings, shapedBooking } from "./useBookings";
+import { useBookings, shapedBooking, ukDateDaysAgo, OPERATIONAL_DAYS_BACK } from "./useBookings";
 
 // ─── Shared setup ─────────────────────────────────────────────────────────────
 
@@ -326,5 +328,29 @@ describe("useBookings — updateStatus", () => {
     await expect(
       act(() => result.current.updateStatus("EVX-ERR", "En Route"))
     ).rejects.toThrow(/DB write error/);
+  });
+});
+
+describe("useBookings — loading window", () => {
+  it("ukDateDaysAgo counts back in UK calendar days", () => {
+    // 00:30 UK on 01/11/2026 (GMT) is still 31/10 in UTC terms one hour earlier.
+    expect(ukDateDaysAgo(0, new Date("2026-11-01T00:30:00Z"))).toBe("2026-11-01");
+    expect(ukDateDaysAgo(14, new Date("2026-11-01T00:30:00Z"))).toBe("2026-10-18");
+    // 23:30 UTC on 14/10 (BST) is already 15/10 in the UK.
+    expect(ukDateDaysAgo(0, new Date("2026-10-14T23:30:00Z"))).toBe("2026-10-15");
+  });
+
+  it("operational screens load from the window start (plus undated), not the oldest bookings", async () => {
+    renderHook(() => useBookings());
+    await act(async () => {});
+    expect(mockChain.or).toHaveBeenCalledWith(
+      `travel_date.gte.${ukDateDaysAgo(OPERATIONAL_DAYS_BACK)},travel_date.is.null`,
+    );
+  });
+
+  it("scope 'all' loads every booking", async () => {
+    renderHook(() => useBookings({ scope: "all" }));
+    await act(async () => {});
+    expect(mockChain.or).not.toHaveBeenCalled();
   });
 });

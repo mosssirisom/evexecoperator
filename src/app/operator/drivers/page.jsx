@@ -635,7 +635,7 @@ export default function DriversPage() {
               </p>
             </div>
             <button
-              onClick={() => router.push("/operator/dispatch")}
+              onClick={() => router.push("/operator/bookings")}
               className="min-h-[36px] px-2 text-xs text-slate-500 transition hover:text-amber-600"
             >
               Full dispatch board →
@@ -647,7 +647,7 @@ export default function DriversPage() {
               <MapPin className="mb-3 h-8 w-8 text-slate-700" />
               <p className="text-sm text-slate-600">No pickups with a scheduled time for today.</p>
               <button
-                onClick={() => router.push("/operator/dispatch")}
+                onClick={() => router.push("/operator/bookings")}
                 className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-500 transition hover:text-amber-600"
               >
                 Go to Dispatch Board
@@ -659,7 +659,7 @@ export default function DriversPage() {
               {todayJobs.map((b) => (
                 <button
                   key={b.id}
-                  onClick={() => router.push("/operator/dispatch")}
+                  onClick={() => router.push("/operator/bookings")}
                   className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 text-left transition hover:border-amber-400/20 hover:bg-slate-50"
                 >
                   <div className="w-12 flex-shrink-0 text-center">

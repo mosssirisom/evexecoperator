@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Route,
+  Sun,
   Users,
   BarChart3,
   Settings,
@@ -24,8 +24,8 @@ import { initialsOf } from "./OperatorContext";
 // Main sections, in order. `mobile: true` puts it on the phone tab bar; the
 // rest live under "More" there.
 const navItems = [
-  { label: "Calendar", icon: CalendarDays, href: "/operator/calendar", mobile: true },
-  { label: "Dispatch", icon: Route, href: "/operator/dispatch", mobile: true },
+  { label: "Today", icon: Sun, href: "/operator/today", mobile: true },
+  { label: "Bookings", icon: CalendarDays, href: "/operator/bookings", mobile: true },
   { label: "Inbox", icon: Inbox, href: "/operator/inbox", mobile: true, badge: "inbox" },
   { label: "Drivers", icon: Users, href: "/operator/drivers", mobile: true },
   { label: "Invoices", icon: FileText, href: "/operator/invoices" },
@@ -73,7 +73,7 @@ export default function Sidebar({ inboxCount = 0, businessName = "EV Exec", onSi
         aria-label="Main navigation"
         className="fixed left-0 top-0 z-50 hidden h-screen w-20 flex-col border-r border-white/5 bg-[#050B17] py-5 sm:flex lg:w-60 lg:px-4"
       >
-        <Link href="/operator/calendar" className="mb-8 flex items-center justify-center gap-3 lg:justify-start lg:px-2" title={businessName}>
+        <Link href="/operator/today" className="mb-8 flex items-center justify-center gap-3 lg:justify-start lg:px-2" title={businessName}>
           <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-amber-400/25 bg-amber-400/10 text-sm font-bold text-amber-300">
             {initialsOf(businessName)}
           </span>

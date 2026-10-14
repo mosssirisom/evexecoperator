@@ -37,7 +37,7 @@ const STATUS_COLORS = {
 
 export default function Analytics() {
   const [period, setPeriod] = useState("7 Days");
-  const { bookings } = useBookings();
+  const { bookings } = useBookings({ scope: "all" });
   const { drivers } = useDrivers();
 
   const parsePrice = (b) => parseFloat(String(b.price).replace("£", "")) || 0;

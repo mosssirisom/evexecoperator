@@ -1,14 +1,21 @@
+// Status pill colours for the (light) operator app. Dark text on a pale fill
+// so every status reads clearly on white.
 export function bookingStatusColor(status) {
   switch (status) {
     case "Dispatched":
-      return "border-amber-500/30 bg-amber-500/10 text-amber-300";
+      return "border-amber-200 bg-amber-50 text-amber-800";
     case "En Route":
-      return "border-blue-400/30 bg-blue-400/10 text-blue-300";
+      return "border-blue-200 bg-blue-50 text-blue-700";
+    case "Arrived":
+      return "border-indigo-200 bg-indigo-50 text-indigo-700";
     case "Passenger On Board":
-      return "border-emerald-400/30 bg-emerald-400/10 text-emerald-300";
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
     case "Completed":
-      return "border-slate-500/30 bg-slate-500/10 text-slate-300";
+      return "border-slate-200 bg-slate-100 text-slate-700";
+    case "Cancelled":
+    case "No Show":
+      return "border-slate-200 bg-slate-50 text-slate-500";
     default:
-      return "border-red-400/30 bg-red-400/10 text-red-300";
+      return "border-red-200 bg-red-50 text-red-700";
   }
 }
