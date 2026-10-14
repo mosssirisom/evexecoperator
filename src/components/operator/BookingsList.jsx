@@ -769,7 +769,7 @@ export default function BookingsList() {
                     <div key={g.key ?? "no-date"} className="grid min-w-0 gap-2">
                       <p
                         style={{ top: stickyTop + filterBarH }}
-                        className="sticky z-20 -mx-2 flex items-baseline gap-2 bg-[#EEF0F6]/95 px-3 py-1.5 backdrop-blur-sm sm:-mx-6 sm:px-6"
+                        className="sticky z-20 -mx-2 flex items-baseline gap-2 bg-[#F5F6F9]/95 px-3 py-1.5 backdrop-blur-sm sm:-mx-6 sm:px-6"
                       >
                         <span className="text-sm font-semibold text-[#0F1B33]">{g.label}</span>
                         {g.sub && <span className="text-xs text-slate-500">{g.sub}</span>}
