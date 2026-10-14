@@ -11,6 +11,7 @@ import { useBookingDrawer } from "@/components/operator/useBookingDrawer";
 import { useOperator } from "@/components/operator/OperatorContext";
 import { fmtDate } from "@/lib/dates";
 import StatusChip from "@/components/operator/StatusChip";
+import SetupChecklist from "@/components/operator/SetupChecklist";
 import { DONE_STATUSES as DONE, ON_ROAD_STATUSES, awaitingReply, needsDriver, unpaidCompleted, minutesUntil } from "@/lib/operator/bookingBuckets";
 
 // Home screen: what needs the office now, today's jobs in time order, and
@@ -106,6 +107,8 @@ export default function TodayPage() {
       {error && (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">Couldn&apos;t load bookings: {error}</div>
       )}
+
+      <SetupChecklist drivers={drivers} hasBookings={api.totalCount > 0 || bookings.length > 0} />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Tile icon={Clock} label="Jobs today" sub={`£${view.revenue.toLocaleString("en-GB")}`} value={view.todays.length} tone="bg-amber-50 text-amber-600" href="/operator/bookings" />

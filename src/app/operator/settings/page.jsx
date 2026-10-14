@@ -21,6 +21,7 @@ import {
   BellRing,
   Building,
   History,
+  UsersRound,
 } from "lucide-react";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { isConfigured, supabase } from "@/lib/supabase";
@@ -34,10 +35,12 @@ import { useTenantProfile } from "@/hooks/operator/useTenantProfile";
 import { AIRPORT_PRICES, EXTRA_STOP_PRICE } from "@/lib/prices";
 import { useOperator } from "@/components/operator/OperatorContext";
 import AuditLogTab from "@/components/AuditLogTab";
+import TeamSettings from "@/components/operator/TeamSettings";
 import { useAuditLog } from "@/hooks/useAuditLog";
 
 const SECTIONS = [
   { key: "business", label: "Business", icon: Building2 },
+  { key: "team", label: "Team", icon: UsersRound },
   { key: "notifications", label: "Notifications", icon: Bell },
   { key: "prices", label: "Prices", icon: Car },
   { key: "integrations", label: "Integrations", icon: Plug },
@@ -674,6 +677,7 @@ export default function Settings() {
 
   const sectionContent = {
     business: <BusinessSettings toast={toast} />,
+    team: <TeamSettings toast={toast} />,
     notifications: <NotificationCenter />,
     prices: <PriceSettings />,
     integrations: <IntegrationSettings toast={toast} />,

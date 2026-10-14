@@ -23,6 +23,7 @@ const pageMeta = {
   "/operator/today": { label: "Overview", title: "Today" },
   "/operator/bookings": { label: "Operations", title: "Bookings" },
   "/operator/inbox": { label: "Requests", title: "Inbox" },
+  "/operator/customers": { label: "People", title: "Customers" },
   "/operator/drivers": { label: "Fleet", title: "Driver Management" },
   "/operator/invoices": { label: "Billing", title: "Invoices" },
   "/operator/analytics": { label: "Insights", title: "Analytics" },

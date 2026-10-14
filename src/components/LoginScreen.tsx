@@ -18,6 +18,35 @@ export default function LoginScreen({ onSignIn }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+
+  // Emails a reset link (only sent if the address belongs to a team member;
+  // the reply is the same either way). See /api/auth/forgot.
+  const handleForgot = async () => {
+    setError(null);
+    setNotice(null);
+    const addr = email.trim();
+    if (!addr) {
+      setError("Enter your email above, then tap Forgot password.");
+      return;
+    }
+    setResetting(true);
+    try {
+      const res = await fetch("/api/auth/forgot", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: addr }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) setError(data?.error ?? "Couldn't send a reset link. Try again.");
+      else setNotice(data?.message ?? "If that email belongs to a team member, a reset link is on its way.");
+    } catch {
+      setError("Couldn't send a reset link. Check your connection and try again.");
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -92,11 +121,17 @@ export default function LoginScreen({ onSignIn }: Props) {
               </button>
             </div>
             <div className="flex justify-end">
-              <button type="button" className="text-xs text-amber-600 hover:text-amber-600 transition-colors">
-                Forgot password?
+              <button type="button" onClick={handleForgot} disabled={resetting} className="text-xs text-amber-600 hover:underline transition-colors disabled:opacity-50">
+                {resetting ? "Sending…" : "Forgot password?"}
               </button>
             </div>
           </div>
+
+          {notice && (
+            <p role="status" className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+              {notice}
+            </p>
+          )}
 
           {error && (
             <p className="text-xs text-red-600 bg-red-100 border border-red-500/20 rounded-lg px-3 py-2">
