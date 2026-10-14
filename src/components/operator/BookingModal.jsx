@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { X, Plane, MapPin, Clock, User, Car, PoundSterling, ChevronDown, ArrowLeftRight, Search } from "lucide-react";
 import { useDrivers } from "@/hooks/operator/useDrivers";
+import { fixedLegPrice } from "@/lib/prices";
 
 // Builds a de-duplicated list of past customers from the bookings feed, so a
 // manual booking can reuse a saved customer's details — and their addresses —
@@ -131,17 +132,12 @@ const DESTINATIONS = [
   "Chorley",
 ];
 
-function getSuggestedPrice(airport) {
-  try {
-    const saved = JSON.parse(localStorage.getItem("evexec_settings") || "{}");
-    const fleet = saved.fleet || {};
-    const parse = (s) => { const n = parseInt(String(s || "").replace(/[^0-9]/g, ""), 10); return n > 0 ? n : null; };
-    if (airport.includes("MAN")) return parse(fleet.rateMan);
-    if (airport.includes("LPL")) return parse(fleet.rateLpl);
-  } catch {}
-  return null;
+// The website's fixed price for that airport, per booking leg (a return is two
+// legs, each carrying half the return fare), so a phone booking is quoted the
+// same as an online one.
+function getSuggestedPrice(airport, isReturn) {
+  return fixedLegPrice(airport, isReturn);
 }
-
 
 function Field({ label, icon: Icon, error, children }) {
   return (
@@ -232,11 +228,15 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
   const [lastRouteField, setLastRouteField] = useState(null);
   const closeTimerRef = useRef(null);
   const dialogRef = useRef(null);
+  // True while the price shown is our suggestion (not typed or pre-filled), so
+  // it can follow the route and the return-journey tick.
+  const priceAutoRef = useRef(false);
 
   useEffect(() => {
     if (!open) {
       clearTimeout(closeTimerRef.current);
       setForm(empty);
+      priceAutoRef.current = false;
       setErrors({});
       setSubmitted(false);
       setSubmitting(false);
@@ -302,12 +302,15 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
   }, [lastRouteField]);
 
   useEffect(() => {
-    if (form.price) return; // don't override a pre-filled price
+    if (form.price && !priceAutoRef.current) return; // don't override a typed or pre-filled price
     const airportSide = looksLikeAirport(form.pickup) ? form.pickup : looksLikeAirport(form.dropoff) ? form.dropoff : null;
     if (!airportSide) return;
-    const suggested = getSuggestedPrice(airportSide);
-    if (suggested !== null) setForm((f) => ({ ...f, price: String(suggested) }));
-  }, [form.pickup, form.dropoff]);
+    const suggested = getSuggestedPrice(airportSide, form.returnJourney);
+    if (suggested !== null) {
+      priceAutoRef.current = true;
+      setForm((f) => ({ ...f, price: String(suggested) }));
+    }
+  }, [form.pickup, form.dropoff, form.returnJourney]);
 
   function validate() {
     const e = {};
@@ -523,9 +526,9 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
             {/* Driver + Price */}
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Assign Driver" icon={Car}>
-                <Select value={form.driver} onChange={set("driver")} options={vehicles} placeholder="Auto-assign" />
+                <Select value={form.driver} onChange={set("driver")} options={vehicles} placeholder="Leave unassigned" />
               </Field>
-              <Field label="Fixed Price" icon={PoundSterling}>
+              <Field label={form.returnJourney ? "Fixed Price (each way)" : "Fixed Price"} icon={PoundSterling}>
                 <div className="relative">
                   <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-500">£</span>
                   <input
@@ -533,7 +536,7 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
                     min="0"
                     step="1"
                     value={form.price}
-                    onChange={(e) => set("price")(e.target.value)}
+                    onChange={(e) => { priceAutoRef.current = false; set("price")(e.target.value); }}
                     placeholder="0"
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-8 pr-4 text-sm text-amber-600 outline-none placeholder:text-slate-400 focus:border-amber-400/40 transition"
                   />

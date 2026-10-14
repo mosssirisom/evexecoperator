@@ -12,6 +12,7 @@ import { useOperatorToast } from "@/components/operator/Toast";
 import { EV_EXEC_LOGO } from "@/lib/operator/brandLogo";
 import { supabase } from "@/lib/supabase";
 import { fmtDate } from "@/lib/dates";
+import { useTenantProfile } from "@/hooks/operator/useTenantProfile";
 
 const VAT_RATES = [
   { label: "No VAT", value: 0 },
@@ -23,8 +24,10 @@ const VAT_RATES = [
 const NAVY = "#0B132B";
 const GOLD = "#d7a23f";
 
-// Fixed company details shown on every invoice (from EV Exec's letterhead).
+// Letterhead fallback, used until the business details load (and if a field
+// is blank). The live values come from Settings → Business (tenants.brand.invoice).
 const COMPANY = {
+  name: "EV Exec",
   addressLines: ["EV Exec", "Wheeler Hub Drive", "Blackpool, FY2 0FD", "United Kingdom"],
   phone: "07721 070370",
   email: "book@evexec.co.uk",
@@ -33,6 +36,22 @@ const COMPANY = {
   tagline2: "DRIVING EXCELLENCE.",
 };
 const DEFAULT_TERMS = "Payment is due within 15 days of invoice date.\nBank Transfer / BACS Preferred.";
+
+function companyFrom(tenant) {
+  const b = tenant?.brand?.invoice || {};
+  const lines = Array.isArray(b.address_lines) && b.address_lines.length ? b.address_lines : COMPANY.addressLines;
+  const tag = Array.isArray(b.tagline) ? b.tagline : [];
+  return {
+    name: tenant?.name || b.business_name || "EV Exec",
+    addressLines: lines,
+    phone: b.phone || COMPANY.phone,
+    email: b.email || COMPANY.email,
+    web: b.web || COMPANY.web,
+    tagline1: tag[0] || COMPANY.tagline1,
+    tagline2: tag[1] || COMPANY.tagline2,
+    terms: b.payment_terms || DEFAULT_TERMS,
+  };
+}
 
 const money = (n) => `£${(Number(n) || 0).toFixed(2)}`;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -81,15 +100,15 @@ const inputCls =
   "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#0F1B33] placeholder:text-slate-400 outline-none transition focus:border-amber-400/40";
 const labelCls = "mb-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-500";
 
-function InvoiceLogo() {
+function InvoiceLogo({ company = COMPANY }) {
   return (
     <div className="flex flex-col items-start">
       {/* Real EV Exec badge — its background is the same navy as the header band */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={EV_EXEC_LOGO} alt="EV Exec" className="h-16 w-auto sm:h-20" />
+      <img src={EV_EXEC_LOGO} alt={company.name || "EV Exec"} className="h-16 w-auto sm:h-20" />
       <div className="mt-1 h-px w-28 sm:w-36" style={{ background: GOLD, opacity: 0.55 }} />
       <p className="mt-1.5 text-[8px] font-semibold leading-relaxed tracking-[0.24em] sm:text-[9px]" style={{ color: GOLD }}>
-        {COMPANY.tagline1}<br />{COMPANY.tagline2}
+        {company.tagline1}<br />{company.tagline2}
       </p>
     </div>
   );
@@ -484,7 +503,9 @@ function InvoiceModal({ open, onClose, onCreate, bookings, jobsLoading, invoiceF
 function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
   const inv = invoice;
   const jLines = journeyLines(inv.journey);
-  const terms = (inv.notes && inv.notes.trim()) || DEFAULT_TERMS;
+  const { tenant } = useTenantProfile();
+  const company = companyFrom(tenant);
+  const terms = (inv.notes && inv.notes.trim()) || company.terms;
   const exact = { WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" };
   const sheetRef = useRef(null);
   const [sending, setSending] = useState(false);
@@ -704,7 +725,7 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
           {/* ── Header band ── */}
           <div className="relative px-5 pt-5 pb-10 sm:px-10 sm:pt-8 sm:pb-14" style={{ backgroundColor: NAVY, ...exact }}>
             <div className="flex items-start justify-between gap-3">
-              <InvoiceLogo />
+              <InvoiceLogo company={company} />
               <div className="text-right">
                 <p className="text-xl font-light tracking-[0.3em] sm:text-3xl sm:tracking-[0.35em]" style={{ color: GOLD }}>INVOICE</p>
                 <div className="ml-auto mt-2 h-0.5 w-16 sm:w-24" style={{ background: GOLD }} />
@@ -861,17 +882,17 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
             <div className="flex items-start gap-2">
               <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: GOLD }} />
               <div className="leading-snug text-slate-300">
-                {COMPANY.addressLines.map((l, i) => <p key={i}>{l}</p>)}
+                {company.addressLines.map((l, i) => <p key={i}>{l}</p>)}
               </div>
             </div>
             <div className="flex items-center gap-2 text-slate-300">
-              <Phone className="h-4 w-4" style={{ color: GOLD }} /> {COMPANY.phone}
+              <Phone className="h-4 w-4" style={{ color: GOLD }} /> {company.phone}
             </div>
             <div className="flex items-center gap-2 text-slate-300">
-              <Mail className="h-4 w-4" style={{ color: GOLD }} /> {COMPANY.email}
+              <Mail className="h-4 w-4" style={{ color: GOLD }} /> {company.email}
             </div>
             <div className="flex items-center gap-2 text-slate-300">
-              <Globe className="h-4 w-4" style={{ color: GOLD }} /> {COMPANY.web}
+              <Globe className="h-4 w-4" style={{ color: GOLD }} /> {company.web}
             </div>
           </div>
         </div>
