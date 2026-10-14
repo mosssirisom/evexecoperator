@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { X, Plane, MapPin, Clock, User, Car, PoundSterling, ChevronDown, ArrowLeftRight, Search } from "lucide-react";
 import { useDrivers } from "@/hooks/operator/useDrivers";
 import { fixedLegPrice } from "@/lib/prices";
+import { useOperator } from "./OperatorContext";
 import { looksLikeAirport } from "@/lib/bookingUtils";
 
 // Builds a de-duplicated list of past customers from the bookings feed, so a
@@ -132,11 +133,11 @@ const DESTINATIONS = [
   "Chorley",
 ];
 
-// The website's fixed price for that airport, per booking leg (a return is two
-// legs, each carrying half the return fare), so a phone booking is quoted the
-// same as an online one.
-function getSuggestedPrice(airport, isReturn) {
-  return fixedLegPrice(airport, isReturn);
+// The operator's fixed price (Settings → Prices) for whichever end of the trip
+// is a listed place, per booking leg (a return is two legs, each carrying half
+// the return fare), so a phone booking is quoted the same as an online one.
+function getSuggestedPrice(pickup, dropoff, isReturn, airports) {
+  return fixedLegPrice(pickup, isReturn, airports) ?? fixedLegPrice(dropoff, isReturn, airports);
 }
 
 function Field({ label, icon: Icon, error, children }) {
@@ -214,6 +215,7 @@ const empty = {
 // `eyebrow` / `heading` label the form for where it was opened from (a return
 // journey, a converted quote); a plain new booking uses the defaults.
 export default function BookingModal({ open, onClose, onSubmit, initialValues, customers = [], eyebrow, heading }) {
+  const { pricing } = useOperator().profile;
   const { drivers } = useDrivers();
   const vehicles = useMemo(
     () => drivers.map((d) => ({ id: d.id, label: `${d.name} — ${d.vehicle}` })),
@@ -305,14 +307,14 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
 
   useEffect(() => {
     if (form.price && !priceAutoRef.current) return; // don't override a typed or pre-filled price
-    const airportSide = looksLikeAirport(form.pickup) ? form.pickup : looksLikeAirport(form.dropoff) ? form.dropoff : null;
-    if (!airportSide) return;
-    const suggested = getSuggestedPrice(airportSide, form.returnJourney);
+    // The operator's own price list (Settings → Prices): whichever end of the
+    // trip is a listed place sets the price.
+    const suggested = getSuggestedPrice(form.pickup, form.dropoff, form.returnJourney, pricing.airports);
     if (suggested !== null) {
       priceAutoRef.current = true;
       setForm((f) => ({ ...f, price: String(suggested) }));
     }
-  }, [form.pickup, form.dropoff, form.returnJourney]);
+  }, [form.pickup, form.dropoff, form.returnJourney, pricing]);
 
   function validate() {
     const e = {};

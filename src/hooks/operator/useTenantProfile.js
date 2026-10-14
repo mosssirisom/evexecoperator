@@ -5,7 +5,8 @@ import { supabase, isConfigured } from "@/lib/supabase";
 
 /**
  * The signed-in staff member's operator business (their public.tenants row):
- * name, contact details and the invoice letterhead in brand.invoice. Saved via
+ * name, contact details, the invoice letterhead in brand.invoice and its
+ * fixed prices in pricing. Details are saved via
  * the update_tenant_profile RPC, which only lets an operator_admin (or
  * super_admin) change it, so every staff device sees the same details.
  *
@@ -34,7 +35,7 @@ export function useTenantProfile() {
         .eq("user_id", userId);
       const own = (roles || []).find((r) => r.tenant_id);
       const isSuper = (roles || []).some((r) => r.role === "super_admin");
-      let q = supabase.from("tenants").select("id, name, contact_email, contact_phone, brand");
+      let q = supabase.from("tenants").select("id, name, contact_email, contact_phone, brand, pricing");
       q = own ? q.eq("id", own.tenant_id) : q.order("created_at", { ascending: true }).limit(1);
       const { data, error: tErr } = await q.maybeSingle();
       if (tErr) throw tErr;
@@ -68,5 +69,18 @@ export function useTenantProfile() {
     return data;
   }, [tenant]);
 
-  return { tenant, canEdit, user, loading, error, save, reload: load };
+  // Prices (tenants.pricing) through update_tenant_pricing: admins only,
+  // checked again in the database. `pricing` is the stored (snake_case) shape.
+  const savePricing = useCallback(async (pricing) => {
+    if (!tenant) throw new Error("No business to update.");
+    const { data, error: rpcErr } = await supabase.rpc("update_tenant_pricing", {
+      p_tenant_id: tenant.id,
+      p_pricing: pricing,
+    });
+    if (rpcErr) throw new Error(rpcErr.message);
+    setTenant((t) => (t ? { ...t, pricing: data } : t));
+    return data;
+  }, [tenant]);
+
+  return { tenant, canEdit, user, loading, error, save, savePricing, reload: load };
 }

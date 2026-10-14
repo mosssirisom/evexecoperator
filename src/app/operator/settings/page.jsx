@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Building2,
@@ -22,6 +22,8 @@ import {
   Building,
   History,
   UsersRound,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { isConfigured, supabase } from "@/lib/supabase";
@@ -32,7 +34,7 @@ import { useIsSuperAdmin } from "@/hooks/operator/useIsSuperAdmin";
 import PlatformSettings from "@/components/operator/PlatformSettings";
 import { fmtDateTime } from "@/lib/dates";
 import { useTenantProfile } from "@/hooks/operator/useTenantProfile";
-import { AIRPORT_PRICES, EXTRA_STOP_PRICE } from "@/lib/prices";
+import { pricingForSave, pricingFromTenant, pricingProblem } from "@/lib/prices";
 import { useOperator } from "@/components/operator/OperatorContext";
 import AuditLogTab from "@/components/AuditLogTab";
 import TeamSettings from "@/components/operator/TeamSettings";
@@ -378,37 +380,153 @@ function NotificationCenter() {
   );
 }
 
-// Read-only: the same fixed prices the website booking form charges, and the
-// price the New Booking form suggests. Editing prices per operator is part of
-// the white-label work (prices still live in code on the website).
-function PriceSettings() {
+// The business's own fixed prices (tenants.pricing), saved through
+// update_tenant_pricing (admins only, checked again in the database). The
+// website charges these and the New Booking form suggests them.
+const toForm = (p) => ({
+  airports: p.airports.map((a, i) => ({ key: `row-${i}`, name: a.name, code: a.code || "", oneWay: String(a.oneWay), ret: String(a.ret) })),
+  extraStop: String(p.extraStop),
+});
+const fromForm = (f) => ({
+  airports: f.airports.map((a) => ({ name: a.name.trim(), code: a.code.trim() || null, oneWay: Number(a.oneWay), ret: Number(a.ret) })),
+  extraStop: f.extraStop === "" ? 0 : Number(f.extraStop),
+});
+
+function MoneyInput({ value, onChange, label, disabled, hideLabel = false }) {
+  return (
+    <label className="block min-w-0">
+      <span className={`mb-1 block text-[10px] uppercase tracking-[0.2em] text-slate-500 sm:sr-only ${hideLabel ? "sr-only" : ""}`}>{label}</span>
+      <span className="flex items-center rounded-xl border border-slate-200 bg-white focus-within:border-amber-400 has-[:disabled]:bg-slate-50">
+        <span className="pl-3 text-sm text-slate-400">£</span>
+        <input
+          type="number"
+          inputMode="decimal"
+          min="0"
+          step="0.01"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          aria-label={label}
+          className="w-full min-w-0 bg-transparent px-2 py-2.5 text-right text-sm text-[#0F1B33] outline-none disabled:text-slate-600"
+        />
+      </span>
+    </label>
+  );
+}
+
+function PriceSettings({ toast }) {
+  const { tenant, canEdit, loading, error, savePricing } = useTenantProfile();
+  const { profile } = useOperator();
+  const [form, setForm] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const nextKey = useRef(0);
+
+  useEffect(() => {
+    if (tenant && !form) setForm(toForm(pricingFromTenant(tenant.pricing)));
+  }, [tenant, form]);
+
+  if (loading && !form) return <p className="text-sm text-slate-500">Loading prices…</p>;
+  if (!tenant || !form) return <p className="text-sm text-red-600">{error || "No business is linked to this account."}</p>;
+
+  const off = !canEdit || busy;
+  const setRow = (key, field) => (v) =>
+    setForm((f) => ({ ...f, airports: f.airports.map((a) => (a.key === key ? { ...a, [field]: v } : a)) }));
+  const removeRow = (key) => setForm((f) => ({ ...f, airports: f.airports.filter((a) => a.key !== key) }));
+  const addRow = () =>
+    setForm((f) => ({ ...f, airports: [...f.airports, { key: `new-${nextKey.current++}`, name: "", code: "", oneWay: "", ret: "" }] }));
+
+  const handleSave = async () => {
+    const next = fromForm(form);
+    const problem = next.airports.length === 0 ? "Add at least one price." : pricingProblem(next);
+    if (problem) { toast({ message: problem, type: "error" }); return; }
+    setBusy(true);
+    try {
+      const saved = await savePricing(pricingForSave(next));
+      setForm(toForm(pricingFromTenant(saved)));
+      profile.reload?.(); // the New Booking form picks up the new prices
+      toast({ message: "Prices saved. New bookings use them straight away.", type: "success" });
+    } catch (e) {
+      toast({ message: e?.message || "Could not save prices", type: "error" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <p className="text-xs leading-relaxed text-slate-500">
-        Fixed airport prices from anywhere on the Fylde Coast. These are the prices the website charges, and the New
-        Booking form fills them in for you. Anything else is priced by quote.
+        Fixed prices for airports and other regular destinations. Your online booking form charges these, and the New
+        Booking form fills them in for you (a return booked here is two journeys, each at half the return price).
+        Anything not listed is priced by quote.
       </p>
-      <div className="overflow-hidden rounded-2xl border border-slate-100">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-[10px] uppercase tracking-[0.2em] text-slate-500">
-            <tr>
-              <th scope="col" className="px-4 py-3 font-medium">Airport</th>
-              <th scope="col" className="px-4 py-3 text-right font-medium">One way</th>
-              <th scope="col" className="px-4 py-3 text-right font-medium">Return</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {AIRPORT_PRICES.map((a) => (
-              <tr key={a.code}>
-                <td className="px-4 py-3 text-[#0F1B33]">{a.name}</td>
-                <td className="px-4 py-3 text-right font-medium text-[#0F1B33]">£{a.oneWay}</td>
-                <td className="px-4 py-3 text-right font-medium text-[#0F1B33]">£{a.ret}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {!canEdit && (
+        <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+          Only an admin can change prices.
+        </p>
+      )}
+
+      <div className="hidden grid-cols-[minmax(0,1fr)_84px_112px_112px_40px] gap-3 px-1 text-[10px] uppercase tracking-[0.2em] text-slate-500 sm:grid">
+        <span>Destination</span><span>Code</span><span className="text-right">One way</span><span className="text-right">Return</span><span />
       </div>
-      <p className="text-xs text-slate-500">Each extra stop adds £{EXTRA_STOP_PRICE}.</p>
+      <ul className="space-y-3 sm:space-y-2">
+        {form.airports.map((a) => (
+          <li key={a.key} className="grid grid-cols-[72px_minmax(0,1fr)_minmax(0,1fr)] gap-3 rounded-2xl border border-slate-100 p-3 sm:grid-cols-[minmax(0,1fr)_84px_112px_112px_40px] sm:items-center sm:rounded-none sm:border-0 sm:p-0">
+            <label className="col-span-3 block min-w-0 sm:col-span-1">
+              <span className="mb-1 block text-[10px] uppercase tracking-[0.2em] text-slate-500 sm:sr-only">Destination</span>
+              <input
+                value={a.name}
+                onChange={(e) => setRow(a.key, "name")(e.target.value)}
+                disabled={off}
+                maxLength={80}
+                placeholder="e.g. Manchester Airport"
+                aria-label="Destination"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-[#0F1B33] outline-none focus:border-amber-400 disabled:bg-slate-50 disabled:text-slate-600"
+              />
+            </label>
+            <label className="block min-w-0">
+              <span className="mb-1 block text-[10px] uppercase tracking-[0.2em] text-slate-500 sm:sr-only">Code</span>
+              <input
+                value={a.code}
+                onChange={(e) => setRow(a.key, "code")(e.target.value.toUpperCase().slice(0, 4))}
+                disabled={off}
+                placeholder="Optional"
+                aria-label="Airport code (optional)"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm uppercase text-[#0F1B33] outline-none focus:border-amber-400 disabled:bg-slate-50 disabled:text-slate-600"
+              />
+            </label>
+            <MoneyInput label="One way" value={a.oneWay} onChange={setRow(a.key, "oneWay")} disabled={off} />
+            <MoneyInput label="Return" value={a.ret} onChange={setRow(a.key, "ret")} disabled={off} />
+            {canEdit ? (
+              <button
+                type="button"
+                onClick={() => removeRow(a.key)}
+                disabled={busy}
+                aria-label={`Remove ${a.name || "this row"}`}
+                className="col-span-3 flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 text-xs text-slate-500 transition hover:border-red-200 hover:text-red-600 sm:col-span-1 sm:w-10"
+              >
+                <Trash2 className="h-4 w-4" /><span className="sm:hidden">Remove</span>
+              </button>
+            ) : <span className="hidden sm:block" />}
+          </li>
+        ))}
+      </ul>
+      {canEdit && (
+        <button
+          type="button"
+          onClick={addRow}
+          disabled={busy || form.airports.length >= 30}
+          className="flex items-center gap-2 rounded-xl border border-dashed border-amber-400 px-4 py-2.5 text-sm font-medium text-amber-700 transition hover:bg-amber-50 disabled:opacity-50"
+        >
+          <Plus className="h-4 w-4" /> Add a destination
+        </button>
+      )}
+
+      <div className="max-w-xs border-t border-slate-100 pt-5">
+        <p className="mb-2 text-xs font-medium text-[#0F1B33]">Each extra stop adds</p>
+        <MoneyInput label="Extra stop charge" hideLabel value={form.extraStop} onChange={(v) => setForm((f) => ({ ...f, extraStop: v }))} disabled={off} />
+      </div>
+
+      {canEdit && <SaveButton onClick={handleSave} busy={busy} label="Save Prices" />}
     </div>
   );
 }
@@ -679,7 +797,7 @@ export default function Settings() {
     business: <BusinessSettings toast={toast} />,
     team: <TeamSettings toast={toast} />,
     notifications: <NotificationCenter />,
-    prices: <PriceSettings />,
+    prices: <PriceSettings toast={toast} />,
     integrations: <IntegrationSettings toast={toast} />,
     security: <SecuritySettings toast={toast} />,
     activity: <ActivitySettings />,

@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
+import { DEFAULT_PRICING } from "@/lib/prices";
 
 // Shared state for every operator screen, provided once by the operator shell
 // (Layout.jsx) so screens don't each load their own copy:
@@ -8,7 +9,8 @@ import { createContext, useContext } from "react";
 //   one New Booking form (also used for returns and converted quotes);
 // - inbox: quote requests, missed calls and website messages, with actions
 //   and the unread count shown on the nav badge;
-// - profile: the signed-in user, their role and the operator business.
+// - profile: the signed-in user, their role, the operator business and its
+//   prices (pricing: { airports, extraStop }, see lib/prices.ts).
 const OperatorContext = createContext(null);
 
 export const OperatorProvider = OperatorContext.Provider;
@@ -19,7 +21,7 @@ const FALLBACK = {
     quoteRequests: [], missedCalls: [], contactMessages: [], count: 0, loading: false,
     setQuoteStatus: async () => false, setMissedCallResolved: async () => false, setContactMessageStatus: async () => false,
   },
-  profile: { tenant: null, user: null, reload: () => {} },
+  profile: { tenant: null, user: null, pricing: DEFAULT_PRICING, reload: () => {} },
 };
 
 export function useOperator() {
