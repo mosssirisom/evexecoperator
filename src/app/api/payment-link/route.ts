@@ -1,10 +1,17 @@
 import { createClient } from "@supabase/supabase-js";
+import { paymentLink } from "@/lib/email/content.js";
+import { when } from "@/lib/email/template.js";
 
-// Generates a Stripe payment link for a booking and texts it to the customer.
+// Generates a Stripe payment link for a booking and sends it to the customer.
+//
+// - Email (Resend), in the shared EV Exec email design, when the booking has
+//   an email address.
+// - A two-tap text: the response carries an `sms:` link with the message
+//   already written, which the operator opens from their own phone and sends.
+//   No Twilio: nothing is queued for an SMS provider.
 //
 // Runs server-side because it needs the Stripe secret key and the Supabase
-// service-role key (to write the notification_queue row that the SMS processor
-// already drains). Gated to authenticated operators: the browser sends its
+// service-role key. Gated to authenticated operators: the browser sends its
 // Supabase access token as a Bearer header and we verify it before doing
 // anything chargeable.
 //
@@ -13,6 +20,8 @@ import { createClient } from "@supabase/supabase-js";
 //   SUPABASE_SERVICE_ROLE_KEY    — service role key (server only, never NEXT_PUBLIC)
 //   NEXT_PUBLIC_SUPABASE_URL     — already configured for the client
 // Optional:
+//   RESEND_API_KEY               — to email the link (otherwise text only)
+//   INVOICE_FROM / INVOICE_REPLY_TO — sender / reply-to, as booking-response
 //   NEXT_PUBLIC_SITE_URL         — base for Stripe success/cancel redirects
 
 export const runtime = "nodejs";
@@ -22,6 +31,11 @@ const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://evexecoperator.vercel.app";
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const FROM = process.env.INVOICE_FROM ?? "EV Exec <book@evexec.co.uk>";
+const REPLY_TO = process.env.INVOICE_REPLY_TO ?? "book@evexec.co.uk";
+
+const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -68,14 +82,17 @@ export async function POST(req: Request) {
 
   const { data: booking, error: bErr } = await admin
     .from("bookings")
-    .select("id, ref, price, quoted_price, customer_name, customer_phone, customer_email")
+    .select("*")
     .eq("ref", ref)
     .single();
 
   if (bErr || !booking) return json({ error: "Booking not found." }, 404);
 
   const phone = (booking.customer_phone ?? "").trim();
-  if (!phone) return json({ error: "This booking has no customer phone number." }, 422);
+  const email = (booking.customer_email ?? "").trim();
+  if (!phone && !isEmail(email)) {
+    return json({ error: "This booking has no customer email or phone number." }, 422);
+  }
 
   const amount = Number(booking.price ?? booking.quoted_price ?? 0);
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -97,8 +114,7 @@ export async function POST(req: Request) {
   form.set("metadata[booking_ref]", booking.ref);
   // Pre-fill the Stripe checkout email; if "Successful payment" receipts are
   // enabled in the Stripe Dashboard, Stripe also emails its own receipt.
-  const customerEmail = (booking.customer_email ?? "").trim();
-  if (customerEmail) form.set("customer_email", customerEmail);
+  if (isEmail(email)) form.set("customer_email", email);
   form.set("success_url", `${SITE_URL}/payment-complete?ref=${encodeURIComponent(booking.ref)}`);
   form.set("cancel_url", `${SITE_URL}/payment-cancelled?ref=${encodeURIComponent(booking.ref)}`);
 
@@ -119,36 +135,57 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── Persist + enqueue the SMS the processor already delivers ────────────────
   await admin
     .from("bookings")
     .update({ stripe_session_id: session.id, payment_method: "Payment link" })
     .eq("id", booking.id);
 
-  const name = (booking.customer_name ?? "").trim() || "there";
-  const body =
-    `EV Exec: Hi ${name}, please complete payment for your airport transfer ` +
-    `(Ref ${booking.ref}): ${session.url}`;
-
-  const { error: qErr } = await admin.from("notification_queue").insert({
-    booking_id: booking.id,
-    type: "payment_link",
-    channel: "sms",
-    recipient: phone,
-    body,
-    status: "pending",
-    attempts: 0,
-    next_attempt_at: new Date().toISOString(),
-  });
-
-  if (qErr) {
-    // The link exists and the booking is updated; surface that the text failed
-    // so the operator can copy the link manually.
-    return json(
-      { url: session.url, sent: false, error: "Link created but the text could not be queued." },
-      207
-    );
+  // ── Email (Resend) ──────────────────────────────────────────────────────────
+  let emailed = false;
+  let emailError = "";
+  if (isEmail(email) && RESEND_API_KEY) {
+    const mail = paymentLink(booking, { url: session.url, amount });
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: FROM,
+          to: [email],
+          reply_to: REPLY_TO,
+          subject: mail.subject,
+          html: mail.html,
+          text: mail.text,
+        }),
+      });
+      emailed = res.ok;
+      if (!res.ok) {
+        try { const j = await res.json(); emailError = j?.message || j?.error || ""; } catch { /* ignore */ }
+      }
+    } catch (e) {
+      emailError = (e as Error)?.message ?? "email send failed";
+    }
+  } else if (isEmail(email)) {
+    emailError = "Email is not set up (RESEND_API_KEY missing).";
   }
 
-  return json({ url: session.url, sent: true });
+  // ── Two-tap text: the operator sends it from their own phone ────────────────
+  let smsHref: string | null = null;
+  if (phone) {
+    const first = String(booking.customer_name ?? "").trim().split(/\s+/)[0] || "there";
+    const whenText = when(booking.travel_date, booking.travel_time);
+    const body =
+      `Hi ${first}, here is the secure card payment link (£${amount.toFixed(2)}) for your EV Exec transfer` +
+      `${whenText ? ` on ${whenText}` : ""} (Ref ${booking.ref}): ${session.url} ` +
+      `Any questions, call 07721 070370. Thank you, EV Exec`;
+    smsHref = `sms:${phone.replace(/[^\d+]/g, "")}?&body=${encodeURIComponent(body)}`;
+  }
+
+  return json({
+    url: session.url,
+    emailed,
+    emailTo: emailed ? email : null,
+    emailError: emailError || null,
+    smsHref,
+  });
 }

@@ -578,6 +578,7 @@ export default function BookingDetailDrawer({
   const [deleteError, setDeleteError] = useState(null);
   const [linkBusy, setLinkBusy] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [linkResult, setLinkResult] = useState(null);
   const drawerRef = useRef(null);
 
   const handleSaveEdit = useCallback(async (fields) => {
@@ -589,7 +590,8 @@ export default function BookingDetailDrawer({
     if (!onSendPaymentLink) return;
     setLinkBusy(true);
     try {
-      await onSendPaymentLink(booking.id);
+      const data = await onSendPaymentLink(booking.id);
+      if (data?.url) setLinkResult({ id: booking.id, ...data });
     } finally {
       setLinkBusy(false);
     }
@@ -895,9 +897,37 @@ export default function BookingDetailDrawer({
                         {linkBusy ? (
                           <><Loader2 className="h-3.5 w-3.5 animate-spin" />Sending…</>
                         ) : (
-                          <><Send className="h-3.5 w-3.5" />Text Stripe payment link</>
+                          <><Send className="h-3.5 w-3.5" />Send payment link</>
                         )}
                       </button>
+                    )}
+                    {linkResult && linkResult.id === booking.id && (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs text-slate-400">
+                          {linkResult.emailed
+                            ? `Emailed to ${linkResult.emailTo}.`
+                            : linkResult.emailError
+                              ? `Email not sent: ${linkResult.emailError}`
+                              : "No email on file."}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {linkResult.smsHref && (
+                            <a
+                              href={linkResult.smsHref}
+                              className="inline-flex items-center gap-2 rounded-xl border border-amber-500/40 px-3.5 py-2 text-xs font-semibold text-amber-300 transition hover:bg-amber-500/10"
+                            >
+                              <Send className="h-3.5 w-3.5" />Text link to customer
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard?.writeText(linkResult.url).catch(() => {})}
+                            className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3.5 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/5"
+                          >
+                            Copy link
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>

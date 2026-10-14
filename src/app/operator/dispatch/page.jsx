@@ -696,9 +696,14 @@ function DispatchPageContent() {
       await updatePaymentMethod(id, "Payment link").catch(() => {});
       setSelectedBooking((prev) => (prev?.id === id ? { ...prev, paymentMethod: "Payment link" } : prev));
       toast({
-        message: data?.sent ? "Stripe payment link texted to the customer." : "Payment link created.",
-        type: "success",
+        message: data?.emailed
+          ? `Payment link emailed to ${data.emailTo}.`
+          : data?.smsHref
+            ? "Payment link ready. Tap \"Text link to customer\" to send it."
+            : `Payment link created${data?.emailError ? `, but the email failed: ${data.emailError}` : "."}`,
+        type: data?.emailed || data?.smsHref ? "success" : "error",
       });
+      return data;
     } catch (err) {
       toast({ message: err?.message ?? "Could not create payment link.", type: "error" });
     }
