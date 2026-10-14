@@ -9,6 +9,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Softer gold in place of Tailwind's bright amber/orange (easier on
+        // the eye; matches the logo's gold). Same shade roles as before:
+        // 50–200 pale fills, 300 text on dark, 400 dots/borders, 500 buttons,
+        // 600+ text on white (600 = #8A6A1F, 5:1 contrast; the old #d97706
+        // was 3.2:1).
+        amber: {
+          50: "#FBF7EE",
+          100: "#F5ECD7",
+          200: "#EBD9AE",
+          300: "#E0C48A",
+          400: "#D4B266",
+          500: "#C9A550",
+          600: "#8A6A1F",
+          700: "#6F5418",
+          800: "#553F16",
+          900: "#3D2D10",
+          950: "#241A09",
+        },
         navy: {
           950: "#04080f",
           900: "#070d1c",

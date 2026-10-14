@@ -89,3 +89,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `src/lib/brand.js` `brandFrom(tenant)` → `{ name, logoUrl, useBuiltInLogo, primary, accent }` (defaults navy `#0B132B`, gold `#D7A23F`; the built-in EV Exec badge only for the EV Exec tenant, any other business without a logo shows its name). Also `contrastRatio`, `brandWarning`, `logoFileProblem`. The shell context exposes `profile.brand`.
 - Used by: the sidebar badge (logo when uploaded), Invoices (colours, logo and watermark; uploaded logos load with CORS so they appear in the PDF), and the website's customer invoice PDF. The built-in badge is also a static file, `public/ev-exec-badge.png`.
 - **Not yet branded per operator:** emails (`src/lib/email/template.js`, same as the website's) and the Driver app.
+
+## Update — 2026-10-15: softer gold (colours only)
+
+User found the original orange-gold harsh and rejected a navy-and-white theme (branch `claude/navy-theme`, not merged; don't use it). Kept the original design and only softened it: `tailwind.config.ts` redefines Tailwind's `amber` scale as the logo's soft gold (500 `#C9A550` buttons, 600 `#8A6A1F` accent text, 5:1 on white; the old `#d97706` was 3.2:1), so every existing amber class (brand accents and pending/warning badges) picks it up with no component changes. The page background lost its gold radial tint (`Layout.jsx`, and the matching sticky day headings in `BookingsList.jsx`). No layout, size or class changes otherwise.
