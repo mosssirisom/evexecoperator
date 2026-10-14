@@ -13,16 +13,13 @@ import DriverLiveBadge from "./DriverLiveBadge";
 import JobOfferBadge from "./JobOfferBadge";
 import FlightVerificationCard from "./FlightVerificationCard";
 import { fmtDateTime, fmtDayDate } from "@/lib/dates";
+import { looksLikeAirport } from "@/lib/bookingUtils";
 
 const NOTIFICATION_TYPE_LABELS: Record<string, string> = {
   confirmation: "Confirmation",
   reminder_24h: "24h reminder",
   received: "Booking received",
 };
-
-// Same airport detection used by the Dispatch board and website booking
-// form -- whichever side reads as an airport, is the airport.
-const looksLikeAirport = (s: string | null) => /\bairport\b|\([A-Za-z]{3}\)/.test(s || "");
 
 interface Props {
   booking: DbBooking;

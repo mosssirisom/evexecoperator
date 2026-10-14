@@ -1,16 +1,37 @@
 import type { DbQuoteRequest } from "@/lib/database.types";
-import type { BookingPrefill } from "@/components/AddBookingModal";
 import { fmtDate } from "./dates";
 
 // Minimum gap required between two jobs assigned to the same driver on the
 // same day, to allow for drive time / handover between transfers.
 export const CLASH_BUFFER_MINUTES = 90;
 
+// True when a location reads as an airport: the word "airport" (any case) or a
+// bracketed 3-letter code such as "(MAN)". Shared by the booking form, the
+// booking drawer, booking creation and the booking cards.
+export function looksLikeAirport(s: string | null | undefined): boolean {
+  return /\bairport\b|\([A-Za-z]{3}\)/i.test(String(s || ""));
+}
+
 export function timeToMinutes(time: string | null): number | null {
   if (!time) return null;
   const [h, m] = time.split(":").map(Number);
   if (Number.isNaN(h) || Number.isNaN(m)) return null;
   return h * 60 + m;
+}
+
+// Fields a booking form can be pre-filled with (from a quote request).
+export interface BookingPrefill {
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
+  travel_date?: string;
+  travel_time?: string;
+  pickup?: string;
+  dropoff?: string;
+  flight_number?: string;
+  passengers?: number;
+  luggage?: string;
+  notes?: string;
 }
 
 // Maps a Booking Brain quote request onto the New Transfer form fields.
@@ -55,4 +76,29 @@ export function quoteToPrefill(quote: DbQuoteRequest): BookingPrefill {
   if (noteParts.length) prefill.notes = noteParts.join(" · ");
 
   return prefill;
+}
+
+// The quote as initial values for the operator New Booking form
+// (components/operator/BookingModal). A requested return becomes a ticked
+// return journey with its date/time/flight, so the return leg is created too.
+export function quoteToBookingForm(quote: DbQuoteRequest): Record<string, string | boolean> {
+  const p = quoteToPrefill(quote);
+  const form: Record<string, string | boolean> = {
+    customer: p.customer_name ?? "",
+    phone: p.customer_phone ?? "",
+    email: p.customer_email ?? "",
+    pickup: p.pickup ?? "",
+    dropoff: p.dropoff ?? "",
+    flight: p.flight_number ?? "",
+    date: p.travel_date ?? "",
+    time: p.travel_time ?? "",
+    notes: p.notes ?? "",
+  };
+  if (quote.return_required) {
+    form.returnJourney = true;
+    form.returnDate = quote.return_date ?? "";
+    form.returnTime = quote.return_time ? quote.return_time.slice(0, 5) : "";
+    form.returnFlight = quote.return_flight_number ?? "";
+  }
+  return form;
 }

@@ -3,7 +3,7 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Car, Phone, Star, CheckCircle2, Clock, UserX, MoreVertical, Plus, X,
+  Car, Phone, CheckCircle2, Clock, UserX, MoreVertical, Plus, X,
   User, Hash, Truck, MapPin, ExternalLink, Edit2, Trash2, Mail,
 } from "lucide-react";
 import { useDrivers } from "@/hooks/operator/useDrivers";
@@ -435,13 +435,6 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
         <div className="text-center">
           <p className="text-lg font-semibold text-[#0F1B33]">{driver.completedToday}</p>
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Today</p>
-        </div>
-        <div className="text-center">
-          <div className="flex items-center gap-1">
-            <Star className="h-4 w-4 fill-amber-400 text-amber-600" />
-            <p className="text-lg font-semibold text-[#0F1B33]">{driver.rating}</p>
-          </div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Rating</p>
         </div>
         <button
           onClick={() => onEdit(driver)}

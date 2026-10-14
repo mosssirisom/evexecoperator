@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { X, Plane, MapPin, Clock, User, Car, PoundSterling, ChevronDown, ArrowLeftRight, Search } from "lucide-react";
 import { useDrivers } from "@/hooks/operator/useDrivers";
 import { fixedLegPrice } from "@/lib/prices";
+import { looksLikeAirport } from "@/lib/bookingUtils";
 
 // Builds a de-duplicated list of past customers from the bookings feed, so a
 // manual booking can reuse a saved customer's details — and their addresses —
@@ -12,7 +13,6 @@ import { fixedLegPrice } from "@/lib/prices";
 // customer has used is collected (most-recent first) as their saved addresses.
 export function customersFromBookings(bookings = []) {
   const clean = (v) => (v && v !== "—" ? String(v).trim() : "");
-  const isAirport = (s) => /\bairport\b|\([A-Za-z]{3}\)/.test(s || "");
   const map = new Map();
   for (const b of bookings) {
     const name = clean(b.customer);
@@ -31,7 +31,7 @@ export function customersFromBookings(bookings = []) {
     }
     const ts = b.createdAt ? Date.parse(b.createdAt) || 0 : 0;
     for (const loc of [clean(b.pickupLocation), clean(b.dropoffAddress)]) {
-      if (!loc || isAirport(loc)) continue;
+      if (!loc || looksLikeAirport(loc)) continue;
       const k = loc.toLowerCase();
       const prev = c._addr.get(k);
       if (!prev || ts > prev.ts) c._addr.set(k, { loc, ts });
@@ -191,7 +191,7 @@ function Input({ value, onChange, placeholder, type = "text", list, onFocus }) {
 const LOCATIONS = [...AIRPORTS, ...DESTINATIONS];
 
 // True when a location reads as an airport (has "airport" or a 3-letter code).
-export const looksLikeAirport = (s) => /\bairport\b|\([A-Za-z]{3}\)/.test(String(s || ""));
+export { looksLikeAirport };
 
 const empty = {
   customer: "",
@@ -211,7 +211,9 @@ const empty = {
   notes: "",
 };
 
-export default function BookingModal({ open, onClose, onSubmit, initialValues, customers = [] }) {
+// `eyebrow` / `heading` label the form for where it was opened from (a return
+// journey, a converted quote); a plain new booking uses the defaults.
+export default function BookingModal({ open, onClose, onSubmit, initialValues, customers = [], eyebrow, heading }) {
   const { drivers } = useDrivers();
   const vehicles = useMemo(
     () => drivers.map((d) => ({ id: d.id, label: `${d.name} — ${d.vehicle}` })),
@@ -375,10 +377,10 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
         <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 bg-white px-4 py-4 sm:px-8 sm:py-6">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-amber-600">
-              {initialValues ? "Return Journey" : "New Booking"}
+              {eyebrow ?? (initialValues ? "Return Journey" : "New Booking")}
             </p>
             <h2 id="booking-modal-title" className="mt-1 text-2xl font-semibold text-[#0F1B33]">
-              {initialValues ? "Create Return" : "Create Transfer"}
+              {heading ?? (initialValues ? "Create Return" : "Create Transfer")}
             </h2>
           </div>
           <button

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { timeToMinutes, quoteToPrefill } from "./bookingUtils";
+import { timeToMinutes, quoteToPrefill, quoteToBookingForm, looksLikeAirport } from "./bookingUtils";
 import type { DbQuoteRequest } from "./database.types";
 
 describe("timeToMinutes", () => {
@@ -113,5 +113,52 @@ describe("quoteToPrefill", () => {
   it("includes a flight number when provided", () => {
     const prefill = quoteToPrefill(makeQuote({ flight_number: "BA456" }));
     expect(prefill.flight_number).toBe("BA456");
+  });
+});
+describe("quoteToBookingForm", () => {
+  it("maps a quote onto the operator booking form fields", () => {
+    const form = quoteToBookingForm(makeQuote({
+      email: "jane@example.com",
+      pickup_location: "Lytham St Annes",
+      destination: "Manchester Airport",
+      pickup_date: "2026-11-02",
+      pickup_time: "04:30:00",
+      flight_number: "EZY123",
+    }));
+    expect(form).toMatchObject({
+      customer: "Jane Doe",
+      phone: "07123456789",
+      email: "jane@example.com",
+      pickup: "Lytham St Annes",
+      dropoff: "Manchester Airport",
+      date: "2026-11-02",
+      time: "04:30",
+      flight: "EZY123",
+    });
+    expect(form.returnJourney).toBeUndefined();
+  });
+
+  it("ticks the return journey when the quote asks for one", () => {
+    const form = quoteToBookingForm(makeQuote({
+      return_required: true,
+      return_date: "2026-11-09",
+      return_time: "18:15:00",
+      return_flight_number: "EZY124",
+    }));
+    expect(form).toMatchObject({ returnJourney: true, returnDate: "2026-11-09", returnTime: "18:15", returnFlight: "EZY124" });
+  });
+});
+
+describe("looksLikeAirport", () => {
+  it("spots airports however they're typed", () => {
+    expect(looksLikeAirport("Birmingham Airport")).toBe(true);
+    expect(looksLikeAirport("manchester airport T2")).toBe(true);
+    expect(looksLikeAirport("Manchester Airport (MAN)")).toBe(true);
+    expect(looksLikeAirport("LPL (lpl)")).toBe(true);
+  });
+  it("leaves ordinary addresses alone", () => {
+    expect(looksLikeAirport("18 Lowther Rd, Fleetwood")).toBe(false);
+    expect(looksLikeAirport("Airportside Lane")).toBe(false);
+    expect(looksLikeAirport(null)).toBe(false);
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Building2,
   Bell,
@@ -19,6 +20,7 @@ import {
   Smartphone,
   BellRing,
   Building,
+  History,
 } from "lucide-react";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { isConfigured, supabase } from "@/lib/supabase";
@@ -30,6 +32,9 @@ import PlatformSettings from "@/components/operator/PlatformSettings";
 import { fmtDateTime } from "@/lib/dates";
 import { useTenantProfile } from "@/hooks/operator/useTenantProfile";
 import { AIRPORT_PRICES, EXTRA_STOP_PRICE } from "@/lib/prices";
+import { useOperator } from "@/components/operator/OperatorContext";
+import AuditLogTab from "@/components/AuditLogTab";
+import { useAuditLog } from "@/hooks/useAuditLog";
 
 const SECTIONS = [
   { key: "business", label: "Business", icon: Building2 },
@@ -37,7 +42,16 @@ const SECTIONS = [
   { key: "prices", label: "Prices", icon: Car },
   { key: "integrations", label: "Integrations", icon: Plug },
   { key: "security", label: "Security", icon: Shield },
+  { key: "activity", label: "Activity log", icon: History },
 ];
+
+// Who changed what on bookings (status, driver, payment), newest first.
+function ActivitySettings() {
+  const { entries, loading, error } = useAuditLog();
+  if (loading) return <p className="text-sm text-slate-500">Loading activity…</p>;
+  if (error) return <p className="text-sm text-red-600">{error}</p>;
+  return <AuditLogTab entries={entries} heading={null} />;
+}
 
 function Toggle({ value, onChange, label }) {
   return (
@@ -131,6 +145,7 @@ function profileForm(tenant) {
 
 function BusinessSettings({ toast }) {
   const { tenant, canEdit, loading, error, save } = useTenantProfile();
+  const { profile } = useOperator();
   const [form, setForm] = useState(() => profileForm(null));
   const [busy, setBusy] = useState(false);
 
@@ -155,6 +170,7 @@ function BusinessSettings({ toast }) {
           payment_terms: form.paymentTerms.trim(),
         },
       });
+      profile.reload?.();
       toast({ message: "Business details saved for everyone on your team", type: "success" });
     } catch (e) {
       toast({ message: e?.message || "Could not save business details", type: "error" });
@@ -561,7 +577,7 @@ function IntegrationSettings({ toast }) {
             actionLabel={isConfigured ? "Connected" : "Configure"}
           />
           <IntegrationItem
-            name="EV Exec Driver App"
+            name="Driver App"
             description={`Real-time job dispatch to ${PORTALS.driverApp.url}`}
             connected={isConfigured}
             onAction={() => {
@@ -636,6 +652,17 @@ function SecuritySettings({ toast }) {
   );
 }
 
+// Deep links such as /operator/settings?section=security (account menu). In
+// its own Suspense boundary, as useSearchParams needs one; reacts to the query
+// changing while Settings is already open.
+function SectionFromUrl({ onSection }) {
+  const want = useSearchParams().get("section");
+  useEffect(() => {
+    if (want && (SECTIONS.some((x) => x.key === want) || want === "platform")) onSection(want);
+  }, [want, onSection]);
+  return null;
+}
+
 export default function Settings() {
   const [active, setActive] = useState("business");
   const toast = useOperatorToast();
@@ -651,11 +678,13 @@ export default function Settings() {
     prices: <PriceSettings />,
     integrations: <IntegrationSettings toast={toast} />,
     security: <SecuritySettings toast={toast} />,
+    activity: <ActivitySettings />,
     platform: <PlatformSettings />,
   };
 
   return (
     <div className="p-4 sm:p-6 lg:p-10">
+      <Suspense fallback={null}><SectionFromUrl onSection={setActive} /></Suspense>
       {/* Mobile: horizontal scrollable tab strip */}
       <div className="mb-6 flex gap-1 overflow-x-auto rounded-2xl border border-slate-100 bg-white p-1 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {sections.map((s) => {
