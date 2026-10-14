@@ -5,11 +5,13 @@ const nextConfig = {
   // bookmarks and push-notification links ("/operator") keep working.
   async redirects() {
     return [
-      { source: "/", destination: "/operator/calendar", permanent: false },
-      { source: "/operator", destination: "/operator/dispatch", permanent: false },
-      // Dashboard was folded into Dispatch; the mock "Automation" page was removed.
-      { source: "/operator/dashboard", destination: "/operator/dispatch", permanent: false },
-      { source: "/operator/bookings", destination: "/operator/dispatch", permanent: false },
+      { source: "/", destination: "/operator/today", permanent: false },
+      { source: "/operator", destination: "/operator/today", permanent: false },
+      { source: "/operator/dashboard", destination: "/operator/today", permanent: false },
+      // Dispatch and Calendar became views of Bookings (?q= is passed through,
+      // so website/push links to /operator/dispatch?q=REF still find the job).
+      { source: "/operator/dispatch", destination: "/operator/bookings", permanent: false },
+      { source: "/operator/calendar", destination: "/operator/bookings?view=calendar", permanent: false },
     ];
   },
 };

@@ -156,10 +156,10 @@ export function CalendarApp() {
           <CalendarView currentMonth={currentMonth} bookings={bookings} selectedDate={selectedDate} onDateSelect={selectDay} onMonthChange={setMonth} />
           <StatsBar stats={monthStats} />
           <Link
-            href="/operator/dispatch"
+            href="/operator/bookings"
             className="flex w-full items-center justify-center gap-2 rounded-2xl border border-gold/20 bg-white py-4 text-sm font-semibold text-amber-600 shadow-card transition-all hover:border-gold/40 hover:bg-gold/10 active:scale-[0.99]"
           >
-            <LayoutList size={15} />All upcoming transfers
+            <LayoutList size={15} />Show as list
           </Link>
         </div>
         <div ref={dailyRef} className="scroll-mt-4">

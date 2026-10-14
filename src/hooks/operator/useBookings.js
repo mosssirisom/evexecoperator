@@ -76,11 +76,35 @@ export function shapedBooking(row) {
   };
 }
 
-const PAGE_SIZE = 100;
+// Which bookings a screen loads:
+// - "operational" (default): from OPERATIONAL_DAYS_BACK days ago onwards (UK
+//   date), plus undated bookings, earliest first. Live screens care about
+//   today and what's coming; older ones load on demand with loadEarlier().
+// - "all": every booking (analytics, customer look-up).
+// Before this, every screen loaded the 100 OLDEST bookings, so once there were
+// more than 100, today's and upcoming jobs fell off the first page.
+const PAGE_SIZE = 200;
+const ALL_PAGE_SIZE = 2000;
+export const OPERATIONAL_DAYS_BACK = 14;
 
-export function useBookings() {
+/** UK calendar date `daysBack` days before today, as YYYY-MM-DD. */
+export function ukDateDaysAgo(daysBack, now = new Date()) {
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(now); // YYYY-MM-DD
+  const d = new Date(`${today}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - daysBack);
+  return d.toISOString().slice(0, 10);
+}
+
+const SELECT = "*, drivers!driver_id(name)";
+
+export function useBookings({ scope = "operational" } = {}) {
+  const all = scope === "all";
+  const pageSize = all ? ALL_PAGE_SIZE : PAGE_SIZE;
   const [bookings, setBookings] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
+  // Whether bookings older than the operational window may still exist:
+  // unknown until the first loadEarlier(), false once a page comes back short.
+  const [hasEarlier, setHasEarlier] = useState(true);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
@@ -90,41 +114,64 @@ export function useBookings() {
     bookingsRef.current = bookings;
   }, [bookings]);
 
+  // How many rows of each window are loaded, so the periodic refresh reloads
+  // the same amount instead of dropping pages loaded with "Load more".
+  const forwardLoadedRef = useRef(0);
+  const earlierLoadedRef = useRef(0);
   const fetchIdRef = useRef(0);
+
+  const forwardQuery = useCallback((from, to, withCount) => {
+    let q = supabase.from("bookings").select(SELECT, withCount ? { count: "exact" } : undefined);
+    if (!all) q = q.or(`travel_date.gte.${ukDateDaysAgo(OPERATIONAL_DAYS_BACK)},travel_date.is.null`);
+    return q
+      .order("travel_date", { ascending: true, nullsFirst: false })
+      .order("travel_time", { ascending: true })
+      .range(from, to);
+  }, [all]);
+
+  const earlierQuery = useCallback((from, to, withCount) => (
+    supabase.from("bookings").select(SELECT, withCount ? { count: "exact" } : undefined)
+      .lt("travel_date", ukDateDaysAgo(OPERATIONAL_DAYS_BACK))
+      .order("travel_date", { ascending: false })
+      .order("travel_time", { ascending: false })
+      .range(from, to)
+  ), []);
 
   const fetchBookings = useCallback(async () => {
     if (!isConfigured) return;
     const myId = ++fetchIdRef.current;
     setLoading(true);
     try {
-      const { data, count, error: err } = await supabase
-        .from("bookings")
-        .select("*, drivers!driver_id(name)", { count: "exact" })
-        .order("travel_date", { ascending: true })
-        .order("travel_time", { ascending: true })
-        .range(0, PAGE_SIZE - 1);
+      const forwardN = Math.max(pageSize, forwardLoadedRef.current);
+      const earlierN = earlierLoadedRef.current;
+      const [fwd, early] = await Promise.all([
+        forwardQuery(0, forwardN - 1, true),
+        earlierN > 0 && !all ? earlierQuery(0, earlierN - 1, false) : Promise.resolve({ data: [] }),
+      ]);
       if (fetchIdRef.current !== myId) return;
+      const err = fwd.error || early.error;
       if (err) { setError(err.message); return; }
-      setBookings(data.map(shapedBooking));
-      setTotalCount(count ?? 0);
+      const earlierRows = (early.data || []).slice().reverse();
+      forwardLoadedRef.current = fwd.data.length;
+      earlierLoadedRef.current = earlierRows.length;
+      setBookings([...earlierRows, ...fwd.data].map(shapedBooking));
+      // totalCount = bookings reachable with loadMore (forward window) plus the
+      // earlier ones already loaded.
+      setTotalCount((fwd.count ?? 0) + earlierRows.length);
       setError(null);
     } finally {
       if (fetchIdRef.current === myId) setLoading(false);
     }
-  }, []);
+  }, [all, pageSize, forwardQuery, earlierQuery]);
 
   const loadMore = useCallback(async () => {
     if (!isConfigured || loadingMore) return;
-    const from = bookingsRef.current.length;
+    const from = forwardLoadedRef.current;
     setLoadingMore(true);
     try {
-      const { data, error: err } = await supabase
-        .from("bookings")
-        .select("*, drivers!driver_id(name)")
-        .order("travel_date", { ascending: true })
-        .order("travel_time", { ascending: true })
-        .range(from, from + PAGE_SIZE - 1);
+      const { data, error: err } = await forwardQuery(from, from + pageSize - 1, false);
       if (err) throw new Error(err.message);
+      forwardLoadedRef.current += data.length;
       setBookings((prev) => {
         const existingIds = new Set(prev.map((b) => b.id));
         return [...prev, ...data.map(shapedBooking).filter((b) => !existingIds.has(b.id))];
@@ -132,7 +179,28 @@ export function useBookings() {
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore]);
+  }, [loadingMore, forwardQuery, pageSize]);
+
+  // Older bookings (before the operational window), newest first, added to
+  // the start of the list.
+  const loadEarlier = useCallback(async () => {
+    if (!isConfigured || all || loadingMore) return;
+    const from = earlierLoadedRef.current;
+    setLoadingMore(true);
+    try {
+      const { data, error: err } = await earlierQuery(from, from + PAGE_SIZE - 1, false);
+      if (err) throw new Error(err.message);
+      earlierLoadedRef.current += data.length;
+      if (data.length < PAGE_SIZE) setHasEarlier(false);
+      setTotalCount((n) => n + data.length);
+      setBookings((prev) => {
+        const existingIds = new Set(prev.map((b) => b.id));
+        return [...data.slice().reverse().map(shapedBooking).filter((b) => !existingIds.has(b.id)), ...prev];
+      });
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [all, loadingMore, earlierQuery]);
 
   useEffect(() => {
     fetchBookings();
@@ -566,5 +634,5 @@ export function useBookings() {
     }
   }, []);
 
-  return { bookings, totalCount, loading, loadingMore, loadMore, error, createBooking, updateStatus, assignDriver, respondToBooking, updateNotes, togglePriority, updatePaymentStatus, updatePaymentMethod, updateBooking, deleteBooking, refetch: fetchBookings };
+  return { bookings, totalCount, hasEarlier: !all && hasEarlier, loading, loadingMore, loadMore, loadEarlier, error, createBooking, updateStatus, assignDriver, respondToBooking, updateNotes, togglePriority, updatePaymentStatus, updatePaymentMethod, updateBooking, deleteBooking, refetch: fetchBookings };
 }

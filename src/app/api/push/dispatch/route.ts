@@ -60,11 +60,11 @@ export async function POST(req: Request) {
 
   const n = payloadBody?.notification;
   const payload = n?.title
-    ? JSON.stringify({ title: n.title, body: n.body ?? "", url: n.url || "/operator/dispatch", tag: n.tag })
+    ? JSON.stringify({ title: n.title, body: n.body ?? "", url: n.url || "/operator/today", tag: n.tag })
     : JSON.stringify({
         title: `New booking — ${customer}`,
         body: detail || "New job request via the website",
-        url: "/operator/dispatch",
+        url: "/operator/today",
         tag: r.ref ? `booking-${r.ref}` : undefined,
       });
 

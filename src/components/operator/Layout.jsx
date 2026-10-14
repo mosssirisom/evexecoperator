@@ -20,8 +20,8 @@ import { useContactMessages } from "@/hooks/useContactMessages";
 import { OperatorProvider, ROLE_LABELS, initialsOf } from "./OperatorContext";
 
 const pageMeta = {
-  "/operator/calendar": { label: "Schedule", title: "Calendar" },
-  "/operator/dispatch": { label: "Live Operations", title: "Live Dispatch" },
+  "/operator/today": { label: "Overview", title: "Today" },
+  "/operator/bookings": { label: "Operations", title: "Bookings" },
   "/operator/inbox": { label: "Requests", title: "Inbox" },
   "/operator/drivers": { label: "Fleet", title: "Driver Management" },
   "/operator/invoices": { label: "Billing", title: "Invoices" },
@@ -183,7 +183,7 @@ function AccountMenu({ user, tenant, onSignOut }) {
 export default function Layout({ children, onSignOut }) {
   const pathname = usePathname();
   const router = useRouter();
-  const meta = pageMeta[pathname] ?? pageMeta["/operator/dispatch"];
+  const meta = pageMeta[pathname] ?? pageMeta["/operator/today"];
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [bellOpen, setBellOpen] = useState(false);
@@ -198,18 +198,19 @@ export default function Layout({ children, onSignOut }) {
   const inboxCalls = useInboxMissedCalls();
   const messages = useContactMessages();
 
-  // The header search jumps to the Dispatch board filtered by the term — that
-  // board already does the actual customer/flight/ref/driver matching.
+  // The header search jumps to the Bookings list filtered by the term — that
+  // list already does the actual customer/flight/ref/driver matching.
   const submitSearch = useCallback(
     (e) => {
       e.preventDefault();
       const q = searchTerm.trim();
       setSearchOpen(false);
-      router.push(q ? `/operator/dispatch?q=${encodeURIComponent(q)}` : "/operator/dispatch");
+      router.push(q ? `/operator/bookings?q=${encodeURIComponent(q)}` : "/operator/bookings");
     },
     [searchTerm, router]
   );
-  const { createBooking, bookings } = useBookings();
+  // All bookings, so New Booking can suggest any past customer.
+  const { createBooking, bookings } = useBookings({ scope: "all" });
   const customers = useMemo(() => customersFromBookings(bookings), [bookings]);
   const toast = useOperatorToast();
 
@@ -230,7 +231,7 @@ export default function Layout({ children, onSignOut }) {
   const openBooking = useCallback((b) => {
     setBellOpen(false);
     dismissNewBooking(b.id);
-    router.push(`/operator/dispatch?q=${encodeURIComponent(b.ref)}`);
+    router.push(`/operator/bookings?q=${encodeURIComponent(b.ref)}`);
   }, [router, dismissNewBooking]);
 
   const handleCreateBooking = useCallback(async (form) => {

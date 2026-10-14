@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "EV Exec Operator",
     short_name: "EV Exec",
     description: "Premium airport transfer management for EV Exec operators.",
-    start_url: "/operator/calendar",
+    start_url: "/operator/today",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
