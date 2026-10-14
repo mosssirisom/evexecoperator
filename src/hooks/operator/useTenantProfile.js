@@ -15,6 +15,7 @@ import { supabase, isConfigured } from "@/lib/supabase";
 export function useTenantProfile() {
   const [tenant, setTenant] = useState(null);
   const [canEdit, setCanEdit] = useState(false);
+  const [user, setUser] = useState(null); // { email, name, role }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -25,6 +26,7 @@ export function useTenantProfile() {
     try {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth?.user?.id;
+      const meta = auth?.user?.user_metadata || {};
       if (!userId) { setLoading(false); return; }
       const { data: roles } = await supabase
         .from("tenant_users")
@@ -40,6 +42,9 @@ export function useTenantProfile() {
       setCanEdit(
         isSuper || (roles || []).some((r) => r.role === "operator_admin" && data && r.tenant_id === data.id),
       );
+      const roleOrder = ["super_admin", "operator_admin", "dispatcher", "driver"];
+      const role = roleOrder.find((r) => (roles || []).some((x) => x.role === r)) || null;
+      setUser({ email: auth.user.email || "", name: meta.full_name || meta.name || "", role });
     } catch (e) {
       setError(e?.message || "Could not load business details.");
     } finally {
@@ -63,5 +68,5 @@ export function useTenantProfile() {
     return data;
   }, [tenant]);
 
-  return { tenant, canEdit, loading, error, save, reload: load };
+  return { tenant, canEdit, user, loading, error, save, reload: load };
 }

@@ -11,6 +11,7 @@ import { reverseTarget, reverseLabel } from "@/lib/operator/statusFlow";
 import ETACountdown from "./ETACountdown";
 import FlightVerificationCard from "@/components/FlightVerificationCard";
 import { fmtTime, fmtDateTime, fmtDayDate } from "@/lib/dates";
+import { looksLikeAirport } from "@/lib/bookingUtils";
 
 function Row({ icon: Icon, label, value, muted }) {
   if (!value) return null;
@@ -324,10 +325,6 @@ function PaymentBadge({ paymentStatus, onUpdate }) {
 
 const editInputCls =
   "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#0F1B33] placeholder:text-slate-400 outline-none transition focus:border-amber-400/40";
-
-// Same airport detection used by the Dispatch board and the website's
-// booking form -- whichever side reads as an airport, is the airport.
-const looksLikeAirport = (s) => /\bairport\b|\([A-Za-z]{3}\)/.test(s || "");
 
 function EditField({ label, icon: Icon, children }) {
   return (

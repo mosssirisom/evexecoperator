@@ -13,6 +13,7 @@ import {
   sanitizeText,
 } from "@/lib/operator/validation";
 import { markBookingCreated } from "@/lib/operator/recentBookingRefs";
+import { looksLikeAirport } from "@/lib/bookingUtils";
 
 function compact(value) {
   return value ? String(value).split(",")[0] : null;
@@ -265,7 +266,6 @@ export function useBookings() {
       // dropoff_address always hold the literal route the operator entered.
       const pickup = (form.pickup || "").trim();
       const dropoff = (form.dropoff || "").trim();
-      const looksLikeAirport = (s) => /\bairport\b|\([A-Za-z]{3}\)/.test(String(s || ""));
       const airportSide = looksLikeAirport(pickup) ? pickup : looksLikeAirport(dropoff) ? dropoff : null;
       const direction = looksLikeAirport(pickup)
         ? "Airport → Destination"

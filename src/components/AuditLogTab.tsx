@@ -7,6 +7,8 @@ import StatusBadge from "@/components/StatusBadge";
 
 interface Props {
   entries: DbAuditLogEntry[];
+  /** Section heading; pass null where the page already shows one. */
+  heading?: string | null;
 }
 
 const FIELD_CONFIG: Record<string, { label: string; icon: LucideIcon }> = {
@@ -15,11 +17,11 @@ const FIELD_CONFIG: Record<string, { label: string; icon: LucideIcon }> = {
   payment_status: { label: "Payment status", icon: CreditCard },
 };
 
-export default function AuditLogTab({ entries }: Props) {
+export default function AuditLogTab({ entries, heading = "Activity Log" }: Props) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-lg font-bold text-slate-800">Activity Log</h2>
+        {heading ? <h2 className="text-lg font-bold text-slate-800">{heading}</h2> : <span />}
         <span className="text-xs text-slate-500">{entries.length} recent</span>
       </div>
 

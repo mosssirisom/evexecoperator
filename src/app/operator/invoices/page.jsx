@@ -870,7 +870,7 @@ function InvoicePreview({ invoice, onClose, onStatus, onDelete, onEmailed }) {
             />
             <div className="relative text-center">
               <p className="text-[15px] font-semibold uppercase tracking-[0.18em] sm:text-base" style={{ color: NAVY }}>
-                Thank you for choosing EV Exec
+                Thank you for choosing {company.name}
               </p>
               <div className="mx-auto mt-2.5 h-px w-20" style={{ background: GOLD }} />
             </div>

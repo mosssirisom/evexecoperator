@@ -9,7 +9,7 @@ import { CalendarApp } from "@/components/CalendarApp";
 export default function OperatorCalendarPage() {
   return (
     <ToastProvider>
-      <CalendarApp embedded />
+      <CalendarApp />
     </ToastProvider>
   );
 }

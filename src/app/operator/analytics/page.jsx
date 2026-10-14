@@ -157,7 +157,8 @@ export default function Analytics() {
       const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
       const end = new Date(now.getFullYear(), now.getMonth() - offset + 1, 1);
       return {
-        label: d.toLocaleDateString("en-GB", { month: "short" }),
+        // House date style: numbers only, no month names (MM/YYYY).
+        label: `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`,
         start: d.getTime(),
         end: end.getTime(),
       };
