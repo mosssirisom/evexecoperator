@@ -61,6 +61,22 @@ export async function POST(req: Request) {
   const { data: userData, error: userErr } = await db.auth.getUser(token);
   if (userErr || !userData?.user) return json({ error: "Not authorised." }, 401);
 
+  // Signed in isn't enough: website customers have logins on the same
+  // project. Only operator staff may send email from the business address.
+  // tenant_users is readable for the caller's own rows (RLS), so the caller's
+  // token is enough to check.
+  const asCaller = createClient(SUPABASE_URL, ANON_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+  const { data: roles } = await asCaller
+    .from("tenant_users")
+    .select("role")
+    .eq("user_id", userData.user.id)
+    .in("role", ["super_admin", "operator_admin", "dispatcher"])
+    .limit(1);
+  if (!roles?.length) return json({ error: "Not authorised." }, 403);
+
   // ── Parse + validate the payload ───────────────────────────────────────────
   let body: {
     to?: string; customerName?: string; number?: string; total?: string;
