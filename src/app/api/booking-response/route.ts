@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { fmtDate } from "@/lib/dates";
+import { bookingConfirmed, bookingUnavailable } from "@/lib/email/content.js";
 
 // Notifies a customer that the operator has ACCEPTED or REJECTED their website
 // booking. Email first (via Resend), SMS fallback (enqueued for the external
@@ -38,123 +39,21 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-const esc = (s: unknown) =>
-  String(s ?? "").replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c] as string));
 const str = (v: unknown) => (v == null ? "" : String(v).trim());
 const time5 = (t: unknown) => {
   const m = str(t).match(/^(\d{1,2}):(\d{2})/);
   return m ? `${m[1].padStart(2, "0")}:${m[2]}` : "TBC";
 };
 const isReturnLeg = (b: Booking) => /^Return leg created automatically/i.test(str(b.notes));
-const stops = (b: Booking) =>
-  str(b.notes).split("\n").map((l) => l.trim()).filter((l) => /^Stop \d+:/i.test(l))
-    .map((l) => l.replace(/^Stop \d+:\s*/i, "").trim()).filter(Boolean);
 const price = (b: Booking) => {
   const p = Number(b.price ?? b.quoted_price);
   return !isReturnLeg(b) && Number.isFinite(p) && p > 0 ? `£${p.toFixed(2)}` : "";
 };
 
-// Same wording as the website's paymentLine().
-function paymentLine(b: Booking): string {
-  const m = str(b.payment_method).toLowerCase();
-  const s = str(b.payment_status).toLowerCase();
-  const bank = m === "bank transfer" || m === "bank_transfer";
-  if (s === "paid") return m === "card" || m === "payment link" ? "Paid by card" : m === "cash" ? "Paid in cash" : bank ? "Paid by bank transfer" : "Paid";
-  if (m === "cash") return "Cash on the day";
-  if (bank) return "Bank transfer (payment pending)";
-  if (m === "card") return "Card payment pending";
-  return "Payment required";
-}
 const needsPayment = (b: Booking) => {
   const s = str(b.payment_status).toLowerCase();
   return s !== "paid" && s !== "invoiced" && Boolean(price(b));
 };
-
-const ROW_L = "padding:9px 0;color:#64748b;width:118px;border-bottom:1px solid #eef0f3;font-size:12px;text-transform:uppercase;letter-spacing:.04em;vertical-align:top";
-const ROW_V = "padding:9px 0;font-weight:700;color:#0f1b33;border-bottom:1px solid #eef0f3;font-size:14px;vertical-align:top";
-const SEC = "padding:14px 0 4px;color:#8a6416;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em";
-const row = (label: string, value: string) =>
-  value ? `<tr><td style="${ROW_L}">${esc(label)}</td><td style="${ROW_V}">${esc(value)}</td></tr>` : "";
-
-// Journey details, in the same rows as the website's bookingDetailsHtml().
-function detailsTable(b: Booking, withPrice: boolean): string {
-  const rows = [row("Reference", str(b.ref))];
-  if (b.return_journey) rows.push(`<tr><td colspan="2" style="${SEC}">Outbound</td></tr>`);
-  rows.push(row("Pickup", str(b.pickup_location) || str(b.airport) || "To be confirmed"));
-  stops(b).forEach((s, i) => rows.push(row(`Stop ${i + 1}`, s)));
-  rows.push(row("Drop-off", str(b.dropoff_address) || str(b.airport) || str(b.destination) || "To be confirmed"));
-  rows.push(row("Date", fmtDate(str(b.travel_date) || null) || "TBC"), row("Time", time5(b.travel_time)));
-  if (str(b.flight_number)) rows.push(row("Flight", str(b.flight_number).toUpperCase()));
-  if (b.return_journey) {
-    rows.push(`<tr><td colspan="2" style="${SEC}">Return</td></tr>`);
-    rows.push(row("Pickup", str(b.return_pickup) || str(b.return_airport) || str(b.airport) || "To be confirmed"));
-    rows.push(row("Drop-off", str(b.return_destination) || str(b.pickup_location) || str(b.dropoff_address) || "To be confirmed"));
-    rows.push(row("Date", fmtDate(str(b.return_date) || null) || "TBC"), row("Time", time5(b.return_time)));
-    if (str(b.return_flight)) rows.push(row("Flight", str(b.return_flight).toUpperCase()));
-    rows.push(`<tr><td colspan="2" style="padding:6px 0 0"></td></tr>`);
-  }
-  rows.push(row("Passengers", str(b.passengers) || "1"));
-  if (str(b.luggage)) rows.push(row("Bags", str(b.luggage)));
-  if (withPrice && price(b)) rows.push(row("Price", price(b)));
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin:0 0 18px">${rows.join("")}</table>`;
-}
-
-// The Payment section at the bottom of the confirmation.
-function paymentSection(b: Booking, payUrl: string): string {
-  const head = `<div style="border-top:2px solid #C9A550;margin-top:6px"></div>`
-    + `<p style="margin:22px 0 8px;font-size:13px;font-weight:700;color:#8a6416;text-transform:uppercase;letter-spacing:.06em">Payment</p>`;
-  const P = "margin:0 0 14px;font-size:14px;line-height:1.6;color:#334155";
-  if (!needsPayment(b)) return `${head}<p style="${P}">Payment: <strong style="color:#0f1b33">${esc(paymentLine(b))}</strong></p>`;
-  return `${head}<p style="${P}">Your booking is confirmed. You can now pay securely by card or choose to pay cash.</p>`
-    + `<p style="margin:0 0 18px"><a href="${esc(payUrl)}" style="display:inline-block;background:#C9A550;color:#0B132B;font-weight:700;font-size:15px;padding:13px 28px;border-radius:8px;text-decoration:none">Pay Now</a></p>`;
-}
-
-function emailHtml(accepted: boolean, b: Booking, payUrl: string) {
-  // The one EV Exec email design: white card, navy header, gold stripe,
-  // status pill, navy footer.
-  const pillBg = accepted ? "#dcfce7" : "#fee2e2";
-  const pillText = accepted ? "#15803d" : "#b91c1c";
-  const heading = accepted ? "Booking confirmed" : "Booking unavailable";
-  const first = str(b.customer_name).split(/\s+/)[0] || "there";
-  const lead = accepted
-    ? "Your booking is confirmed. Here are your journey details."
-    : "Unfortunately, EV Exec cannot accommodate your requested journey. We apologise for the inconvenience.";
-  const closer = accepted
-    ? "We'll be in touch with your driver details closer to the time. If anything changes, just reply to this email or call us."
-    : "No payment has been taken. If you would like to discuss another time or option, please get in touch. We'd be glad to help.";
-  return `<!doctype html><html lang="en"><head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
-  <meta name="supported-color-schemes" content="light">
-  <style>:root{color-scheme:light;supported-color-schemes:light}</style>
-  </head>
-  <body style="margin:0;background:#E9EBF2;padding:24px 12px;font-family:Arial,Helvetica,sans-serif;color:#0f1b33">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#E9EBF2" style="background:#E9EBF2">
-    <tr><td align="center">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e2e5ee">
-      <tr><td bgcolor="#0B132B" style="background:#0B132B;padding:22px 28px">
-        <div style="color:#d7a23f;font-size:20px;font-weight:800;letter-spacing:.22em">EV EXEC</div>
-        <div style="color:#9aa3b2;font-size:10px;letter-spacing:.28em;margin-top:4px">PREMIUM AIRPORT TRANSFERS</div>
-      </td></tr>
-      <tr><td bgcolor="#C9A550" style="background:#C9A550;height:4px;line-height:4px;font-size:0">&nbsp;</td></tr>
-      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:26px 28px">
-        <span style="display:inline-block;background:${pillBg};color:${pillText};border-radius:999px;padding:6px 14px;font-size:12px;font-weight:700">${heading}</span>
-        <p style="margin:18px 0 14px;font-size:15px;color:#0f1b33">Hi ${esc(first)},</p>
-        <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#475569">${lead}</p>
-        ${detailsTable(b, accepted)}
-        ${accepted ? paymentSection(b, payUrl) : ""}
-        <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#475569">${closer}</p>
-        <p style="margin:20px 0 0;font-size:14px;color:#475569">Kind regards,<br/>The EV Exec Team</p>
-      </td></tr>
-      <tr><td bgcolor="#0B132B" style="background:#0B132B;padding:14px 28px;color:#9aa3b2;font-size:11px">
-        EV Exec · Premium Airport Transfers · 07721 070370 · book@evexec.co.uk · evexec.co.uk
-      </td></tr>
-    </table>
-    </td></tr>
-    </table>
-  </body></html>`;
-}
 
 export async function POST(req: Request) {
   if (!SUPABASE_URL || !ANON_KEY) return json({ error: "not configured" }, 503);
@@ -198,6 +97,8 @@ export async function POST(req: Request) {
   let emailed = false;
   let emailError = "";
   if (RESEND_API_KEY && email && isEmail(email)) {
+    // Same email as the website sends (src/lib/email, copied from evexec).
+    const mail = accepted ? bookingConfirmed(b, { payUrl }) : bookingUnavailable(b);
     try {
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -206,10 +107,9 @@ export async function POST(req: Request) {
           from: FROM,
           to: [email],
           reply_to: REPLY_TO,
-          subject: accepted
-            ? `Booking Confirmed: EV Exec Transfer (Ref ${ref})`
-            : `EV Exec: Booking Unavailable (Ref ${ref})`,
-          html: emailHtml(accepted, b, payUrl),
+          subject: mail.subject,
+          html: mail.html,
+          text: mail.text,
         }),
       });
       emailed = res.ok;
