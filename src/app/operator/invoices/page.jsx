@@ -27,6 +27,7 @@ const GOLD = "#d7a23f";
 // Letterhead fallback, used until the business details load (and if a field
 // is blank). The live values come from Settings → Business (tenants.brand.invoice).
 const COMPANY = {
+  name: "EV Exec",
   addressLines: ["EV Exec", "Wheeler Hub Drive", "Blackpool, FY2 0FD", "United Kingdom"],
   phone: "07721 070370",
   email: "book@evexec.co.uk",
@@ -41,6 +42,7 @@ function companyFrom(tenant) {
   const lines = Array.isArray(b.address_lines) && b.address_lines.length ? b.address_lines : COMPANY.addressLines;
   const tag = Array.isArray(b.tagline) ? b.tagline : [];
   return {
+    name: tenant?.name || b.business_name || "EV Exec",
     addressLines: lines,
     phone: b.phone || COMPANY.phone,
     email: b.email || COMPANY.email,
@@ -103,7 +105,7 @@ function InvoiceLogo({ company = COMPANY }) {
     <div className="flex flex-col items-start">
       {/* Real EV Exec badge — its background is the same navy as the header band */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={EV_EXEC_LOGO} alt="EV Exec" className="h-16 w-auto sm:h-20" />
+      <img src={EV_EXEC_LOGO} alt={company.name || "EV Exec"} className="h-16 w-auto sm:h-20" />
       <div className="mt-1 h-px w-28 sm:w-36" style={{ background: GOLD, opacity: 0.55 }} />
       <p className="mt-1.5 text-[8px] font-semibold leading-relaxed tracking-[0.24em] sm:text-[9px]" style={{ color: GOLD }}>
         {company.tagline1}<br />{company.tagline2}

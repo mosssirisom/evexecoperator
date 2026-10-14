@@ -15,12 +15,28 @@ export const AIRPORT_PRICES: AirportPrice[] = [
 /** Extra charge per additional stop, as the website booking form adds it. */
 export const EXTRA_STOP_PRICE = 5;
 
-/** The fixed one-way price for a location naming one of the airports above, else null. */
-export function fixedOneWayPrice(location: string | null | undefined): number | null {
+function findAirport(location: string | null | undefined): AirportPrice | null {
   const s = String(location || "").toLowerCase();
   if (!s) return null;
-  const hit = AIRPORT_PRICES.find(
-    (a) => s.includes(a.name.toLowerCase().replace(" airport", "")) || new RegExp(`\\b${a.code.toLowerCase()}\\b`).test(s),
+  return (
+    AIRPORT_PRICES.find(
+      (a) => s.includes(a.name.toLowerCase().replace(" airport", "")) || new RegExp(`\\b${a.code.toLowerCase()}\\b`).test(s),
+    ) ?? null
   );
-  return hit ? hit.oneWay : null;
+}
+
+/** The fixed one-way price for a location naming one of the airports above, else null. */
+export function fixedOneWayPrice(location: string | null | undefined): number | null {
+  return findAirport(location)?.oneWay ?? null;
+}
+
+/**
+ * The fixed price for ONE booking leg. The Operator app books a return as two
+ * bookings, each invoiced and paid on its own, so each leg carries half the
+ * return fare (Manchester return £160 → £80 + £80), matching the website.
+ */
+export function fixedLegPrice(location: string | null | undefined, isReturn: boolean): number | null {
+  const a = findAirport(location);
+  if (!a) return null;
+  return isReturn ? a.ret / 2 : a.oneWay;
 }

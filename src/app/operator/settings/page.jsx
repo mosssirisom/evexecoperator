@@ -121,7 +121,6 @@ function profileForm(tenant) {
     name: tenant?.name || "",
     contactEmail: tenant?.contact_email || "",
     contactPhone: tenant?.contact_phone || "",
-    invoiceName: inv.business_name || "",
     addressLines: Array.isArray(inv.address_lines) ? inv.address_lines.join("\n") : "",
     invoicePhone: inv.phone || "",
     invoiceEmail: inv.email || "",
@@ -147,7 +146,8 @@ function BusinessSettings({ toast }) {
         contactEmail: form.contactEmail,
         contactPhone: form.contactPhone,
         invoice: {
-          business_name: form.invoiceName.trim(),
+          // One business name everywhere: invoices use the name above.
+          business_name: form.name.trim(),
           address_lines: form.addressLines.split("\n").map((l) => l.trim()).filter(Boolean),
           phone: form.invoicePhone.trim(),
           email: form.invoiceEmail.trim(),
@@ -186,7 +186,6 @@ function BusinessSettings({ toast }) {
           <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Invoice letterhead</p>
           <p className="mt-1 text-xs text-slate-500">Shown on the invoices customers download from their account.</p>
         </div>
-        <TextInput label="Name on Invoices" value={form.invoiceName} onChange={set("invoiceName")} disabled={off} />
         <TextArea label="Address" value={form.addressLines} onChange={set("addressLines")} rows={4} disabled={off} hint="One line per row." />
         <div className="grid gap-5 sm:grid-cols-2">
           <TextInput label="Invoice Phone" value={form.invoicePhone} onChange={set("invoicePhone")} type="tel" disabled={off} />
