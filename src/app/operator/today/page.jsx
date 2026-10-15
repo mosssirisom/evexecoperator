@@ -12,6 +12,7 @@ import { useOperator } from "@/components/operator/OperatorContext";
 import { fmtDate } from "@/lib/dates";
 import StatusChip from "@/components/operator/StatusChip";
 import SetupChecklist from "@/components/operator/SetupChecklist";
+import TextsToSend from "@/components/operator/TextsToSend";
 import { DONE_STATUSES as DONE, ON_ROAD_STATUSES, awaitingReply, needsDriver, unpaidCompleted, minutesUntil } from "@/lib/operator/bookingBuckets";
 
 // Home screen: what needs the office now, today's jobs in time order, and
@@ -119,6 +120,7 @@ export default function TodayPage() {
 
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         <div className="min-w-0 space-y-4 sm:space-y-6 lg:col-span-2">
+          <TextsToSend />
           <section className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 sm:px-5">
               <h2 className="text-base font-semibold text-[#0F1B33]">Needs you</h2>

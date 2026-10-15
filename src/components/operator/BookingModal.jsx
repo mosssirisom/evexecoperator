@@ -218,7 +218,7 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
   const { pricing } = useOperator().profile;
   const { drivers } = useDrivers();
   const vehicles = useMemo(
-    () => drivers.map((d) => ({ id: d.id, label: `${d.name} — ${d.vehicle}` })),
+    () => drivers.map((d) => ({ id: d.id, label: d.kind === "partner" ? `${d.name} — trusted partner` : `${d.name} — ${d.vehicle}` })),
     [drivers]
   );
   const [form, setForm] = useState(empty);

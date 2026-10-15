@@ -219,7 +219,7 @@ function DriverPicker({ currentDriverId, drivers, onAssign }) {
               }`}
             >
               <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${driverDot(d.status)}`} />
-              <span className="flex-1 text-left">{d.name}</span>
+              <span className="flex-1 text-left">{d.name}{d.kind === "partner" && <span className="ml-1 rounded-full bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">Partner</span>}</span>
               <span className="text-xs text-slate-600">{d.vehicle || d.status}</span>
               {d.id === currentDriverId && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
             </button>

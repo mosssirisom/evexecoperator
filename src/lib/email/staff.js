@@ -34,3 +34,19 @@ export function passwordReset({ businessName, url }) {
     button: { label: 'Choose a new password', url },
   });
 }
+
+/** A driver was invited to the Driver App. `newAccount` = they still need to set a password. */
+export function driverInvite({ businessName, driverName, inviterName, url, newAccount }) {
+  const first = String(driverName || '').trim().split(/\s+/)[0];
+  const who = inviterName ? `${inviterName} has` : `${businessName} has`;
+  return build(`Your ${businessName} Driver App login`, {
+    audience: 'driver', preheader: `${newAccount ? 'Set your password for' : 'Sign in to'} the ${businessName} Driver App.`,
+    status: { label: 'Driver App', tone: 'gold' }, title: first ? `Welcome, ${first}` : 'Welcome to the Driver App',
+    intro: [
+      `${who} set you up as a driver on the ${businessName} Driver App. It shows the jobs assigned to you, lets you update each trip as you go and send customers their reminder texts.`,
+      newAccount ? 'Use the button to choose your password, then add the app to your home screen. The link works once; if it has expired, ask the office to send a new one.'
+                 : 'Use the button to choose a new password and sign in. The link works once.',
+    ],
+    button: { label: newAccount ? 'Set your password' : 'Choose a new password', url },
+  });
+}

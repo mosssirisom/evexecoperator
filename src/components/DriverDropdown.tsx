@@ -50,6 +50,7 @@ export default function DriverDropdown({
           >
             <div className="flex items-center gap-1.5">
               <span className="font-medium text-sm">{driver.name}</span>
+              {(driver as { kind?: string }).kind === "partner" && <span className="text-[10px] font-medium text-violet-700 bg-violet-50 px-1.5 py-0.5 rounded-full">Partner</span>}
               {unavailable && (
                 <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-full">
                   Off this day
