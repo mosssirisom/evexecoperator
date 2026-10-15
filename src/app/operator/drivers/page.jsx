@@ -4,7 +4,7 @@ import React, { useMemo, useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Car, Phone, CheckCircle2, Clock, UserX, MoreVertical, Plus, X,
-  User, Hash, Truck, MapPin, ExternalLink, Edit2, Trash2, Mail,
+  User, Hash, Truck, MapPin, ExternalLink, Edit2, Trash2, Mail, Send, Handshake,
 } from "lucide-react";
 import { useDrivers } from "@/hooks/operator/useDrivers";
 import { useBookings, ukDateDaysAgo } from "@/hooks/operator/useBookings";
@@ -31,11 +31,17 @@ const DRIVER_FIELDS = [
   { key: "plate",   label: "Plate Number", placeholder: "EV21 XYZ",              icon: Hash,  type: "text"  },
 ];
 
+const KINDS = [
+  { value: "driver", label: "Driver", hint: "Uses the Driver App. Gets an email invite to set a password." },
+  { value: "partner", label: "Trusted partner", hint: "An outside operator you pass jobs to. No app and no invite: job details are emailed, and you send the customer texts for their jobs." },
+];
+
 // ── Driver form modal (used for both Add and Edit) ────────────────────────────
-function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
+function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit, isNew = false }) {
   const [form, setForm] = useState(
-    initial ?? { name: "", phone: "", email: "", vehicle: "", plate: "" }
+    initial ?? { kind: "driver", name: "", phone: "", email: "", vehicle: "", plate: "", invite: true }
   );
+  const partner = form.kind === "partner";
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -46,7 +52,7 @@ function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
     e.preventDefault();
     if (!form.name.trim()) return;
     if (!emailOk) {
-      setSubmitError("A valid email address is required — every driver needs one for job notifications.");
+      setSubmitError("A valid email address is required — job details are emailed to it.");
       return;
     }
     setSubmitting(true);
@@ -86,6 +92,27 @@ function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
         {/* Form */}
         <div className="flex-1 overflow-y-auto overscroll-contain">
           <form onSubmit={handleSubmit} className="grid gap-4 p-6">
+            <div>
+              <p className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Type</p>
+              <div className="grid grid-cols-2 gap-2" role="radiogroup">
+                {KINDS.map((k) => (
+                  <button
+                    key={k.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={form.kind === k.value}
+                    onClick={() => setForm((f) => ({ ...f, kind: k.value }))}
+                    className={`rounded-2xl border px-3 py-2.5 text-sm font-medium transition ${
+                      form.kind === k.value ? "border-amber-400 bg-amber-50 text-amber-700" : "border-slate-200 text-slate-600 hover:border-slate-300"
+                    }`}
+                  >
+                    {k.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-slate-500">{KINDS.find((k) => k.value === form.kind)?.hint}</p>
+            </div>
+
             {DRIVER_FIELDS.map(({ key, label, placeholder, icon: Icon, type }) => (
               <div key={key}>
                 <label className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-500">
@@ -96,12 +123,24 @@ function DriverFormModal({ title, initial, submitLabel, onClose, onSubmit }) {
                   type={type}
                   value={form[key] ?? ""}
                   onChange={set(key)}
-                  placeholder={placeholder}
+                  placeholder={partner && key === "name" ? "Marks Taxi" : partner && key === "email" ? "bookings@partner.co.uk" : placeholder}
                   required={key === "name" || key === "email"}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0F1B33] outline-none placeholder:text-slate-400 transition focus:border-amber-400/40"
                 />
               </div>
             ))}
+
+            {isNew && !partner && (
+              <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={form.invite !== false}
+                  onChange={(e) => setForm((f) => ({ ...f, invite: e.target.checked }))}
+                  className="mt-0.5 h-4 w-4 accent-amber-500"
+                />
+                <span>Email them a Driver App invite now</span>
+              </label>
+            )}
 
             {submitError && (
               <p className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-xs text-red-600">
@@ -157,7 +196,7 @@ function DeleteDriverModal({ driver, onClose, onConfirm }) {
         </div>
         <h2 className="text-lg font-semibold text-[#0F1B33]">Remove {driver.name}?</h2>
         <p className="mt-2 text-sm text-slate-500">
-          This will permanently remove the driver from the fleet. Any bookings currently assigned to them will become unassigned.
+          This will permanently remove them from the fleet. Any bookings currently assigned to them will become unassigned.
         </p>
         {deleteError && (
           <p className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-xs text-red-600">
@@ -267,7 +306,7 @@ function AssignJobModal({ driver, bookings, onAssign, onClose }) {
 }
 
 // ── Driver context menu (MoreVertical) ────────────────────────────────────────
-function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob, onEdit, onDelete }) {
+function DriverMenu({ driver, access, onClose, onUpdateStatus, onAssignJob, onEdit, onDelete, onInvite }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -289,7 +328,7 @@ function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob, onEdit, onDe
         className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-slate-600 transition hover:bg-slate-100"
       >
         <Phone className="h-3.5 w-3.5 text-slate-500" />
-        Call Driver
+        Call
       </a>
       {driver.email && (
         <a
@@ -298,7 +337,7 @@ function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob, onEdit, onDe
           className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-slate-600 transition hover:bg-slate-100"
         >
           <Mail className="h-3.5 w-3.5 text-slate-500" />
-          Email Driver
+          Email
         </a>
       )}
       <button
@@ -308,20 +347,19 @@ function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob, onEdit, onDe
         <Car className="h-3.5 w-3.5 text-slate-500" />
         Assign Job
       </button>
-      <a
-        href={PORTALS.driverApp.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-slate-600 transition hover:bg-slate-100"
-      >
-        <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
-        Driver Portal
-      </a>
+      {driver.kind !== "partner" && (
+        <button
+          onClick={() => { onInvite(driver); onClose(); }}
+          className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs text-slate-600 transition hover:bg-slate-100"
+        >
+          <Send className="h-3.5 w-3.5 text-slate-500" />
+          {access?.status === "active" ? "Send password link" : access?.status === "invited" ? "Resend invite" : "Invite to Driver App"}
+        </button>
+      )}
 
-      <div className="my-1 border-t border-slate-100" />
+      {driver.kind !== "partner" && <div className="my-1 border-t border-slate-100" />}
 
-      {statusOptions.map((s) => (
+      {driver.kind !== "partner" && statusOptions.map((s) => (
         <button
           key={s}
           onClick={() => { onUpdateStatus(driver.id, s); onClose(); }}
@@ -356,22 +394,31 @@ function DriverMenu({ driver, onClose, onUpdateStatus, onAssignJob, onEdit, onDe
         className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs text-red-600 transition hover:bg-red-400/[0.06]"
       >
         <Trash2 className="h-3.5 w-3.5" />
-        Remove Driver
+        Remove
       </button>
     </div>
   );
 }
 
 // ── Driver Card ───────────────────────────────────────────────────────────────
-function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
+const ACCESS_CHIP = {
+  partner: { label: "Trusted partner · no app", cls: "border-violet-200 bg-violet-50 text-violet-700" },
+  none: { label: "Not invited to the app", cls: "border-red-200 bg-red-50 text-red-700" },
+  invited: { label: "Invited · not signed in yet", cls: "border-amber-200 bg-amber-50 text-amber-700" },
+  active: { label: "Using the Driver App", cls: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+};
+
+function DriverCard({ driver, access, inviting, onAssignJob, onUpdateStatus, onEdit, onDelete, onInvite }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const partner = driver.kind === "partner";
+  const chip = ACCESS_CHIP[partner ? "partner" : access?.status];
 
   return (
     <div className="card relative flex flex-col gap-5 p-6">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-400/10 text-xl font-semibold text-amber-600">
-            {driver.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+          <div className={`flex h-14 w-14 items-center justify-center rounded-2xl text-xl font-semibold ${partner ? "bg-violet-50 text-violet-600" : "bg-amber-400/10 text-amber-600"}`}>
+            {partner ? <Handshake className="h-6 w-6" /> : driver.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
           </div>
           <div>
             <h3 className="font-semibold text-[#0F1B33]">{driver.name}</h3>
@@ -389,6 +436,8 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
           {menuOpen && (
             <DriverMenu
               driver={driver}
+              access={access}
+              onInvite={onInvite}
               onClose={() => setMenuOpen(false)}
               onUpdateStatus={onUpdateStatus}
               onAssignJob={onAssignJob}
@@ -399,11 +448,14 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
         </div>
       </div>
 
-      <span
-        className={`self-start rounded-full border px-3 py-1 text-xs font-medium ${statusBadge(driver.status)}`}
-      >
-        {driver.status}
-      </span>
+      <div className="flex flex-wrap gap-2">
+        {!partner && (
+          <span className={`rounded-full border px-3 py-1 text-xs font-medium ${statusBadge(driver.status)}`}>
+            {driver.status}
+          </span>
+        )}
+        {chip && <span className={`rounded-full border px-3 py-1 text-xs font-medium ${chip.cls}`}>{chip.label}</span>}
+      </div>
 
       <div className="space-y-3 text-sm">
         <div className="flex items-center gap-2 text-slate-500">
@@ -437,12 +489,23 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
           <p className="text-lg font-semibold text-[#0F1B33]">{driver.completedToday}</p>
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Today</p>
         </div>
-        <button
-          onClick={() => onEdit(driver)}
-          className="min-h-[44px] rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-600 transition hover:border-amber-400/20 hover:text-amber-600"
-        >
-          Edit
-        </button>
+        <div className="flex gap-2">
+          {!partner && access && access.status !== "active" && (
+            <button
+              onClick={() => onInvite(driver)}
+              disabled={inviting}
+              className="min-h-[44px] rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-black transition hover:bg-amber-400 disabled:opacity-50"
+            >
+              {inviting ? "Sending…" : access.status === "invited" ? "Resend invite" : "Invite to app"}
+            </button>
+          )}
+          <button
+            onClick={() => onEdit(driver)}
+            className="min-h-[44px] rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-600 transition hover:border-amber-400/20 hover:text-amber-600"
+          >
+            Edit
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -452,7 +515,10 @@ function DriverCard({ driver, onAssignJob, onUpdateStatus, onEdit, onDelete }) {
 export default function DriversPage() {
   const router = useRouter();
   const toast = useOperatorToast();
-  const { drivers, updateStatus, createDriver, updateDriver, deleteDriver } = useDrivers();
+  const { drivers: fleet, access, updateStatus, createDriver, updateDriver, deleteDriver, inviteDriver } = useDrivers();
+  const drivers = useMemo(() => fleet.filter((d) => d.kind !== "partner"), [fleet]);
+  const partners = useMemo(() => fleet.filter((d) => d.kind === "partner"), [fleet]);
+  const [invitingId, setInvitingId] = useState(null);
   const { bookings, assignDriver } = useBookings();
   const [assignModal, setAssignModal] = useState(null);
   const [addModal, setAddModal] = useState(false);
@@ -481,10 +547,27 @@ export default function DriversPage() {
     }
   };
 
+  const handleInvite = async (driver) => {
+    setInvitingId(driver.id);
+    try {
+      const r = await inviteDriver(driver.id);
+      toast({ message: `Invite emailed to ${r.email}`, type: "success" });
+    } catch (err) {
+      toast({ message: err?.message ?? "Couldn't send the invite", type: "error" });
+    } finally {
+      setInvitingId(null);
+    }
+  };
+
   const handleAddDriver = async (form) => {
-    await createDriver(form);
-    toast({ message: `${form.name} added to the fleet`, type: "success" });
+    const id = await createDriver(form);
     setAddModal(false);
+    if (form.kind === "partner") {
+      toast({ message: `${form.name} added as a trusted partner`, type: "success" });
+      return;
+    }
+    toast({ message: `${form.name} added to the fleet`, type: "success" });
+    if (id && form.invite !== false) await handleInvite({ id, name: form.name });
   };
 
   const handleEditDriver = async (form) => {
@@ -520,17 +603,18 @@ export default function DriversPage() {
       )}
       {addModal && (
         <DriverFormModal
-          title="Add Driver"
-          submitLabel="Add Driver"
+          title="Add Driver or Partner"
+          submitLabel="Add"
+          isNew
           onClose={() => setAddModal(false)}
           onSubmit={handleAddDriver}
         />
       )}
       {editModal && (
         <DriverFormModal
-          title="Edit Driver"
+          title={editModal.kind === "partner" ? "Edit Partner" : "Edit Driver"}
           submitLabel="Save Changes"
-          initial={{ name: editModal.name, phone: editModal.phone === "—" ? "" : editModal.phone, email: editModal.email ?? "", vehicle: editModal.vehicle === "—" ? "" : editModal.vehicle, plate: editModal.plate === "—" ? "" : editModal.plate }}
+          initial={{ kind: editModal.kind, name: editModal.name, phone: editModal.phone === "—" ? "" : editModal.phone, email: editModal.email ?? "", vehicle: editModal.vehicle === "—" ? "" : editModal.vehicle, plate: editModal.plate === "—" ? "" : editModal.plate }}
           onClose={() => setEditModal(null)}
           onSubmit={handleEditDriver}
         />
@@ -567,7 +651,7 @@ export default function DriversPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Fleet</p>
-            <h2 className="mt-1 text-2xl font-semibold text-[#0F1B33]">Active Drivers</h2>
+            <h2 className="mt-1 text-2xl font-semibold text-[#0F1B33]">Drivers</h2>
           </div>
           <div className="flex items-center gap-2">
             <a
@@ -584,7 +668,7 @@ export default function DriversPage() {
               className="flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400 sm:px-5 sm:py-3"
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add Driver</span>
+              <span className="hidden sm:inline">Add Driver or Partner</span>
               <span className="sm:hidden">Add</span>
             </button>
           </div>
@@ -596,6 +680,9 @@ export default function DriversPage() {
             <DriverCard
               key={driver.id}
               driver={driver}
+              access={access[driver.id]}
+              inviting={invitingId === driver.id}
+              onInvite={handleInvite}
               onAssignJob={setAssignModal}
               onUpdateStatus={handleUpdateStatus}
               onEdit={setEditModal}
@@ -615,6 +702,33 @@ export default function DriversPage() {
             </div>
           )}
         </div>
+
+        {/* Trusted partners: outside operators, no Driver App */}
+        {partners.length > 0 && (
+          <div>
+            <div className="mb-4">
+              <h2 className="text-2xl font-semibold text-[#0F1B33]">Trusted Partners</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Outside operators you pass jobs to. They get job details by email and don&apos;t use the Driver App;
+                customer texts for their jobs appear on Today under &ldquo;Texts to send&rdquo;.
+              </p>
+            </div>
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+              {partners.map((p) => (
+                <DriverCard
+                  key={p.id}
+                  driver={p}
+                  access={access[p.id]}
+                  onInvite={handleInvite}
+                  onAssignJob={setAssignModal}
+                  onUpdateStatus={handleUpdateStatus}
+                  onEdit={setEditModal}
+                  onDelete={setDeleteModal}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Today's scheduled jobs */}
         <div className="card p-6">
