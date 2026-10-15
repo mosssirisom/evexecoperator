@@ -48,9 +48,35 @@ const config: Config = {
           800: "#553f16",
           900: "#2e210a",
         },
+        // Operator calendar (Bookings → Calendar). Warm paper, deep ink and a
+        // muted brass accent; status colours are the only saturated hues.
+        // Mirrored in src/components/operator/calendar/tokens.js.
+        cal: {
+          paper: "#F6F2EA",
+          sheet: "#FFFDF8",
+          well: "#EEE7D9",
+          line: "#E5DDCC",
+          rule: "#D2C7B1",
+          ink: "#141821",
+          ink2: "#3A3F4A",
+          muted: "#6D6656",
+          faint: "#A0977F",
+          brass: "#9C7B34",
+          "brass-ink": "#76591F",
+          "brass-soft": "#F2E8CF",
+          ok: "#2F6B50",
+          "ok-soft": "#E3EEE6",
+          alert: "#A3402C",
+          "alert-soft": "#F7E4DC",
+          road: "#2E5C88",
+          "road-soft": "#E1EAF3",
+        },
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
+        // System serif (New York on iPhone/Mac) for calendar headings: no
+        // web-font download, so nothing extra to load or pay for.
+        display: ["ui-serif", '"New York"', '"Iowan Old Style"', '"Palatino Linotype"', "Georgia", "serif"],
       },
       boxShadow: {
         "gold-sm": "0 0 12px rgba(201,165,80,0.15)",

@@ -101,3 +101,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Update — 2026-10-15: softer gold (colours only)
 
 User found the original orange-gold harsh and rejected a navy-and-white theme (branch `claude/navy-theme`, not merged; don't use it). Kept the original design and only softened it: `tailwind.config.ts` redefines Tailwind's `amber` scale as the logo's soft gold (500 `#C9A550` buttons, 600 `#8A6A1F` accent text, 5:1 on white; the old `#d97706` was 3.2:1), so every existing amber class (brand accents and pending/warning badges) picks it up with no component changes. The page background lost its gold radial tint (`Layout.jsx`, and the matching sticky day headings in `BookingsList.jsx`). No layout, size or class changes otherwise.
+
+## Update — 2026-10-15: Bookings → Calendar redesign (branch `claude/operator-calendar-redesign`)
+
+- **New calendar** in `src/components/operator/calendar/`: `OperatorCalendar.jsx` (live data: `hooks/operator/useBookings`, `useDrivers`, `useDriverAvailability`, the shared `useBookingDrawer`, the shell's `openNewBooking`) renders `CalendarScreen.jsx` (all UI state, no fetching — also used by the demo preview). Views Month / Week / Day / List, in the URL as `?view=calendar&cv=month|week|day|list&d=YYYY-MM-DD`.
+- **Rules** in `src/lib/operator/calendarModel.js` (tested): UK date keys, periods, booking state (reply / driver / assigned / road / done / cancelled, built on `bookingBuckets`), flags (awaiting reply, no driver, no driver within 24 h, same-driver clash within `CLASH_BUFFER_MINUTES`, driver marked unavailable, no pickup time, completed unpaid), filters, metrics and data coverage (the strip shows "—" and offers "Load earlier/more" when the loaded window doesn't cover the period, rather than a wrong number).
+- **Desktop** side panel: selected day, or a booking (read-only details, quick driver assignment via the drawer's `assign`, "Open booking" for everything else). **Phones**: tapping a booking opens the drawer directly.
+- **Tokens**: `cal-*` colours and `font-display` (system serif, no web font) in `tailwind.config.ts`, mirrored in `calendar/tokens.js`. House date style kept: month titles are MM/YYYY.
+- `shapedBooking` gained `priceValue` (raw fare, for totals in pence); `ukDateDaysAgo` / `OPERATIONAL_DAYS_BACK` moved to `src/lib/operator/ukDate.js` (still re-exported by `useBookings`).
+- The old `CalendarApp.tsx`, `CalendarView.tsx`, `DailyView.tsx`, `StatsBar.tsx` are no longer used by any screen; delete once the new calendar is signed off.
