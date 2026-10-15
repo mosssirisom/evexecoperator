@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   addDays, addMonths, startOfWeek, endOfMonth, monthWeeks, weekdayIndex,
-  periodFor, stepCursor, monthTitle, longDay,
+  periodFor, stepCursor, monthTitle, longDay, isoWeek,
   bookingState, isAirportJob, fareOf, findClashes, enrichBookings,
   applyFilters, groupByDate, periodMetrics, daySummary, driverLoad, gapBefore,
   coverage, formatGap,
@@ -39,13 +39,26 @@ describe("date keys", () => {
     expect(rows.at(-1)[6]).toBe("2026-11-01");
     expect(rows.every((r) => r.length === 7)).toBe(true);
   });
-  it("uses the house date style (no written-out month)", () => {
-    expect(monthTitle("2026-10-15")).toBe("10/2026");
-    expect(longDay("2026-10-15")).toBe("Thursday 15/10/2026");
-    expect(periodFor("week", "2026-10-15").title).toBe("12–18/10/2026");
-    expect(periodFor("week", "2026-10-01").title).toBe("28/09–04/10/2026");
-    expect(periodFor("week", "2026-12-31").title).toBe("28/12/2026–03/01/2027");
-    expect(periodFor("day", "2026-10-15").title).toBe("15/10/2026");
+  it("writes the month out in navigation headings only", () => {
+    expect(monthTitle("2026-10-15")).toBe("October 2026");
+    expect(longDay("2026-10-15")).toBe("Thursday 15/10/2026"); // data labels keep DD/MM/YYYY
+    expect(periodFor("week", "2026-10-15").title).toBe("12–18 October 2026");
+    expect(periodFor("week", "2026-10-01").title).toBe("28 Sep – 4 Oct 2026");
+    expect(periodFor("week", "2026-12-31").title).toBe("28 Dec 2026 – 3 Jan 2027");
+    expect(periodFor("day", "2026-10-15")).toMatchObject({ title: "Thursday, 15 October 2026", titleShort: "15 October 2026" });
+  });
+  it("places a period relative to today", () => {
+    const today = "2026-10-15";
+    expect(periodFor("month", "2026-10-02", today).eyebrow).toBe("This month");
+    expect(periodFor("month", "2026-12-02", today).eyebrow).toBe("In 2 months");
+    expect(periodFor("week", "2026-10-20", today).eyebrow).toBe("Week 43 · Next week");
+    expect(periodFor("day", "2026-10-16", today)).toMatchObject({ eyebrow: "Tomorrow", eyebrowShort: "Friday · Tomorrow" });
+    expect(periodFor("day", "2026-10-12", today).eyebrow).toBe("3 days ago");
+  });
+  it("numbers ISO weeks", () => {
+    expect(isoWeek("2026-10-15")).toBe(42);
+    expect(isoWeek("2027-01-01")).toBe(53); // 2026 has 53 ISO weeks
+    expect(isoWeek("2026-01-01")).toBe(1);
   });
   it("steps the cursor by the view's unit", () => {
     expect(stepCursor("day", "2026-10-15", 1)).toBe("2026-10-16");
@@ -91,9 +104,13 @@ describe("flags", () => {
     const b = base({ id: "B", time: "10:00" });
     const c = base({ id: "C", time: "13:00" });
     const clashes = findClashes([a, b, c]);
-    expect(clashes.get("A").id).toBe("B");
-    expect(clashes.get("B").id).toBe("A");
+    expect(clashes.get("A")).toMatchObject({ other: { id: "B" }, gap: 60 });
+    expect(clashes.get("B")).toMatchObject({ other: { id: "A" }, gap: -60 });
     expect(clashes.has("C")).toBe(false);
+    const [ea, eb] = enrichBookings([a, b], { today, now });
+    expect(ea.flags[0]).toMatchObject({ code: "clash", otherId: "B", label: "Same driver at 10:00, 1h later" });
+    expect(eb.flags[0].label).toBe("Same driver at 09:00, 1h earlier");
+    expect(eb.flags[0].detail).toBe("James also has A Customer at 09:00, 1h before this pickup (under the 90-min gap).");
   });
 
   it("marks an unassigned job within 24h as urgent", () => {

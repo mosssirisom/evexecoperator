@@ -75,31 +75,83 @@ export function monthWeeks(key) {
   return rows;
 }
 
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const dm = (key) => `${key.slice(8, 10)}/${key.slice(5, 7)}`;
 const dmy = (key) => `${dm(key)}/${key.slice(0, 4)}`;
-// House style (CLAUDE.md): never a written-out month — months read MM/YYYY.
-export const monthTitle = (key) => `${key.slice(5, 7)}/${key.slice(0, 4)}`;
+const monthOf = (key) => MONTHS[+key.slice(5, 7) - 1];
 export const dayOfMonth = (key) => +key.slice(8, 10);
 export const weekdayShort = (key) => WEEKDAYS_SHORT[weekdayIndex(key)];
 export const weekdayLong = (key) => WEEKDAYS_LONG[weekdayIndex(key)];
-/** "Thursday 15/10/2026" — house style keeps dates DD/MM/YYYY. */
+/** "Thursday 15/10/2026" — data and labels stay in the house DD/MM/YYYY style. */
 export const longDay = (key) => `${weekdayLong(key)} ${dmy(key)}`;
 export const shortDay = (key) => `${weekdayShort(key)} ${dm(key)}`;
+
+// Calendar navigation headings are the one place a month is written out
+// ("October 2026"), at the user's request (15/10/2026). Everything else —
+// booking dates, the side panel, notices — keeps DD/MM/YYYY.
+export const monthTitle = (key) => `${monthOf(key)} ${key.slice(0, 4)}`;
+export const dayTitle = (key) => `${weekdayLong(key)}, ${dayOfMonth(key)} ${monthOf(key)} ${key.slice(0, 4)}`;
+
+/** ISO-8601 week number (weeks start Monday; week 1 holds the first Thursday). */
+export function isoWeek(key) {
+  const thursday = addDays(key, 3 - weekdayIndex(key));
+  const jan1 = `${thursday.slice(0, 4)}-01-01`;
+  return Math.floor(daysBetween(jan1, thursday) / 7) + 1;
+}
+
+function relativeDay(key, today) {
+  const n = daysBetween(today, key);
+  if (n === 0) return "Today";
+  if (n === 1) return "Tomorrow";
+  if (n === -1) return "Yesterday";
+  return n > 0 ? `In ${n} days` : `${-n} days ago`;
+}
+function relativeMonth(key, today) {
+  const n = (+key.slice(0, 4) - +today.slice(0, 4)) * 12 + (+key.slice(5, 7) - +today.slice(5, 7));
+  if (n === 0) return "This month";
+  if (n === 1) return "Next month";
+  if (n === -1) return "Last month";
+  return n > 0 ? `In ${n} months` : `${-n} months ago`;
+}
 
 // ── Periods ──────────────────────────────────────────────────────────────────
 
 export const VIEWS = ["month", "week", "day", "list"];
 
-/** The date range a view covers around the cursor date. List = the month. */
-export function periodFor(view, cursor) {
-  if (view === "day") return { view, start: cursor, end: cursor, title: dmy(cursor), subtitle: weekdayLong(cursor) };
+/**
+ * The date range a view covers around the cursor date (List = the month),
+ * with its heading: `title` (from sm), `titleShort` (phones), and a quiet
+ * `eyebrow` placing it relative to today.
+ */
+export function periodFor(view, cursor, today = cursor) {
+  if (view === "day") {
+    const rel = relativeDay(cursor, today);
+    return {
+      view, start: cursor, end: cursor,
+      title: dayTitle(cursor),
+      titleShort: `${dayOfMonth(cursor)} ${monthOf(cursor)} ${cursor.slice(0, 4)}`,
+      eyebrow: rel,
+      eyebrowShort: `${weekdayLong(cursor)} · ${rel}`,
+    };
+  }
   if (view === "week") {
     const start = startOfWeek(cursor);
     const end = addDays(start, 6);
-    const from = start.slice(0, 4) !== end.slice(0, 4) ? dmy(start) : start.slice(0, 7) === end.slice(0, 7) ? start.slice(8, 10) : dm(start);
-    return { view, start, end, title: `${from}–${dmy(end)}`, subtitle: "Week" };
+    const short = (k) => `${dayOfMonth(k)} ${monthOf(k).slice(0, 3)}`;
+    let title;
+    if (start.slice(0, 7) === end.slice(0, 7)) title = `${dayOfMonth(start)}–${dayOfMonth(end)} ${monthOf(end)} ${end.slice(0, 4)}`;
+    else if (start.slice(0, 4) === end.slice(0, 4)) title = `${short(start)} – ${short(end)} ${end.slice(0, 4)}`;
+    else title = `${short(start)} ${start.slice(0, 4)} – ${short(end)} ${end.slice(0, 4)}`;
+    const n = Math.round(daysBetween(startOfWeek(today), start) / 7);
+    const rel = n === 0 ? "This week" : n === 1 ? "Next week" : n === -1 ? "Last week" : null;
+    const eyebrow = `Week ${isoWeek(start)}${rel ? ` · ${rel}` : ""}`;
+    return { view, start, end, title, titleShort: title, eyebrow, eyebrowShort: eyebrow };
   }
-  return { view, start: startOfMonth(cursor), end: endOfMonth(cursor), title: monthTitle(cursor), subtitle: view === "list" ? "Agenda" : "Month" };
+  const rel = relativeMonth(cursor, today);
+  return {
+    view, start: startOfMonth(cursor), end: endOfMonth(cursor),
+    title: monthTitle(cursor), titleShort: monthTitle(cursor), eyebrow: rel, eyebrowShort: rel,
+  };
 }
 
 /** Where Previous / Next moves the cursor in each view. */
@@ -168,7 +220,15 @@ export function fareOf(b) {
   return m ? Number(m[1].replace(/,/g, "")) : null;
 }
 
-/** Same-driver jobs on the same day closer together than the clash buffer. */
+/**
+ * Same-driver jobs on the same day whose pickups are closer together than
+ * CLASH_BUFFER_MINUTES (the app's existing assignment rule).
+ *
+ * Bookings record a pickup time but no journey length or drop-off time, so
+ * this can't prove two jobs overlap — it finds pairs too close to be safe and
+ * reports the gap, for the office to judge. Returns id → { other, gap } where
+ * gap is minutes from this pickup to the other's (negative = other is earlier).
+ */
 export function findClashes(bookings) {
   const groups = new Map();
   for (const b of bookings) {
@@ -180,15 +240,16 @@ export function findClashes(bookings) {
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k).push({ b, mins });
   }
-  const clashes = new Map(); // booking id → the other booking
+  const clashes = new Map();
   for (const list of groups.values()) {
     list.sort((x, y) => x.mins - y.mins);
     for (let i = 1; i < list.length; i++) {
       const prev = list[i - 1];
       const cur = list[i];
-      if (cur.mins - prev.mins < CLASH_BUFFER_MINUTES) {
-        if (!clashes.has(prev.b.id)) clashes.set(prev.b.id, cur.b);
-        if (!clashes.has(cur.b.id)) clashes.set(cur.b.id, prev.b);
+      const gap = cur.mins - prev.mins;
+      if (gap < CLASH_BUFFER_MINUTES) {
+        if (!clashes.has(prev.b.id)) clashes.set(prev.b.id, { other: cur.b, gap });
+        if (!clashes.has(cur.b.id)) clashes.set(cur.b.id, { other: prev.b, gap: -gap });
       }
     }
   }
@@ -219,8 +280,19 @@ export function enrichBookings(bookings, ctx) {
         flags.push({ code: "driver", tone: "alert", label: "No driver assigned" });
       }
     }
-    const other = clashes.get(b.id);
-    if (other) flags.push({ code: "clash", tone: "alert", label: `Clashes with ${other.id} at ${other.time}` });
+    const clash = clashes.get(b.id);
+    if (clash) {
+      const { other, gap } = clash;
+      const mins = Math.abs(gap);
+      flags.push({
+        code: "clash",
+        tone: "alert",
+        label: `Same driver at ${other.time}, ${formatGap(mins)} ${gap > 0 ? "later" : "earlier"}`,
+        detail: `${b.driver} also has ${other.customer || other.id} at ${other.time}, ${formatGap(mins)} ${gap > 0 ? "after" : "before"} this pickup (under the ${CLASH_BUFFER_MINUTES}-min gap).`,
+        otherId: other.id,
+        gap,
+      });
+    }
     if (b.driverId && b.travelDate && state !== "cancelled" && state !== "done" && unavailableDriverIds?.(b.travelDate)?.has(b.driverId)) {
       flags.push({ code: "unavailable", tone: "alert", label: `${b.driver} marked this day unavailable` });
     }

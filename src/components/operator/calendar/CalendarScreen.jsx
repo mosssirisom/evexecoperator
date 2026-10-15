@@ -92,7 +92,7 @@ export default function CalendarScreen({
   const filters = { status, driver, query, showCancelled };
   const visible = useMemo(() => applyFilters(enriched, filters), [enriched, status, driver, query, showCancelled]); // eslint-disable-line react-hooks/exhaustive-deps
   const byDate = useMemo(() => groupByDate(visible), [visible]);
-  const period = periodFor(view, cursor);
+  const period = periodFor(view, cursor, today);
 
   // The strip counts the period under the driver/search filters but ignores
   // its own status filter, so tapping "Need driver" doesn't rewrite the totals.
@@ -114,6 +114,15 @@ export default function CalendarScreen({
     if (isDesktop) setSelectedId(b.id);
     else onOpenBooking(b);
   }, [isDesktop, onOpenBooking]);
+
+  const lookup = useCallback((id) => enriched.find((b) => b.id === id) ?? null, [enriched]);
+
+  // An exception's action: a clash opens the other job; everything else
+  // (assign, reply, add time, payment) is done in the booking itself.
+  const handleAction = useCallback((flag, b) => {
+    const target = flag.code === "clash" ? lookup(flag.otherId) ?? b : b;
+    openBooking(target);
+  }, [lookup, openBooking]);
 
   const goToDate = useCallback((key, nextView) => {
     setCursor(key);
@@ -141,7 +150,7 @@ export default function CalendarScreen({
 
   return (
     <div className="min-h-screen bg-cal-paper pb-28 text-cal-ink lg:pb-16">
-      <div className="mx-auto w-full max-w-[1440px] px-4 pt-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_368px] lg:gap-10 lg:px-10 lg:pt-6">
+      <div className="mx-auto w-full max-w-[1440px] px-4 pt-3 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_368px] lg:gap-10 lg:px-10 lg:pt-6">
         <div className="min-w-0">
           <CalendarToolbar
             period={period}
@@ -162,7 +171,7 @@ export default function CalendarScreen({
           <SummaryStrip metrics={metrics} status={status} onStatus={setStatus} complete={cover.complete && !firstLoad} />
 
           {status !== "all" && (
-            <p className="mt-3 flex items-center gap-2 text-[12.5px] text-cal-ink2">
+            <p className="mt-2 flex items-center gap-2 text-cal-xs text-cal-ink2">
               Showing only <span className="font-semibold text-cal-ink">{STATUS_LABEL[status]}</span>
               <button type="button" onClick={() => setStatus("all")} className="inline-flex items-center gap-0.5 font-semibold text-cal-brass-ink hover:underline">
                 <X className="h-3 w-3" /> Clear
@@ -171,7 +180,7 @@ export default function CalendarScreen({
           )}
 
           {error && (
-            <div role="status" className="mt-3 flex items-center gap-2 rounded-md border border-cal-alert/30 bg-cal-alert-soft px-3 py-2 text-[12.5px] text-cal-alert">
+            <div role="status" className="mt-2 flex items-center gap-2 rounded-cal border border-cal-alert/30 bg-cal-alert-soft px-3 py-2 text-cal-xs text-cal-alert">
               <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
               <span className="flex-1">{bookings.length ? "Couldn't refresh — showing the last bookings loaded." : `Couldn't load bookings: ${error}`}</span>
               <button type="button" onClick={onRetry} className="inline-flex items-center gap-1 font-semibold hover:underline"><RotateCw className="h-3 w-3" /> Retry</button>
@@ -179,7 +188,7 @@ export default function CalendarScreen({
           )}
 
           {!firstLoad && !cover.complete && (
-            <div role="status" className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-cal-rule bg-cal-sheet px-3 py-2 text-[12.5px] text-cal-ink2">
+            <div role="status" className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-cal border border-cal-rule bg-cal-sheet px-3 py-2 text-cal-xs text-cal-ink2">
               <span className="flex-1">
                 {cover.missingEarlier
                   ? `Bookings before ${fmtDate(ukDateDaysAgo(OPERATIONAL_DAYS_BACK, new Date(now)))} aren't loaded yet, so this period may be incomplete.`
@@ -209,47 +218,50 @@ export default function CalendarScreen({
                 onSelect={(k) => { setCursor(k); setSelectedId(null); }}
                 onOpenDay={(k) => goToDate(k, "day")}
               />
-              <div className="mt-6 lg:hidden">
-                <DaySchedule date={cursor} today={today} bookings={selectedDayList} selectedId={selectedId} onOpen={openBooking} onNewBooking={newBookingOn} onOpenDay={(k) => goToDate(k, "day")} compact emptyHint={filtering ? "No matching transfers on this day." : undefined} />
+              <div className="mt-5 lg:hidden">
+                <DaySchedule date={cursor} today={today} bookings={selectedDayList} selectedId={selectedId} onOpen={openBooking} onAction={handleAction} onNewBooking={newBookingOn} onOpenDay={(k) => goToDate(k, "day")} compact emptyHint={filtering ? "No matching transfers on this day." : undefined} />
               </div>
             </>
           ) : view === "week" ? (
-            <WeekView period={period} today={today} selected={cursor} byDate={byDate} selectedId={selectedId} onOpen={openBooking} onSelectDay={(k) => { setCursor(k); setSelectedId(null); }} onOpenDay={(k) => goToDate(k, "day")} />
+            <WeekView period={period} today={today} selected={cursor} byDate={byDate} selectedId={selectedId} onOpen={openBooking} onAction={handleAction} onSelectDay={(k) => { setCursor(k); setSelectedId(null); }} onOpenDay={(k) => goToDate(k, "day")} />
           ) : view === "day" ? (
             <div className="mt-5">
-              <DaySchedule date={cursor} today={today} bookings={selectedDayList} selectedId={selectedId} onOpen={openBooking} onNewBooking={newBookingOn} hideTitle emptyHint={filtering ? "No matching transfers on this day." : undefined} />
+              <DaySchedule date={cursor} today={today} bookings={selectedDayList} selectedId={selectedId} onOpen={openBooking} onAction={handleAction} onNewBooking={newBookingOn} hideTitle emptyHint={filtering ? "No matching transfers on this day." : undefined} />
             </div>
           ) : (
-            <AgendaView period={period} today={today} byDate={byDate} selectedId={selectedId} onOpen={openBooking} onOpenDay={(k) => goToDate(k, "day")} emptyText={emptyText} />
+            <AgendaView period={period} today={today} byDate={byDate} selectedId={selectedId} onOpen={openBooking} onAction={handleAction} onOpenDay={(k) => goToDate(k, "day")} emptyText={emptyText} />
           )}
         </div>
 
         {/* Side panel (desktop) */}
         <aside className="hidden lg:block">
-          <div className="sticky top-[124px] max-h-[calc(100vh-140px)] overflow-y-auto rounded-[10px] border border-cal-line bg-cal-sheet p-5 [scrollbar-width:thin]">
+          <div className="sticky top-[124px] flex max-h-[calc(100vh-140px)] flex-col overflow-y-auto rounded-cal-lg border border-cal-line bg-cal-sheet p-5 [scrollbar-width:thin]">
             {selected ? (
               <BookingInspector
                 b={selected}
                 drivers={drivers}
                 unavailable={selected.travelDate ? unavailableFor(selected.travelDate) : new Set()}
+                lookup={lookup}
+                onAction={handleAction}
+                onSelect={(o) => setSelectedId(o.id)}
                 onAssign={onAssign}
                 onClose={() => setSelectedId(null)}
                 onOpenFull={onOpenBooking}
                 onGoToDate={(k) => { setSelectedId(null); goToDate(k); }}
               />
             ) : view === "month" || view === "week" ? (
-              <DaySchedule date={cursor} today={today} bookings={selectedDayList} selectedId={selectedId} onOpen={openBooking} onNewBooking={newBookingOn} onOpenDay={(k) => goToDate(k, "day")} compact emptyHint={filtering ? "No matching transfers on this day." : undefined} />
+              <DaySchedule date={cursor} today={today} bookings={selectedDayList} selectedId={selectedId} onOpen={openBooking} onAction={handleAction} onNewBooking={newBookingOn} onOpenDay={(k) => goToDate(k, "day")} compact emptyHint={filtering ? "No matching transfers on this day." : undefined} />
             ) : (
               <section aria-label="Needs attention">
                 <header className="border-b border-cal-line pb-2.5">
-                  <h3 className="font-display text-[19px] font-medium text-cal-ink">Needs attention</h3>
-                  <p className="mt-0.5 text-[12px] text-cal-muted">{view === "day" ? "This day" : "This month"} · select a booking for details</p>
+                  <h3 className="font-display text-cal-lg font-medium text-cal-ink">Needs attention</h3>
+                  <p className="mt-0.5 text-cal-xs text-cal-muted">{view === "day" ? "This day" : "This month"} · select a booking for details</p>
                 </header>
                 {attentionList.length === 0 ? (
-                  <p className="py-8 text-center text-[13px] text-cal-muted">Nothing outstanding.</p>
+                  <p className="py-8 text-center text-cal-sm text-cal-muted">Nothing outstanding.</p>
                 ) : (
                   <ol className="-mx-3 divide-y divide-cal-line">
-                    {attentionList.map((b) => <li key={b.id}><BookingRow b={b} onOpen={openBooking} dense /></li>)}
+                    {attentionList.map((b) => <li key={b.id}><BookingRow b={b} onOpen={openBooking} onAction={handleAction} selected={b.id === selectedId} /></li>)}
                   </ol>
                 )}
               </section>
@@ -263,11 +275,11 @@ export default function CalendarScreen({
 
 function Skeleton() {
   return (
-    <div className="mt-5" aria-busy="true" aria-label="Loading bookings">
-      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-[10px] border border-cal-line bg-cal-line">
+    <div className="mt-8" aria-busy="true" aria-label="Loading bookings">
+      <div className="grid grid-cols-7 border-b border-cal-line">
         {Array.from({ length: 35 }).map((_, i) => (
-          <div key={i} className="h-[60px] bg-cal-sheet p-1.5 sm:h-[72px] lg:h-[118px]">
-            <div className="h-2.5 w-4 animate-pulse rounded-sm bg-cal-well" />
+          <div key={i} className="h-14 border-t border-cal-line p-1.5 sm:h-16 lg:h-[112px]">
+            <div className="h-3 w-4 animate-pulse rounded-sm bg-cal-well motion-reduce:animate-none" />
           </div>
         ))}
       </div>

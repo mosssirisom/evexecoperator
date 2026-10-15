@@ -1,89 +1,129 @@
 "use client";
 
-import { AlertTriangle, Plane } from "lucide-react";
+import { ArrowLeftRight, CalendarX, Clock, MessageSquare, Plane, PoundSterling, UserX } from "lucide-react";
 import { STATE_STYLE } from "./tokens";
 
 /** A small square status mark. Hollow = waiting on the office. */
 export function StatusMark({ state, className = "" }) {
   const s = STATE_STYLE[state] ?? STATE_STYLE.assigned;
-  return <span aria-hidden className={`inline-block h-2 w-2 shrink-0 rounded-[2px] ${s.mark} ${className}`} />;
+  return <span aria-hidden className={`inline-block h-[7px] w-[7px] shrink-0 rounded-[2px] ${s.mark} ${className}`} />;
 }
 
 export function StateLabel({ state }) {
   const s = STATE_STYLE[state] ?? STATE_STYLE.assigned;
   return (
-    <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] ${s.text}`}>
+    <span className={`inline-flex items-center gap-1.5 text-cal-label font-semibold uppercase ${s.text}`}>
       <StatusMark state={state} />
       {s.label}
     </span>
   );
 }
 
-export function FlagLine({ flags, max = 2 }) {
-  if (!flags?.length) return null;
-  const shown = flags.slice(0, max);
+// One exception style for every warning: icon + plain sentence + the one
+// action that resolves it. Every action opens something that exists (the
+// booking, where driver, reply, payment and edits live — or the other job).
+const KIND = {
+  urgent:      { icon: UserX, action: "Assign driver" },
+  driver:      { icon: UserX, action: "Assign driver" },
+  clash:       { icon: ArrowLeftRight, action: null }, // "View <ref>", set per flag
+  unavailable: { icon: CalendarX, action: "Reassign" },
+  reply:       { icon: MessageSquare, action: "Reply" },
+  notime:      { icon: Clock, action: "Add time" },
+  unpaid:      { icon: PoundSterling, action: "Open payment" },
+};
+
+export function ExceptionNote({ flag, onAction }) {
+  const kind = KIND[flag.code] ?? { icon: Clock, action: "Open" };
+  const Icon = kind.icon;
+  const critical = flag.tone === "alert";
+  const action = flag.code === "clash" ? `View ${flag.otherId}` : kind.action;
   return (
-    <ul className="mt-1.5 space-y-0.5">
-      {shown.map((f) => (
-        <li key={f.code} className={`flex items-center gap-1.5 text-[12px] font-medium ${f.tone === "alert" ? "text-cal-alert" : "text-cal-brass-ink"}`}>
-          <AlertTriangle className="h-3 w-3 shrink-0" strokeWidth={2.25} aria-hidden />
-          {f.label}
-        </li>
-      ))}
-      {flags.length > max && <li className="pl-[18px] text-[11px] text-cal-muted">+{flags.length - max} more</li>}
-    </ul>
+    <p className={`flex items-start gap-1.5 text-cal-xs ${critical ? "text-cal-alert" : "text-cal-brass-ink"}`}>
+      <Icon className="mt-px h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
+      <span className="min-w-0">
+        <span className="font-medium">{flag.label}</span>
+        {onAction && action && (
+          <>
+            {" "}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onAction(flag); }}
+              className="pointer-events-auto relative z-[2] whitespace-nowrap font-semibold underline decoration-1 underline-offset-2 hover:decoration-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cal-brass"
+            >
+              {action}
+            </button>
+          </>
+        )}
+      </span>
+    </p>
   );
 }
 
 const shortPlace = (v) => (v ? String(v).split(",")[0].trim() : null);
+const fareText = (n) => `£${n % 1 ? n.toFixed(2) : n}`;
 
 /**
- * One transfer as a schedule row: time, who, where, driver, fare, warnings.
- * `selected` draws the inspector focus; `dense` drops the route's second line.
+ * One transfer as a schedule row. Order of emphasis: pickup time, passenger,
+ * route, driver + flight, exceptions; fare on the right. The whole row opens
+ * the booking; exception actions are their own buttons.
  */
-export default function BookingRow({ b, onOpen, selected = false, dense = false, showTime = true }) {
+export default function BookingRow({ b, onOpen, onAction, selected = false }) {
   const from = shortPlace(b.pickupLocation || b.airport || b.direction);
   const to = shortPlace(b.dropoffAddress || b.airport);
-  const cancelled = b.state === "cancelled";
+  const quiet = b.state === "done" || b.state === "cancelled";
   const flight = b.flight && b.flight !== "—" ? b.flight : null;
 
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(b)}
-      aria-current={selected ? "true" : undefined}
-      className={`group relative flex w-full gap-3 px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cal-brass ${
-        selected ? "bg-cal-well" : "hover:bg-cal-paper"
-      } ${cancelled ? "opacity-60" : ""}`}
-    >
-      {selected && <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-cal-ink" />}
-      {showTime && (
-        <div className="w-12 shrink-0 pt-px">
-          <p className={`text-[15px] font-semibold tabular-nums leading-none ${b.minutes == null ? "text-cal-faint" : "text-cal-ink"} ${cancelled ? "line-through" : ""}`}>
-            {b.minutes == null ? "--:--" : b.time}
-          </p>
-          {b.isAirport && <Plane className="mt-1.5 h-3 w-3 text-cal-muted" strokeWidth={2} aria-label="Airport transfer" />}
-        </div>
-      )}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          <StatusMark state={b.state} className="relative -top-px" />
-          <p className={`min-w-0 truncate text-[14px] font-semibold text-cal-ink ${cancelled ? "line-through" : ""}`}>{b.customer || "No name"}</p>
-          <span className="ml-auto shrink-0 text-[13px] font-medium tabular-nums text-cal-ink2">{b.fare == null ? <span className="text-cal-faint">TBC</span> : `£${b.fare % 1 ? b.fare.toFixed(2) : b.fare}`}</span>
-        </div>
-        <p className="mt-0.5 truncate text-[13px] text-cal-ink2">
-          {from ?? "—"} <span className="text-cal-faint">→</span> {to ?? "—"}
+    <div className={`group relative ${selected ? "bg-cal-well" : "hover:bg-cal-sheet"} ${b.state === "cancelled" ? "opacity-60" : ""}`}>
+      <button
+        type="button"
+        onClick={() => onOpen(b)}
+        aria-current={selected ? "true" : undefined}
+        aria-label={`${b.time === "—" ? "No time" : b.time} ${b.customer}, ${STATE_STYLE[b.state]?.label ?? ""}`}
+        className="absolute inset-0 z-[1] w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cal-brass"
+      />
+      {selected && <span aria-hidden className="absolute inset-y-0 left-0 z-[2] w-[3px] bg-cal-ink" />}
+      <div className="pointer-events-none relative flex gap-3 px-3 py-2.5">
+        <p className={`w-[46px] shrink-0 pt-px text-cal-time font-semibold tabular-nums ${b.minutes == null || quiet ? "text-cal-faint" : "text-cal-ink"} ${b.state === "cancelled" ? "line-through" : ""}`}>
+          {b.minutes == null ? "--:--" : b.time}
         </p>
-        {!dense && (
-          <p className="mt-0.5 flex min-w-0 items-center gap-1.5 truncate text-[12px] text-cal-muted">
-            {b.driverId ? <span className="truncate">{b.driver}</span> : <span className="font-medium text-cal-alert">No driver</span>}
-            {flight && <><span aria-hidden>·</span><span className="tabular-nums">{flight}</span></>}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2">
+            <StatusMark state={b.state} className="relative -top-[2px]" />
+            <p className={`min-w-0 flex-1 truncate text-cal-base font-semibold ${quiet ? "text-cal-ink2" : "text-cal-ink"} ${b.state === "cancelled" ? "line-through" : ""}`}>
+              {b.customer || b.id}
+            </p>
+            <span className={`shrink-0 text-cal-sm tabular-nums ${b.fare == null ? "text-cal-faint" : "font-medium text-cal-ink2"}`}>
+              {b.fare == null ? "TBC" : fareText(b.fare)}
+            </span>
+          </div>
+          <p className="mt-0.5 text-cal-sm text-cal-ink2 [overflow-wrap:anywhere]">
+            {from ?? "—"} <span className="text-cal-faint">→</span> {to ?? "—"}
+          </p>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-cal-xs text-cal-muted">
+            {b.driverId ? <span>{b.driver}</span> : <span className="text-cal-faint">No driver</span>}
+            {flight && (
+              <>
+                <span aria-hidden>·</span>
+                <span className="inline-flex items-center gap-1 tabular-nums"><Plane className="h-3 w-3" strokeWidth={2} aria-label="Flight" />{flight}</span>
+              </>
+            )}
+            {!flight && b.isAirport && (
+              <>
+                <span aria-hidden>·</span>
+                <span className="inline-flex items-center gap-1"><Plane className="h-3 w-3" strokeWidth={2} aria-hidden />Airport</span>
+              </>
+            )}
             <span aria-hidden>·</span>
             <span className="tabular-nums">{b.id}</span>
           </p>
-        )}
-        <FlagLine flags={b.flags} max={dense ? 1 : 2} />
+          {b.flags.length > 0 && (
+            <div className="mt-1.5 space-y-1">
+              {b.flags.map((f) => <ExceptionNote key={f.code} flag={f} onAction={onAction ? (flag) => onAction(flag, b) : null} />)}
+            </div>
+          )}
+        </div>
       </div>
-    </button>
+    </div>
   );
 }

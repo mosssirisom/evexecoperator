@@ -1,49 +1,55 @@
-// Design tokens for the operator calendar. The colours are registered in
-// tailwind.config.ts as `cal-*` (bg-cal-paper, text-cal-ink, …); this file is
-// the same set for anything outside Tailwind (charts, canvas, emails) and the
-// reference for what each one is for.
+// Design tokens for the operator calendar. Registered in tailwind.config.ts
+// (`cal-*` colours, `text-cal-*` sizes, `rounded-cal*`, `shadow-cal-pop`); this
+// file is the same set for anything outside Tailwind and the reference for
+// what each one is for. Components use only these values.
 
 export const calendarTokens = {
   color: {
     paper: "#F6F2EA",      // page surface
-    sheet: "#FFFDF8",      // raised surface: grid, panels
-    well: "#EEE7D9",       // selected day, pressed state
-    line: "#E5DDCC",       // hairlines between cells and rows
-    rule: "#D2C7B1",       // stronger rules: section edges, inputs
-    ink: "#141821",        // primary text, selected-day fill
+    sheet: "#FFFDF8",      // raised surface: side panel, popovers, inputs
+    well: "#EEE7D9",       // selection fill (selected row, active control)
+    line: "#E5DDCC",       // hairline separators
+    rule: "#D2C7B1",       // control borders, stronger rules
+    ink: "#141821",        // primary text; selected date
     ink2: "#3A3F4A",       // secondary text: routes
-    muted: "#6D6656",      // labels, metadata
-    faint: "#A0977F",      // out-of-month days, done jobs
-    brass: "#9C7B34",      // accent: today, focus, awaiting reply
-    brassInk: "#76591F",   // accent text on paper (5.6:1)
+    muted: "#6D6656",      // metadata, labels
+    faint: "#A0977F",      // out-of-month days, completed work, placeholders
+    brass: "#9C7B34",      // accent: today, focus ring, active filter
+    brassInk: "#76591F",   // accent text on paper; awaiting reply
     brassSoft: "#F2E8CF",
-    ok: "#2F6B50",         // confirmed, driver assigned
-    okSoft: "#E3EEE6",
+    ok: "#2F6B50",         // driver assigned
     alert: "#A3402C",      // needs driver, clash, unavailable driver
     alertSoft: "#F7E4DC",
     road: "#2E5C88",       // en route / on board
-    roadSoft: "#E1EAF3",
   },
   font: {
-    display: 'ui-serif, "New York", "Iowan Old Style", "Palatino Linotype", Georgia, serif',
+    display: 'ui-serif, "New York", "Iowan Old Style", "Palatino Linotype", Georgia, serif', // headings only
     ui: "Inter, system-ui, sans-serif",
   },
+  // name: [size, line height] — text-cal-<name>
   type: {
-    title: "28px/1.05 display, 34px from lg",
-    time: "15px/1 ui semibold, tabular figures",
-    body: "14px/1.35 ui",
-    meta: "12px/1.3 ui",
-    label: "10.5px ui semibold, uppercase, 0.08em tracking",
+    label: ["10.5px", "14px", "uppercase, semibold, 0.09em"],
+    xs: ["12px", "16px", "metadata, exceptions"],
+    sm: ["13px", "18px", "routes, controls"],
+    base: ["14px", "19px", "passenger names"],
+    time: ["15px", "19px", "pickup times, semibold, tabular"],
+    lg: ["18px", "23px", "section headings (display)"],
+    xl: ["24px", "28px", "page heading on phones (display)"],
+    "2xl": ["30px", "34px", "page heading from lg (display)"],
   },
-  space: { grid: 4, row: 12, section: 20 },
-  radius: { control: 6, panel: 10, mark: 2 },
+  space: { gutter: 16, row: "10px vertical", section: 16, tight: 4 }, // Tailwind's 4px scale
+  radius: { mark: 2, control: 6, panel: 10 },
+  icon: { inline: 14, control: 16 },
+  control: { phone: 40, desktop: 36 }, // heights: h-10 / sm:h-9
+  focus: "2px brass ring (focus-visible only)",
+  selection: { date: "ink square behind the numeral", row: "well fill + 3px ink bar" },
 };
 
-// Status → mark colour and label. Shape carries meaning too (hollow =
-// waiting on the office), so it never relies on colour alone.
+// Per-job status mark. Shape carries meaning as well as colour: hollow =
+// waiting on the office; filled = in hand.
 export const STATE_STYLE = {
   reply:     { mark: "border-[1.5px] border-cal-brass bg-transparent", text: "text-cal-brass-ink", label: "Awaiting reply" },
-  driver:    { mark: "bg-cal-alert", text: "text-cal-alert", label: "Needs driver" },
+  driver:    { mark: "border-[1.5px] border-cal-alert bg-transparent", text: "text-cal-alert", label: "Needs driver" },
   assigned:  { mark: "bg-cal-ok", text: "text-cal-ok", label: "Driver assigned" },
   road:      { mark: "bg-cal-road", text: "text-cal-road", label: "On the road" },
   done:      { mark: "bg-cal-faint", text: "text-cal-muted", label: "Completed" },
