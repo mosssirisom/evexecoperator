@@ -15,7 +15,7 @@ import WeekView from "./WeekView";
 import DaySchedule from "./DaySchedule";
 import AgendaView from "./AgendaView";
 import BookingInspector from "./BookingInspector";
-import BookingRow from "./BookingRow";
+import BookingRow, { ROW_ITEM } from "./BookingRow";
 
 const STATUS_LABEL = { confirmed: "Confirmed", reply: "Awaiting reply", driver: "Need driver", attention: "Needs attention" };
 
@@ -260,8 +260,8 @@ export default function CalendarScreen({
                 {attentionList.length === 0 ? (
                   <p className="py-8 text-center text-cal-sm text-cal-muted">Nothing outstanding.</p>
                 ) : (
-                  <ol className="-mx-3 divide-y divide-cal-line">
-                    {attentionList.map((b) => <li key={b.id}><BookingRow b={b} onOpen={openBooking} onAction={handleAction} selected={b.id === selectedId} /></li>)}
+                  <ol className="-mx-3">
+                    {attentionList.map((b) => <li key={b.id} className={ROW_ITEM}><BookingRow b={b} onOpen={openBooking} onAction={handleAction} selected={b.id === selectedId} /></li>)}
                   </ol>
                 )}
               </section>

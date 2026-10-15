@@ -1,7 +1,7 @@
 "use client";
 
 import { eachDay, weekdayShort, dayOfMonth } from "@/lib/operator/calendarModel";
-import BookingRow, { StatusMark } from "./BookingRow";
+import BookingRow, { ROW_ITEM, StatusMark } from "./BookingRow";
 import { CriticalMark, dayExceptions } from "./MonthView";
 
 const shortPlace = (v) => (v ? String(v).split(",")[0].trim() : "—");
@@ -60,7 +60,7 @@ export default function WeekView({ period, today, selected, byDate, selectedId, 
                       {b.id === selectedId && <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-cal-ink" />}
                       <span className="flex items-center gap-1.5">
                         <StatusMark state={b.state} />
-                        <span className={`text-cal-sm font-semibold tabular-nums ${quiet ? "text-cal-faint" : "text-cal-ink"}`}>{b.minutes == null ? "--:--" : b.time}</span>
+                        <span className={`text-cal-sm font-semibold tabular-nums ${quiet ? "text-cal-muted" : "text-cal-ink"}`}>{b.minutes == null ? "--:--" : b.time}</span>
                         <span className="ml-auto">{critical ? <CriticalMark /> : b.flags.length ? <StatusMark state="reply" /> : null}</span>
                       </span>
                       <span className={`mt-1 block truncate text-cal-sm font-medium ${quiet ? "text-cal-ink2" : "text-cal-ink"}`}>{b.customer}</span>
@@ -88,7 +88,7 @@ export default function WeekView({ period, today, selected, byDate, selectedId, 
                 onClick={() => onOpenDay(key)}
                 className="flex h-11 w-full items-center justify-between text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cal-brass"
               >
-                <span className={`text-cal-sm font-semibold ${isToday ? "text-cal-brass-ink" : list.length ? "text-cal-ink" : "text-cal-faint"}`}>
+                <span className={`text-cal-sm font-semibold ${isToday ? "text-cal-brass-ink" : list.length ? "text-cal-ink" : "text-cal-muted"}`}>
                   {weekdayShort(key)} <span className="tabular-nums">{dayOfMonth(key)}</span>{isToday ? " · Today" : ""}
                 </span>
                 <span className="text-cal-xs tabular-nums text-cal-muted">
@@ -96,8 +96,8 @@ export default function WeekView({ period, today, selected, byDate, selectedId, 
                 </span>
               </button>
               {list.length > 0 && (
-                <ol className="-mx-3 divide-y divide-cal-line border-t border-cal-line">
-                  {list.map((b) => <li key={b.id}><BookingRow b={b} onOpen={onOpen} onAction={onAction} selected={b.id === selectedId} /></li>)}
+                <ol className="border-t border-cal-line">
+                  {list.map((b) => <li key={b.id} className={`-mx-3 ${ROW_ITEM}`}><BookingRow b={b} onOpen={onOpen} onAction={onAction} selected={b.id === selectedId} /></li>)}
                 </ol>
               )}
             </section>

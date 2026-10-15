@@ -13,7 +13,7 @@ export const calendarTokens = {
     ink: "#141821",        // primary text; selected date
     ink2: "#3A3F4A",       // secondary text: routes
     muted: "#6D6656",      // metadata, labels
-    faint: "#A0977F",      // out-of-month days, completed work, placeholders
+    faint: "#8A8170",      // decorative only (out-of-month days, arrows, disabled): 3.4:1, never for meaning
     brass: "#9C7B34",      // accent: today, focus ring, active filter
     brassInk: "#76591F",   // accent text on paper; awaiting reply
     brassSoft: "#F2E8CF",

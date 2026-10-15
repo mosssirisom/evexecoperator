@@ -60,7 +60,7 @@ const config: Config = {
           ink: "#141821",
           ink2: "#3A3F4A",
           muted: "#6D6656",
-          faint: "#A0977F",
+          faint: "#8A8170",
           brass: "#9C7B34",
           "brass-ink": "#76591F",
           "brass-soft": "#F2E8CF",

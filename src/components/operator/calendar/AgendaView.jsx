@@ -1,7 +1,7 @@
 "use client";
 
 import { dayOfMonth, eachDay, weekdayLong } from "@/lib/operator/calendarModel";
-import BookingRow from "./BookingRow";
+import BookingRow, { ROW_ITEM } from "./BookingRow";
 
 /** The period's days that have work, as one continuous schedule. */
 export default function AgendaView({ period, today, byDate, selectedId, onOpen, onAction, onOpenDay, emptyText }) {
@@ -25,13 +25,13 @@ export default function AgendaView({ period, today, byDate, selectedId, onOpen, 
               className="sticky top-0 z-[3] flex h-11 w-full items-center justify-between border-b border-cal-line bg-cal-paper text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cal-brass"
             >
               <span className={`font-display text-cal-lg font-medium ${tone}`}>
-                <span className="tabular-nums">{dayOfMonth(key)}</span> {weekdayLong(key)}
+                {weekdayLong(key)} <span className="tabular-nums">{dayOfMonth(key)}</span>
                 {key === today && <span className="ml-1.5 font-sans text-cal-label font-semibold uppercase">Today</span>}
               </span>
               <span className="text-cal-xs tabular-nums text-cal-muted">{live} transfer{live === 1 ? "" : "s"}</span>
             </button>
-            <ol className="-mx-3 divide-y divide-cal-line pb-2">
-              {list.map((b) => <li key={b.id}><BookingRow b={b} onOpen={onOpen} onAction={onAction} selected={b.id === selectedId} /></li>)}
+            <ol className="-mx-3 pb-2">
+              {list.map((b) => <li key={b.id} className={ROW_ITEM}><BookingRow b={b} onOpen={onOpen} onAction={onAction} selected={b.id === selectedId} /></li>)}
             </ol>
           </section>
         );

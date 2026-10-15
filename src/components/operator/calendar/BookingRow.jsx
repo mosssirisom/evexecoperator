@@ -59,6 +59,11 @@ export function ExceptionNote({ flag, onAction }) {
   );
 }
 
+// List item with an inset hairline above it, aligned to the row's text rather
+// than running to the screen edge (rows sit in a -mx-3 list so their hover and
+// selection fill can bleed past the gutter).
+export const ROW_ITEM = "relative before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:z-[3] before:h-px before:bg-cal-line before:content-[''] first:before:hidden";
+
 const shortPlace = (v) => (v ? String(v).split(",")[0].trim() : null);
 const fareText = (n) => `£${n % 1 ? n.toFixed(2) : n}`;
 
@@ -84,7 +89,7 @@ export default function BookingRow({ b, onOpen, onAction, selected = false }) {
       />
       {selected && <span aria-hidden className="absolute inset-y-0 left-0 z-[2] w-[3px] bg-cal-ink" />}
       <div className="pointer-events-none relative flex gap-3 px-3 py-2.5">
-        <p className={`w-[46px] shrink-0 pt-px text-cal-time font-semibold tabular-nums ${b.minutes == null || quiet ? "text-cal-faint" : "text-cal-ink"} ${b.state === "cancelled" ? "line-through" : ""}`}>
+        <p className={`w-[46px] shrink-0 pt-px text-cal-time font-semibold tabular-nums ${b.minutes == null || quiet ? "text-cal-muted" : "text-cal-ink"} ${b.state === "cancelled" ? "line-through" : ""}`}>
           {b.minutes == null ? "--:--" : b.time}
         </p>
         <div className="min-w-0 flex-1">
@@ -93,7 +98,7 @@ export default function BookingRow({ b, onOpen, onAction, selected = false }) {
             <p className={`min-w-0 flex-1 truncate text-cal-base font-semibold ${quiet ? "text-cal-ink2" : "text-cal-ink"} ${b.state === "cancelled" ? "line-through" : ""}`}>
               {b.customer || b.id}
             </p>
-            <span className={`shrink-0 text-cal-sm tabular-nums ${b.fare == null ? "text-cal-faint" : "font-medium text-cal-ink2"}`}>
+            <span className={`shrink-0 text-cal-sm tabular-nums ${b.fare == null ? "text-cal-muted" : "font-medium text-cal-ink2"}`}>
               {b.fare == null ? "TBC" : fareText(b.fare)}
             </span>
           </div>
@@ -101,7 +106,7 @@ export default function BookingRow({ b, onOpen, onAction, selected = false }) {
             {from ?? "—"} <span className="text-cal-faint">→</span> {to ?? "—"}
           </p>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-cal-xs text-cal-muted">
-            {b.driverId ? <span>{b.driver}</span> : <span className="text-cal-faint">No driver</span>}
+            {b.driverId ? <span>{b.driver}</span> : <span>No driver</span>}
             {flight && (
               <>
                 <span aria-hidden>·</span>

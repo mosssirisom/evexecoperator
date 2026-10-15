@@ -55,8 +55,8 @@ export default function MonthView({ weeks, monthKey, selected, today, byDate, on
   return (
     <div className="mt-3">
       <div className="grid grid-cols-7">
-        {WEEKDAYS_SHORT.map((d, i) => (
-          <div key={d} className={`pb-1.5 text-cal-label font-semibold uppercase lg:px-2 ${i > 4 ? "text-cal-faint" : "text-cal-muted"}`}>
+        {WEEKDAYS_SHORT.map((d) => (
+          <div key={d} className={`pb-1.5 text-cal-label font-semibold uppercase lg:px-2 text-cal-muted`}>
             <span className="lg:hidden">{d.slice(0, 1)}</span>
             <span className="hidden lg:inline">{d}</span>
           </div>
@@ -112,7 +112,7 @@ export default function MonthView({ weeks, monthKey, selected, today, byDate, on
               {/* Phones / tablets: count + one mark */}
               {live.length > 0 && (
                 <span className="mt-auto flex items-center gap-1 pl-0.5 lg:hidden">
-                  <span className={`text-cal-xs font-semibold tabular-nums ${allDone || !inMonth ? "text-cal-faint" : "text-cal-ink2"}`}>{live.length}</span>
+                  <span className={`text-cal-xs font-semibold tabular-nums ${allDone || !inMonth ? "text-cal-muted" : "text-cal-ink2"}`}>{live.length}</span>
                   {critical ? <CriticalMark /> : followUp ? <StatusMark state="reply" /> : null}
                 </span>
               )}
@@ -123,8 +123,8 @@ export default function MonthView({ weeks, monthKey, selected, today, byDate, on
                   {live.slice(0, MAX_ROWS).map((b) => (
                     <span key={b.id} className="flex min-w-0 items-center gap-1.5 text-cal-xs">
                       <StatusMark state={b.state} />
-                      <span className={`shrink-0 font-semibold tabular-nums ${b.state === "done" ? "text-cal-faint" : "text-cal-ink"}`}>{b.minutes == null ? "--:--" : b.time}</span>
-                      <span className={`min-w-0 truncate ${b.state === "done" ? "text-cal-faint" : "text-cal-ink2"}`}>{(b.customer || "").split(" ").slice(-1)[0]}</span>
+                      <span className={`shrink-0 font-semibold tabular-nums ${b.state === "done" ? "text-cal-muted" : "text-cal-ink"}`}>{b.minutes == null ? "--:--" : b.time}</span>
+                      <span className={`min-w-0 truncate ${b.state === "done" ? "text-cal-muted" : "text-cal-ink2"}`}>{(b.customer || "").split(" ").slice(-1)[0]}</span>
                       {b.isAirport && <Plane aria-label="airport" className="h-3 w-3 shrink-0 text-cal-faint" strokeWidth={2} />}
                     </span>
                   ))}

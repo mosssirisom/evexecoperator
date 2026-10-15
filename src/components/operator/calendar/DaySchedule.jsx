@@ -2,7 +2,7 @@
 
 import { ArrowRight, Plus } from "lucide-react";
 import { driverLoad, formatGap, gapBefore, longDay } from "@/lib/operator/calendarModel";
-import BookingRow from "./BookingRow";
+import BookingRow, { ROW_ITEM } from "./BookingRow";
 
 const GAP_SHOWN_FROM = 120; // minutes between pickups worth pointing out
 
@@ -72,13 +72,13 @@ export default function DaySchedule({
       {bookings.length === 0 ? (
         <p className="py-8 text-center text-cal-sm text-cal-muted">{emptyHint ?? (isPastDay ? "Nothing was booked for this day." : "Nothing booked yet.")}</p>
       ) : (
-        <ol className="-mx-3 divide-y divide-cal-line">
+        <ol className="-mx-3">
           {timed.map((b, i) => {
             const gap = compact ? null : gapBefore(timed, i);
             return (
-              <li key={b.id}>
+              <li key={b.id} className={`${ROW_ITEM} ${gap != null && gap >= GAP_SHOWN_FROM ? "before:hidden" : ""}`}>
                 {gap != null && gap >= GAP_SHOWN_FROM && (
-                  <p className="flex items-center gap-2 px-3 py-1 text-cal-xs tabular-nums text-cal-faint">
+                  <p className="flex items-center gap-2 px-3 py-1 text-cal-xs tabular-nums text-cal-muted">
                     <span className="h-px flex-1 bg-cal-line" />
                     {formatGap(gap)} between pickups
                     <span className="h-px flex-1 bg-cal-line" />
@@ -89,10 +89,10 @@ export default function DaySchedule({
             );
           })}
           {untimed.length > 0 && (
-            <li>
+            <li className={ROW_ITEM}>
               <p className="px-3 pb-1 pt-3 text-cal-label font-semibold uppercase text-cal-muted">No pickup time</p>
-              <ol className="divide-y divide-cal-line">
-                {untimed.map((b) => <li key={b.id}>{row(b)}</li>)}
+              <ol>
+                {untimed.map((b) => <li key={b.id} className={ROW_ITEM}>{row(b)}</li>)}
               </ol>
             </li>
           )}

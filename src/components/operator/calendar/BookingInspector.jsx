@@ -43,7 +43,7 @@ function ConflictPanel({ b, flag, other, onView }) {
   );
   return (
     <section aria-label="Possible clash" className="border-b border-cal-line py-3">
-      <h4 className="flex items-center gap-1.5 text-cal-label font-semibold uppercase text-cal-alert">
+      <h4 className="flex items-center gap-1.5 text-cal-sm font-semibold text-cal-alert">
         <ArrowLeftRight className="h-3.5 w-3.5" strokeWidth={2} aria-hidden /> Same driver, {formatGap(Math.abs(flag.gap))} apart
       </h4>
       <ul className="mt-1.5 divide-y divide-cal-line">
@@ -51,8 +51,8 @@ function ConflictPanel({ b, flag, other, onView }) {
         {line(second)}
       </ul>
       <p className="mt-1.5 text-cal-xs text-cal-muted">
-        Both are with {b.driver}. Journey times aren&apos;t recorded, so the calendar can&apos;t tell whether they overlap — only that the
-        pickups are under the 90-minute gap. Check the first job can finish in time, or choose another driver below.
+        Both are with {b.driver}. The pickups are under the usual 90-minute gap. Journey times aren&apos;t recorded, so check the
+        first job can finish in time, or choose another driver below.
       </p>
     </section>
   );
