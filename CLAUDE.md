@@ -101,3 +101,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Update — 2026-10-15: softer gold (colours only)
 
 User found the original orange-gold harsh and rejected a navy-and-white theme (branch `claude/navy-theme`, not merged; don't use it). Kept the original design and only softened it: `tailwind.config.ts` redefines Tailwind's `amber` scale as the logo's soft gold (500 `#C9A550` buttons, 600 `#8A6A1F` accent text, 5:1 on white; the old `#d97706` was 3.2:1), so every existing amber class (brand accents and pending/warning badges) picks it up with no component changes. The page background lost its gold radial tint (`Layout.jsx`, and the matching sticky day headings in `BookingsList.jsx`). No layout, size or class changes otherwise.
+
+## Update — 2026-10-16: free-cancellation deadline in booking confirmations
+
+The Booking Confirmed email (`bookingConfirmed` in `src/lib/email/content.js`, sent from `/api/booking-response` on Accept) has a Cancellation section with the booking's own deadlines in UK time (free until, 25%, 50%, full fare, or the charge that already applies), and the no-email confirmation text adds "Free cancellation until HH:MM on DD/MM/YYYY." Rules live in `src/lib/email/cancellation.js`, a copy of the website's `evexec/lib/cancellation.js` (terms version 3, https://www.evexec.co.uk/terms sections 4–5); keep the two in step. Quoted bookings (over £300, not on the price list, `onPriceList` in `format.js`) point to their quote. Tests: `src/lib/email/cancellation.test.js`.
