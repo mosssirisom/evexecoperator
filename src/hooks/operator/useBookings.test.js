@@ -20,6 +20,7 @@ const { mockChain, mockSupabase } = vi.hoisted(() => {
     like:   vi.fn(),
     is:     vi.fn(),
     not:    vi.fn(),
+    delete: vi.fn(),
   };
   Object.values(chain).forEach((fn) => fn.mockReturnValue(chain));
 
@@ -27,7 +28,11 @@ const { mockChain, mockSupabase } = vi.hoisted(() => {
     from:          vi.fn(() => chain),
     channel:       vi.fn(() => ({ on: vi.fn().mockReturnThis(), subscribe: vi.fn() })),
     removeChannel: vi.fn(),
-    auth:          { getSession: vi.fn(async () => ({ data: { session: { access_token: "t" } } })) },
+    auth:          {
+      getSession:         vi.fn(async () => ({ data: { session: { access_token: "t" } } })),
+      getUser:            vi.fn(async () => ({ data: { user: { email: "office@example.com" } }, error: null })),
+      signInWithPassword: vi.fn(async () => ({ error: null })),
+    },
   };
 
   return { mockChain: chain, mockSupabase: client };
@@ -450,5 +455,48 @@ describe("useBookings — respondToBooking", () => {
     const byRef = Object.fromEntries(result.current.bookings.map((b) => [b.id, b]));
     expect(byRef["EVX-RET1"]).toMatchObject({ operatorResponse: "rejected", status: "Cancelled" });
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("useBookings — deleteBooking", () => {
+  const row = { id: 1, ref: "EVX-DEL1", customer_name: "A", travel_date: tomorrow(), travel_time: "10:00", status: "Unassigned" };
+
+  async function loaded() {
+    mockChain.range.mockReset();
+    mockChain.range.mockResolvedValue({ data: [], error: null });
+    primeRows([row]);
+    const hook = renderHook(() => useBookings());
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    return hook;
+  }
+
+  it("re-checks the password, deletes the row and drops it from the list", async () => {
+    const { result } = await loaded();
+    mockChain.eq.mockReturnValueOnce(mockChain);
+    mockChain.select.mockResolvedValueOnce({ data: [{ ref: "EVX-DEL1" }], error: null });
+    await act(async () => { await result.current.deleteBooking("EVX-DEL1", "secret"); });
+    expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({ email: "office@example.com", password: "secret" });
+    expect(mockChain.delete).toHaveBeenCalled();
+    expect(result.current.bookings.find((b) => b.id === "EVX-DEL1")).toBeUndefined();
+  });
+
+  it("puts the job back and reports it when the database removed nothing", async () => {
+    const { result } = await loaded();
+    mockChain.eq.mockReturnValueOnce(mockChain);
+    mockChain.select.mockResolvedValueOnce({ data: [], error: null });
+    let caught;
+    await act(async () => { await result.current.deleteBooking("EVX-DEL1", "secret").catch((e) => { caught = e; }); });
+    expect(caught?.message).toMatch(/could not be deleted/);
+    expect(result.current.bookings.find((b) => b.id === "EVX-DEL1")).toBeDefined();
+  });
+
+  it("refuses a wrong password without touching the booking", async () => {
+    const { result } = await loaded();
+    mockSupabase.auth.signInWithPassword.mockResolvedValueOnce({ error: { message: "Invalid login credentials" } });
+    let caught;
+    await act(async () => { await result.current.deleteBooking("EVX-DEL1", "wrong").catch((e) => { caught = e; }); });
+    expect(caught?.message).toBe("Password verification failed.");
+    expect(mockChain.delete).not.toHaveBeenCalled();
+    expect(result.current.bookings.find((b) => b.id === "EVX-DEL1")).toBeDefined();
   });
 });

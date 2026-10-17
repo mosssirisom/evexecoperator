@@ -621,9 +621,18 @@ export default function BookingDetailDrawer({
     setEditMode(false);
   }, [booking?.id, booking?.notes]);
 
+  // The delete dialog is drawn outside the drawer, so while it is open a tap
+  // in it must not count as an outside click (that closed the drawer and the
+  // dialog with it), and Escape closes only the dialog.
+  const deleteOpenRef = useRef(false);
+  deleteOpenRef.current = deleteOpen;
+  const deleteBusyRef = useRef(false);
+  deleteBusyRef.current = deleteBusy;
+
   // Close on outside click (pointerdown fires on touch too)
   useEffect(() => {
     const h = (e) => {
+      if (deleteOpenRef.current) return;
       if (drawerRef.current && !drawerRef.current.contains(e.target)) onClose?.();
     };
     document.addEventListener("pointerdown", h);
@@ -632,7 +641,18 @@ export default function BookingDetailDrawer({
 
   // Close on Escape
   useEffect(() => {
-    const h = (e) => { if (e.key === "Escape") onClose?.(); };
+    const h = (e) => {
+      if (e.key !== "Escape") return;
+      if (deleteOpenRef.current) {
+        if (!deleteBusyRef.current) {
+          setDeleteOpen(false);
+          setDeletePassword("");
+          setDeleteError(null);
+        }
+        return;
+      }
+      onClose?.();
+    };
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
   }, [onClose]);
@@ -1091,7 +1111,7 @@ export default function BookingDetailDrawer({
       </div>
 
       {deleteOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+        <div role="alertdialog" aria-modal="true" className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-3xl border border-red-400/20 bg-white p-5 shadow-2xl">
             <div className="flex items-start gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-red-600"><ShieldCheck className="h-5 w-5" /></div>

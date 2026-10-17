@@ -656,8 +656,12 @@ export function useBookings({ scope = "operational" } = {}) {
     if (!isConfigured) return true;
 
     try {
-      const { error: err } = await supabase.from("bookings").delete().eq("ref", id);
+      const { data: removed, error: err } = await supabase.from("bookings").delete().eq("ref", id).select("ref");
       if (err) throw new Error(err.message);
+      // RLS hides rows this account may not delete: no error, nothing removed.
+      if (Array.isArray(removed) && removed.length === 0) {
+        throw new Error("This booking could not be deleted. Refresh and try again.");
+      }
       return true;
     } catch (err) {
       setBookings(snapshot);

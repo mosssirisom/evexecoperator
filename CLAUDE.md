@@ -125,3 +125,7 @@ Booking creation paths (checked across all three repos and the database; no DB f
 
 User decision: the whole app uses Manrope, like the website. Self-hosted (`public/fonts/manrope-latin*.woff2`, same files as `evexec`, SIL OFL in `OFL-Manrope.txt`), `@font-face` at the top of the global CSS, body font Manrope, and Tailwind `sans`, `serif` and `mono` all map to Manrope, so booking references and other monospace text match. Weights 200–800 (CSS 900 renders as 800); no italic face (browser slants it). Emails keep their email-safe fonts. Checked in a browser: every visible text element renders in Manrope and the font file loads.
 - Operator app: the Google Fonts Inter import in `src/app/globals.css` was removed (no third-party font request any more).
+
+## Update — 2026-10-17: deleting a job no longer closes the drawer
+
+The delete password box is drawn outside the booking drawer, so the drawer's "tap outside closes" handler treated any tap in it (the password field, the buttons) as an outside tap: the drawer closed and the box vanished with it. While the box is open, outside taps are now ignored and Escape closes only the box (`BookingDetailDrawer.jsx`). `deleteBooking` (`useBookings.js`) now asks the database which rows it removed and reports an error (job put back) if none were, instead of the job disappearing and coming back on the next refresh. Tests: `BookingDetailDrawer.test.jsx`, `useBookings.test.js` (deleteBooking).
