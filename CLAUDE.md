@@ -12,14 +12,6 @@ This applies to all three repos in this project (`evexec`, `evexecoperator`, `ev
 
 <!-- BEGIN:nextjs-agent-rules -->
 
-# Date and time format (hard rule, user decision)
-
-**Every date anywhere in EV Exec is DD/MM/YYYY. Every time is 24-hour HH:MM, UK time.** This applies to all three repos (`evexec`, `evexecoperator`, `evexecdriverapp`) and the shared Supabase project: screens, emails, texts (including two-tap `sms:` messages), push notifications, PDFs/invoices, subjects, toasts and database templates. Never show `YYYY-MM-DD`, US order, or a written-out month.
-
-- Plain `YYYY-MM-DD` values are rearranged directly (no `Date` parsing, so no timezone can shift the day). Use the shared helpers: `evexec/lib/format.js` `fmtDate`, `evexecoperator/src/lib/dates.ts` (`fmtDate`, `fmtDateTime`), `evexecdriverapp/lib/format.ts` (`formatDate`, `formatStamp*`). In SQL use `to_char(..., 'DD/MM/YYYY')`.
-- Timestamps are shown in `Europe/London` time.
-- Only exception: native `<input type="date">` / `<input type="time">` pickers, which follow the phone's own settings.
-
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
@@ -128,3 +120,8 @@ Booking creation paths (checked across all three repos and the database; no DB f
 - **Create Return Journey** (booking drawer) is hidden on a booking that already includes its return and on a return leg (it pre-filled a second paid return).
 - **Known difference, left as is**: the emailed Accept link sets the outbound to Dispatched (no driver); the Operator app Accept keeps it Unassigned. Both count as confirmed everywhere.
 - Tests: website `tests/unit/operator-accept.test.cjs`; Operator app `useBookings.test.js` (respondToBooking).
+
+## Update — 2026-10-17: one font, Manrope
+
+User decision: the whole app uses Manrope, like the website. Self-hosted (`public/fonts/manrope-latin*.woff2`, same files as `evexec`, SIL OFL in `OFL-Manrope.txt`), `@font-face` at the top of the global CSS, body font Manrope, and Tailwind `sans`, `serif` and `mono` all map to Manrope, so booking references and other monospace text match. Weights 200–800 (CSS 900 renders as 800); no italic face (browser slants it). Emails keep their email-safe fonts. Checked in a browser: every visible text element renders in Manrope and the font file loads.
+- Operator app: the Google Fonts Inter import in `src/app/globals.css` was removed (no third-party font request any more).

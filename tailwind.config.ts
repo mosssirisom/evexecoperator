@@ -50,7 +50,11 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        // One font everywhere (Manrope, src/app/globals.css), including the
+        // serif and monospace utilities.
+        sans: ["Manrope", "system-ui", "sans-serif"],
+        serif: ["Manrope", "system-ui", "sans-serif"],
+        mono: ["Manrope", "system-ui", "sans-serif"],
       },
       boxShadow: {
         "gold-sm": "0 0 12px rgba(201,165,80,0.15)",
