@@ -133,7 +133,9 @@ export function useBookings() {
         // source:'operator' lets the DB enqueue the customer confirmation + 24h
         // reminder texts for manually-entered bookings. Website bookings keep
         // the default 'website' (notified by the site) so there are no duplicates.
-        .insert({ ...data, ref, source: "operator" });
+        // Made by the operator, so accepted from the start (only website
+        // requests wait for Accept/Decline).
+        .insert({ ...data, ref, source: "operator", operator_response: "accepted", operator_responded_at: new Date().toISOString() });
       if (err) throw new Error(err.message);
       return ref;
     },

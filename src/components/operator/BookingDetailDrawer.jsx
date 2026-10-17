@@ -1047,7 +1047,8 @@ export default function BookingDetailDrawer({
               </button>
             )}
             {/* Return journey */}
-            {booking.airport && booking.destination && (
+            {/* Not for a booking that already includes its return, or a return leg itself. */}
+            {booking.airport && booking.destination && !booking.returnJourney && !isReturnLeg(booking) && (
               <button
                 onClick={() => onCreateReturn?.(booking)}
                 className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-amber-400/20 bg-amber-400/5 px-4 py-2.5 text-sm font-medium text-amber-600 transition hover:bg-amber-400/10"

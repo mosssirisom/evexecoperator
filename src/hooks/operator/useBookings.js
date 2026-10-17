@@ -100,6 +100,12 @@ const SELECT = "*, drivers!driver_id(name)";
 // The note that marks an automatically created return leg. Its opening words
 // are what the website, the email builders and the invoice trigger look for
 // (/^Return leg created automatically/), so keep them exactly.
+/** Whether `b` (a shaped booking) is the automatically created return leg of booking `outboundRef`. */
+export function isReturnLegOf(b, outboundRef) {
+  const notes = String(b?.notes || "");
+  return /^Return leg created automatically/i.test(notes) && notes.includes(`Outbound ref: ${outboundRef}`);
+}
+
 export function returnLegNote(outboundRef, totalPrice) {
   return [
     "Return leg created automatically from return booking.",
@@ -272,10 +278,14 @@ export function useBookings({ scope = "operational" } = {}) {
     const snapshot = bookingsRef.current;
     const rejecting = decision === "rejected";
 
+    // A website return booking is one request: its £0 return leg (notes
+    // "Return leg created automatically … Outbound ref: <ref>") takes the same
+    // decision, so it never waits for a second reply or sends a second email.
+    const isLegOf = (b) => isReturnLegOf(b, id) && !b.operatorResponse;
     setBookings((prev) =>
       prev.map((b) =>
-        b.id === id
-          ? { ...b, operatorResponse: decision, ...(rejecting ? { status: "Cancelled" } : {}) }
+        b.id === id || isLegOf(b)
+          ? { ...b, operatorResponse: decision, ...(rejecting && !["Cancelled", "Completed"].includes(b.status) ? { status: "Cancelled" } : {}) }
           : b
       )
     );
@@ -293,6 +303,14 @@ export function useBookings({ scope = "operational" } = {}) {
         setBookings(snapshot);
         throw new Error(err.message);
       }
+      const legPatch = { operator_response: decision, operator_responded_at: patch.operator_responded_at };
+      const legs = supabase
+        .from("bookings")
+        .update(rejecting ? { ...legPatch, status: "Cancelled" } : legPatch)
+        .like("notes", `Return leg created automatically%Outbound ref: ${id}%`)
+        .is("operator_response", null);
+      const { error: legErr } = rejecting ? await legs.not("status", "in", "(Cancelled,Completed)") : await legs;
+      if (legErr) console.error("Return leg not updated:", legErr.message);
     }
 
     // Notify the customer. Failures here don't roll back the decision.

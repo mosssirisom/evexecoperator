@@ -17,6 +17,9 @@ const { mockChain, mockSupabase } = vi.hoisted(() => {
     single: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
+    like:   vi.fn(),
+    is:     vi.fn(),
+    not:    vi.fn(),
   };
   Object.values(chain).forEach((fn) => fn.mockReturnValue(chain));
 
@@ -24,6 +27,7 @@ const { mockChain, mockSupabase } = vi.hoisted(() => {
     from:          vi.fn(() => chain),
     channel:       vi.fn(() => ({ on: vi.fn().mockReturnThis(), subscribe: vi.fn() })),
     removeChannel: vi.fn(),
+    auth:          { getSession: vi.fn(async () => ({ data: { session: { access_token: "t" } } })) },
   };
 
   return { mockChain: chain, mockSupabase: client };
@@ -39,7 +43,7 @@ vi.mock("./useRealtimeBookings", () => ({
   useRealtimeDrivers:  vi.fn(),
 }));
 
-import { useBookings, shapedBooking, ukDateDaysAgo, OPERATIONAL_DAYS_BACK } from "./useBookings";
+import { useBookings, shapedBooking, ukDateDaysAgo, OPERATIONAL_DAYS_BACK, isReturnLegOf } from "./useBookings";
 
 // ─── Shared setup ─────────────────────────────────────────────────────────────
 
@@ -396,5 +400,55 @@ describe("useBookings — loading window", () => {
     renderHook(() => useBookings({ scope: "all" }));
     await act(async () => {});
     expect(mockChain.or).not.toHaveBeenCalled();
+  });
+});
+
+// ─── respondToBooking (website requests) ─────────────────────────────────────
+
+describe("useBookings — respondToBooking", () => {
+  const row = (o) => ({ id: o.ref + "-id", ref: o.ref, status: "Unassigned", source: "website", operator_response: null, customer_name: "Web Customer", customer_email: "", customer_phone: "", travel_date: tomorrow(), travel_time: "09:00", quoted_price: 160, ...o });
+  const outbound = row({ ref: "EVX-OUT1", return_journey: true });
+  const leg = row({ ref: "EVX-RET1", quoted_price: 0, notes: "Return leg created automatically from return booking. Original return fare: £160. Outbound ref: EVX-OUT1" });
+  const other = row({ ref: "EVX-OTHER", notes: "Return leg created automatically from return booking. Outbound ref: EVX-ELSE" });
+
+  async function loaded() {
+    // Earlier tests can leave queued one-off responses behind; start clean.
+    mockChain.range.mockReset();
+    mockChain.range.mockResolvedValue({ data: [], error: null });
+    primeRows([outbound, leg, other]);
+    const hook = renderHook(() => useBookings());
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ ok: true, channel: "email" }))));
+    return hook;
+  }
+
+  it("matches only the outbound's own return leg", () => {
+    expect(isReturnLegOf(shapedBooking(leg), "EVX-OUT1")).toBe(true);
+    expect(isReturnLegOf(shapedBooking(other), "EVX-OUT1")).toBe(false);
+    expect(isReturnLegOf(shapedBooking(outbound), "EVX-OUT1")).toBe(false);
+  });
+
+  it("accepting a return booking accepts its return leg too, with one customer notice", async () => {
+    const { result } = await loaded();
+    await act(async () => { await result.current.respondToBooking("EVX-OUT1", "accepted"); });
+    expect(mockChain.update).toHaveBeenCalledTimes(2);
+    expect(mockChain.update).toHaveBeenNthCalledWith(2, expect.objectContaining({ operator_response: "accepted" }));
+    expect(mockChain.update.mock.calls[1][0]).not.toHaveProperty("status");
+    expect(mockChain.like).toHaveBeenCalledWith("notes", "Return leg created automatically%Outbound ref: EVX-OUT1%");
+    expect(mockChain.is).toHaveBeenCalledWith("operator_response", null);
+    const byRef = Object.fromEntries(result.current.bookings.map((b) => [b.id, b]));
+    expect(byRef["EVX-RET1"].operatorResponse).toBe("accepted");
+    expect(byRef["EVX-OTHER"].operatorResponse).toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(1); // one confirmation, for the outbound only
+  });
+
+  it("declining a return booking cancels its return leg too", async () => {
+    const { result } = await loaded();
+    await act(async () => { await result.current.respondToBooking("EVX-OUT1", "rejected"); });
+    expect(mockChain.update).toHaveBeenNthCalledWith(2, expect.objectContaining({ operator_response: "rejected", status: "Cancelled" }));
+    expect(mockChain.not).toHaveBeenCalledWith("status", "in", "(Cancelled,Completed)");
+    const byRef = Object.fromEntries(result.current.bookings.map((b) => [b.id, b]));
+    expect(byRef["EVX-RET1"]).toMatchObject({ operatorResponse: "rejected", status: "Cancelled" });
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
