@@ -129,3 +129,9 @@ User decision: the whole app uses Manrope, like the website. Self-hosted (`publi
 ## Update — 2026-10-17: deleting a job no longer closes the drawer
 
 The delete password box is drawn outside the booking drawer, so the drawer's "tap outside closes" handler treated any tap in it (the password field, the buttons) as an outside tap: the drawer closed and the box vanished with it. While the box is open, outside taps are now ignored and Escape closes only the box (`BookingDetailDrawer.jsx`). `deleteBooking` (`useBookings.js`) now asks the database which rows it removed and reports an error (job put back) if none were, instead of the job disappearing and coming back on the next refresh. Tests: `BookingDetailDrawer.test.jsx`, `useBookings.test.js` (deleteBooking).
+
+## Update — 2026-10-17: app icon (dispatch headset)
+
+User chose option A from five (headset, route, job board, signal tower, schedule): a gold dispatch headset (`#D7A23F`) on navy (`#0B132B`), same style as the Driver App's steering wheel. Before, `/favicon.ico` did not exist (404) and the home-screen icons were the EV Exec car logo with text.
+- Files in `public/`: `favicon.ico` (16/32/48), `favicon.svg` (tab; the 64×64 source of the headset), `apple-icon.png` (180), `icon-192.png`, `icon-512.png`, `icon-512-maskable.png` (headset inside the safe zone), `badge-96.png` (white on transparent, Android status bar). Regenerate the PNGs from `favicon.svg` if it changes.
+- Wired in `src/app/layout.tsx` `metadata.icons`, `src/app/manifest.ts` (unchanged paths) and `public/sw.js` (push icon `icon-192.png`, badge `badge-96.png`). The in-app logo (`ev-exec-badge.png`, `brandLogo.js`) is unchanged.
