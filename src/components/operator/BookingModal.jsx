@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { X, Plane, MapPin, Clock, User, Car, PoundSterling, ChevronDown, ArrowLeftRight, Search } from "lucide-react";
 import { useDrivers } from "@/hooks/operator/useDrivers";
-import { fixedLegPrice } from "@/lib/prices";
+import { fixedTripPrice } from "@/lib/prices";
 import { useOperator } from "./OperatorContext";
 import { looksLikeAirport } from "@/lib/bookingUtils";
 
@@ -134,10 +134,10 @@ const DESTINATIONS = [
 ];
 
 // The operator's fixed price (Settings → Prices) for whichever end of the trip
-// is a listed place, per booking leg (a return is two legs, each carrying half
-// the return fare), so a phone booking is quoted the same as an online one.
+// is a listed place: the one-way fare, or the whole return fare (paid once,
+// on the outbound booking), so a phone booking is quoted the same as an online one.
 function getSuggestedPrice(pickup, dropoff, isReturn, airports) {
-  return fixedLegPrice(pickup, isReturn, airports) ?? fixedLegPrice(dropoff, isReturn, airports);
+  return fixedTripPrice(pickup, isReturn, airports) ?? fixedTripPrice(dropoff, isReturn, airports);
 }
 
 function Field({ label, icon: Icon, error, children }) {
@@ -520,7 +520,7 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
                   </Field>
                   {form.pickup && form.dropoff && (
                     <p className="text-xs text-slate-500">
-                      Return runs {form.dropoff} → {form.pickup}, booked as its own job on the board.
+                      Return runs {form.dropoff} → {form.pickup}, booked as its own job on the board. The customer pays once, for both ways.
                     </p>
                   )}
                 </div>
@@ -532,7 +532,7 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
               <Field label="Assign Driver" icon={Car}>
                 <Select value={form.driver} onChange={set("driver")} options={vehicles} placeholder="Leave unassigned" />
               </Field>
-              <Field label={form.returnJourney ? "Fixed Price (each way)" : "Fixed Price"} icon={PoundSterling}>
+              <Field label={form.returnJourney ? "Fixed Price (return, both ways)" : "Fixed Price"} icon={PoundSterling}>
                 <div className="relative">
                   <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-500">£</span>
                   <input

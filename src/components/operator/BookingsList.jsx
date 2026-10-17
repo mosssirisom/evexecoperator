@@ -23,8 +23,11 @@ import { useOperatorToast } from "@/components/operator/Toast";
 import { useBookings, ukDateDaysAgo, OPERATIONAL_DAYS_BACK } from "@/hooks/operator/useBookings";
 import { useDrivers } from "@/hooks/operator/useDrivers";
 import { bookingStatusColor } from "@/lib/operator/statusColor";
-import { LIST_VIEWS } from "@/lib/operator/bookingBuckets";
+import { LIST_VIEWS, isReturnLeg } from "@/lib/operator/bookingBuckets";
 import { fmtDate, fmtDayDate, ukDateOf } from "@/lib/dates";
+
+// A return leg has no price of its own: the whole fare is on its outbound booking.
+const priceLabel = (b) => (isReturnLeg(b) ? "With outbound" : b.price === "TBC" ? "Price TBC" : b.price);
 
 // Builds a tel: href for a stored customer phone, or null if it doesn't look
 // like a usable number (same validation the detail drawer uses).
@@ -386,7 +389,7 @@ function BookingCard({ booking, onSelect, drivers = [], onAssign, onRespond }) {
               {booking.customer}
             </p>
             <p className={`flex-shrink-0 text-[15px] font-semibold ${booking.price === "TBC" ? "text-xs font-medium text-slate-400" : "text-[#0F1B33]"}`}>
-              {booking.price === "TBC" ? "Price TBC" : booking.price}
+              {priceLabel(booking)}
             </p>
           </div>
 
@@ -525,7 +528,7 @@ function DesktopRow({ booking, selected, onSelect, drivers, onAssign, onStatus, 
         <InlineDriverCell bookingId={booking.id} currentDriverId={booking.driverId} drivers={drivers} onAssign={onAssign} />
       </div>
       <p className={`text-right font-semibold ${booking.price === "TBC" ? "text-xs font-medium text-slate-400" : "text-[#0F1B33]"}`}>
-        {booking.price === "TBC" ? "Price TBC" : booking.price}
+        {priceLabel(booking)}
       </p>
       <div className="flex items-center justify-end gap-2" onClick={stop} onKeyDown={stop}>
         {pendingRequest ? (

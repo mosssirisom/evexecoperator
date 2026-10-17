@@ -97,6 +97,17 @@ export function ukDateDaysAgo(daysBack, now = new Date()) {
 
 const SELECT = "*, drivers!driver_id(name)";
 
+// The note that marks an automatically created return leg. Its opening words
+// are what the website, the email builders and the invoice trigger look for
+// (/^Return leg created automatically/), so keep them exactly.
+export function returnLegNote(outboundRef, totalPrice) {
+  return [
+    "Return leg created automatically from return booking.",
+    totalPrice ? `Original return fare: £${totalPrice}.` : null,
+    `Outbound ref: ${outboundRef}`,
+  ].filter(Boolean).join(" ");
+}
+
 export function useBookings({ scope = "operational" } = {}) {
   const all = scope === "all";
   const pageSize = all ? ALL_PAGE_SIZE : PAGE_SIZE;
@@ -359,18 +370,36 @@ export function useBookings({ scope = "operational" } = {}) {
       // Shared customer/meta for both legs. `source: "operator"` tags the booking
       // so the DB trigger sends the customer the confirmation, 24h reminder and
       // status-update SMS (website bookings get theirs from the public site).
+      // The operator made the booking, so it is accepted from the start: only
+      // website requests wait for Accept/Decline. Without this the customer's
+      // booking page showed "Awaiting Confirmation" and refused payment.
       const shared = {
         customer_name:  sanitizeText(form.customer, 120),
         customer_phone: sanitizeText(form.phone, 30),
         customer_email: form.email?.trim() || null,
-        quoted_price:   form.price ? Number(form.price) : null,
         payment_status: "Unpaid",
         source:         "operator",
+        operator_response:     "accepted",
+        operator_responded_at: new Date().toISOString(),
       };
+      const price = form.price ? Number(form.price) : null;
+      const hasReturn = Boolean(form.returnJourney && form.returnDate && form.returnTime);
 
-      // Outbound leg.
+      // Outbound leg. A return booking is stored the way the website stores
+      // one: the outbound carries the whole fare (both ways) and the return
+      // details, so the customer pays once, for the full amount, on one page.
       const ref = await insertLeg({
         ...shared,
+        quoted_price:       price,
+        return_journey:     hasReturn,
+        ...(hasReturn ? {
+          return_pickup:      dropoff,
+          return_destination: pickup,
+          return_airport:     airportSide,
+          return_flight:      form.returnFlight?.trim() || null,
+          return_date:        form.returnDate,
+          return_time:        form.returnTime,
+        } : {}),
         flight_number:      form.flight?.trim() || null,
         direction,
         airport:            airportSide,
@@ -390,8 +419,11 @@ export function useBookings({ scope = "operational" } = {}) {
 
       // Optional return leg — the reverse trip (pickup/drop-off swapped) on the
       // return date/time, created as its own dispatchable job (left unassigned).
+      // It has no price of its own (£0) and the website's return-leg note, so
+      // emails, the payment page, invoices and the DB trigger treat it as paid
+      // with the outbound booking instead of a second payment.
       let returnRef = null;
-      if (form.returnJourney && form.returnDate && form.returnTime) {
+      if (hasReturn) {
         const returnDirection =
           direction === "Airport → Destination"
             ? "Destination → Airport"
@@ -411,7 +443,9 @@ export function useBookings({ scope = "operational" } = {}) {
           driver_id:          null,
           assigned_driver_id: null,
           status:             "Unassigned",
-          notes:              `Return leg of ${ref}`,
+          quoted_price:       0,
+          return_journey:     false,
+          notes:              returnLegNote(ref, price),
         });
         markBookingCreated(returnRef);
       }

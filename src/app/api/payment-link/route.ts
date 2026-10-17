@@ -36,12 +36,72 @@ const FROM = process.env.INVOICE_FROM ?? "EV Exec <book@evexec.co.uk>";
 const REPLY_TO = process.env.INVOICE_REPLY_TO ?? "book@evexec.co.uk";
 
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+const isReturnLeg = (notes: unknown) => /^Return leg created automatically/i.test(String(notes ?? ""));
+
+type CheckoutSession = {
+  id?: string;
+  url?: string | null;
+  status?: string;
+  payment_status?: string;
+  amount_total?: number | null;
+  client_reference_id?: string | null;
+  metadata?: Record<string, string> | null;
+  error?: { message?: string };
+};
+
+async function stripeSession(id: string, action = ""): Promise<CheckoutSession | null> {
+  try {
+    const res = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(id)}${action}`, {
+      method: action ? "POST" : "GET",
+      headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
+    });
+    return res.ok ? ((await res.json()) as CheckoutSession) : null;
+  } catch {
+    return null;
+  }
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "content-type": "application/json" },
   });
+}
+
+// A new Stripe Checkout Session for the booking. Paid sessions are recorded by
+// the website's Stripe webhook via metadata[booking_ref].
+async function createCheckout(
+  booking: { ref: string },
+  unitAmount: number,
+  email: string,
+): Promise<CheckoutSession> {
+  const form = new URLSearchParams();
+  form.set("mode", "payment");
+  form.set("line_items[0][quantity]", "1");
+  form.set("line_items[0][price_data][currency]", "gbp");
+  form.set("line_items[0][price_data][unit_amount]", String(unitAmount));
+  form.set(
+    "line_items[0][price_data][product_data][name]",
+    `EV Exec airport transfer — Ref ${booking.ref}`
+  );
+  form.set("client_reference_id", booking.ref);
+  form.set("metadata[booking_ref]", booking.ref);
+  // Pre-fill the Stripe checkout email; if "Successful payment" receipts are
+  // enabled in the Stripe Dashboard, Stripe also emails its own receipt.
+  if (isEmail(email)) form.set("customer_email", email);
+  form.set("success_url", `${SITE_URL}/payment-complete?ref=${encodeURIComponent(booking.ref)}`);
+  form.set("cancel_url", `${SITE_URL}/payment-cancelled?ref=${encodeURIComponent(booking.ref)}`);
+
+  const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: form.toString(),
+  });
+  const created = (await stripeRes.json().catch(() => ({}))) as CheckoutSession;
+  return stripeRes.ok ? created : { error: created.error ?? {} };
 }
 
 export async function POST(req: Request) {
@@ -106,51 +166,50 @@ export async function POST(req: Request) {
     return json({ error: "This booking has no customer email or phone number." }, 422);
   }
 
+  if (String(booking.payment_status ?? "").toLowerCase() === "paid") {
+    return json({ error: "This booking is already paid." }, 409);
+  }
+  if (isReturnLeg(booking.notes)) {
+    return json({ error: "This is the return leg of a return booking. It is paid with its outbound booking." }, 422);
+  }
+
   const amount = Number(booking.price ?? booking.quoted_price ?? 0);
   if (!Number.isFinite(amount) || amount <= 0) {
     return json({ error: "This booking has no price to charge." }, 422);
   }
   const unitAmount = Math.round(amount * 100); // pence
 
-  // ── Create a Stripe Checkout Session ───────────────────────────────────────
-  const form = new URLSearchParams();
-  form.set("mode", "payment");
-  form.set("line_items[0][quantity]", "1");
-  form.set("line_items[0][price_data][currency]", "gbp");
-  form.set("line_items[0][price_data][unit_amount]", String(unitAmount));
-  form.set(
-    "line_items[0][price_data][product_data][name]",
-    `EV Exec airport transfer — Ref ${booking.ref}`
-  );
-  form.set("client_reference_id", booking.ref);
-  form.set("metadata[booking_ref]", booking.ref);
-  // Pre-fill the Stripe checkout email; if "Successful payment" receipts are
-  // enabled in the Stripe Dashboard, Stripe also emails its own receipt.
-  if (isEmail(email)) form.set("customer_email", email);
-  form.set("success_url", `${SITE_URL}/payment-complete?ref=${encodeURIComponent(booking.ref)}`);
-  form.set("cancel_url", `${SITE_URL}/payment-cancelled?ref=${encodeURIComponent(booking.ref)}`);
-
-  const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: form.toString(),
-  });
-
-  const session = (await stripeRes.json()) as { id?: string; url?: string; error?: { message?: string } };
-  if (!stripeRes.ok || !session?.url) {
-    return json(
-      { error: session?.error?.message ?? "Stripe could not create the payment link." },
-      502
-    );
+  // ── The booking's checkout so far ──────────────────────────────────────────
+  // One payable checkout per booking. Sending the link again reuses the open
+  // one for the same amount; any other open checkout (an old amount, or one the
+  // customer started on the booking page) is closed first, so the customer can
+  // never pay the same booking twice.
+  let session: CheckoutSession | null = null;
+  if (booking.stripe_session_id) {
+    const prev = await stripeSession(booking.stripe_session_id);
+    if (prev?.payment_status === "paid") {
+      return json({ error: "This booking has already been paid. The payment is being recorded." }, 409);
+    }
+    const ours = prev?.metadata?.booking_ref === booking.ref || prev?.metadata?.bookingId === booking.id;
+    if (prev?.status === "open" && ours && prev.amount_total === unitAmount && prev.url) {
+      session = prev;
+    } else if (prev?.status === "open" && prev.id) {
+      await stripeSession(prev.id, "/expire");
+    }
   }
 
-  await admin
-    .from("bookings")
-    .update({ stripe_session_id: session.id, payment_method: "Payment link" })
-    .eq("id", booking.id);
+  if (!session) {
+    const created = await createCheckout(booking, unitAmount, email);
+    if (!created.url) {
+      return json({ error: created.error?.message ?? "Stripe could not create the payment link." }, 502);
+    }
+    session = created;
+    await admin
+      .from("bookings")
+      .update({ stripe_session_id: created.id, payment_method: "Payment link" })
+      .eq("id", booking.id);
+  }
+
 
   // ── Email (Resend) ──────────────────────────────────────────────────────────
   let emailed = false;

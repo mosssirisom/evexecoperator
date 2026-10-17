@@ -12,6 +12,7 @@ import ETACountdown from "./ETACountdown";
 import FlightVerificationCard from "@/components/FlightVerificationCard";
 import { fmtTime, fmtDateTime, fmtDayDate } from "@/lib/dates";
 import { looksLikeAirport } from "@/lib/bookingUtils";
+import { isReturnLeg } from "@/lib/operator/bookingBuckets";
 
 function Row({ icon: Icon, label, value, muted }) {
   if (!value) return null;
@@ -860,7 +861,7 @@ export default function BookingDetailDrawer({
                     ? `${fmtDayDate(booking.pickupTime)} ${fmtTime(booking.pickupTime)}`
                     : booking.time !== "—" ? booking.time : null
                 } />
-                <Row icon={PoundSterling} label="Price" value={booking.price} />
+                <Row icon={PoundSterling} label="Price" value={isReturnLeg(booking) ? "Paid with the outbound booking" : booking.price} />
                 <div className="flex items-start gap-3">
                   <CreditCard className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-600" />
                   <div>
@@ -888,7 +889,7 @@ export default function BookingDetailDrawer({
                         />
                       </div>
                     )}
-                    {onSendPaymentLink && (booking.paymentStatus ?? "Unpaid") !== "Paid" && (
+                    {onSendPaymentLink && (booking.paymentStatus ?? "Unpaid") !== "Paid" && !isReturnLeg(booking) && (
                       <button
                         type="button"
                         onClick={sendPaymentLink}

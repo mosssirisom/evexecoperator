@@ -197,6 +197,51 @@ describe("useBookings — createBooking", () => {
     expect(out.returnRef).not.toBe(out.ref);
   });
 
+  it("marks an operator-made booking as accepted, so it never waits for approval", async () => {
+    const { result } = renderHook(() => useBookings());
+    await act(async () => {
+      await result.current.createBooking(validForm({ returnJourney: true, returnDate: tomorrow(), returnTime: "18:30" }));
+    });
+    for (const [row] of mockChain.insert.mock.calls) {
+      expect(row).toMatchObject({ source: "operator", operator_response: "accepted" });
+      expect(row.operator_responded_at).toEqual(expect.any(String));
+    }
+  });
+
+  it("charges a return once: the whole fare on the outbound, £0 on the return leg", async () => {
+    const { result } = renderHook(() => useBookings());
+    let out;
+    await act(async () => {
+      out = await result.current.createBooking(
+        validForm({ price: 160, returnJourney: true, returnDate: tomorrow(), returnTime: "18:30", returnFlight: "EK018" })
+      );
+    });
+    const [[outbound], [returnLeg]] = mockChain.insert.mock.calls;
+    // Outbound: £160 and the return details, as the website stores a return.
+    expect(outbound).toMatchObject({
+      quoted_price: 160, return_journey: true,
+      return_pickup: "Blackpool", return_destination: "Manchester Airport (MAN)",
+      return_airport: "Manchester Airport (MAN)", return_time: "18:30", return_flight: "EK018",
+    });
+    // Return leg: no price of its own, flagged with the website's return-leg note.
+    expect(returnLeg).toMatchObject({ quoted_price: 0, return_journey: false });
+    expect(returnLeg.notes).toMatch(/^Return leg created automatically/);
+    expect(returnLeg.notes).toContain(`Outbound ref: ${out.ref}`);
+    expect(returnLeg.notes).toContain("£160");
+    // Never two £80 bookings.
+    const total = mockChain.insert.mock.calls.reduce((sum, [row]) => sum + Number(row.quoted_price || 0), 0);
+    expect(total).toBe(160);
+  });
+
+  it("a single journey has no return details", async () => {
+    const { result } = renderHook(() => useBookings());
+    await act(async () => {
+      await result.current.createBooking(validForm({ price: 90 }));
+    });
+    expect(mockChain.insert).toHaveBeenCalledWith(expect.objectContaining({ quoted_price: 90, return_journey: false }));
+    expect(mockChain.insert.mock.calls[0][0]).not.toHaveProperty("return_date");
+  });
+
   it("throws ValidationError for missing customer name", async () => {
     const { result } = renderHook(() => useBookings());
 
