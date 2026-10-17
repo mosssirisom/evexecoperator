@@ -645,7 +645,9 @@ export default function BookingsList() {
   const drawer = useBookingDrawer(api, drivers);
   const setSelectedBooking = drawer.open;
   const handleAssignDriver = drawer.assign;
-  const handleRespond = drawer.respond;
+  // The drawer shows its own errors; list rows need a toast.
+  const handleRespond = (id, decision) =>
+    drawer.respond(id, decision).catch((err) => toast({ message: err?.message ?? "Couldn't save the decision", type: "error" }));
   const handleStatusUpdate = drawer.setStatus;
 
   const today = ukDateDaysAgo(0);

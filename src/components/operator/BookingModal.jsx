@@ -313,6 +313,10 @@ export default function BookingModal({ open, onClose, onSubmit, initialValues, c
     if (suggested !== null) {
       priceAutoRef.current = true;
       setForm((f) => ({ ...f, price: String(suggested) }));
+    } else if (priceAutoRef.current) {
+      // The route no longer matches a listed place: drop the old suggestion.
+      priceAutoRef.current = false;
+      setForm((f) => ({ ...f, price: "" }));
     }
   }, [form.pickup, form.dropoff, form.returnJourney, pricing]);
 

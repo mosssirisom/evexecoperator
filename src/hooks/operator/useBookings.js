@@ -61,7 +61,8 @@ export function shapedBooking(row) {
     contactMethod: row.contact_method ?? null,
     driver: row.drivers?.name ?? "Unassigned",
     driverId: row.driver_id ?? row.assigned_driver_id ?? null,
-    price: row.quoted_price ? `£${Number(row.quoted_price).toFixed(0)}` : "TBC",
+    // Pence kept (£87.50): screens, invoices and the edit form parse this back.
+    price: row.quoted_price ? `£${Number(row.quoted_price).toFixed(Number.isInteger(Number(row.quoted_price)) ? 0 : 2)}` : "TBC",
     status: row.status,
     source: row.source ?? null,
     operatorResponse: row.operator_response ?? null,
@@ -112,6 +113,18 @@ export function returnLegNote(outboundRef, totalPrice) {
     totalPrice ? `Original return fare: £${totalPrice}.` : null,
     `Outbound ref: ${outboundRef}`,
   ].filter(Boolean).join(" ");
+}
+
+const RETURN_LEG_MARKER = /^Return leg created automatically from return booking\.(?: Original return fare: £[\d.]+\.)?(?: Outbound ref: \S+)?/i;
+
+/** New notes for a booking, keeping a return leg's marker sentence at the start
+ *  so the leg stays recognised (and unpayable) everywhere. */
+export function keepReturnLegMarker(oldNotes, newNotes) {
+  const marker = String(oldNotes || "").match(RETURN_LEG_MARKER)?.[0];
+  const next = String(newNotes ?? "").trim();
+  if (!marker || next.startsWith(marker)) return next;
+  const rest = next.replace(RETURN_LEG_MARKER, "").trim();
+  return rest ? `${marker}\n${rest}` : marker;
 }
 
 export function useBookings({ scope = "operational" } = {}) {
@@ -448,23 +461,30 @@ export function useBookings({ scope = "operational" } = {}) {
             : direction === "Destination → Airport"
             ? "Airport → Destination"
             : "Point to Point";
-        returnRef = await insertLeg({
-          ...shared,
-          flight_number:      form.returnFlight?.trim() || null,
-          direction:          returnDirection,
-          airport:            airportSide,
-          pickup_location:    dropoff,
-          dropoff_address:    pickup,
-          travel_date:        form.returnDate,
-          travel_time:        form.returnTime,
-          pickup_time:        ukToIso(form.returnDate, form.returnTime),
-          driver_id:          null,
-          assigned_driver_id: null,
-          status:             "Unassigned",
-          quoted_price:       0,
-          return_journey:     false,
-          notes:              returnLegNote(ref, price),
-        });
+        try {
+          returnRef = await insertLeg({
+            ...shared,
+            flight_number:      form.returnFlight?.trim() || null,
+            direction:          returnDirection,
+            airport:            airportSide,
+            pickup_location:    dropoff,
+            dropoff_address:    pickup,
+            travel_date:        form.returnDate,
+            travel_time:        form.returnTime,
+            pickup_time:        ukToIso(form.returnDate, form.returnTime),
+            driver_id:          null,
+            assigned_driver_id: null,
+            status:             "Unassigned",
+            quoted_price:       0,
+            return_journey:     false,
+            notes:              returnLegNote(ref, price),
+          });
+        } catch (err) {
+          // Don't leave a whole-fare outbound with no return leg: a retry
+          // would create a second payable booking for the same trip.
+          await supabase.from("bookings").delete().eq("ref", ref);
+          throw err;
+        }
         markBookingCreated(returnRef);
       }
 
@@ -509,8 +529,9 @@ export function useBookings({ scope = "operational" } = {}) {
     }
   }, []);
 
-  const updateNotes = useCallback(async (id, notes) => {
+  const updateNotes = useCallback(async (id, rawNotes) => {
     const snapshot = bookingsRef.current;
+    const notes = keepReturnLegMarker(snapshot.find((b) => b.id === id)?.notes, rawNotes);
     setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, notes: notes ?? "" } : b)));
 
     if (!isConfigured) return;

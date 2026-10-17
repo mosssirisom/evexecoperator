@@ -2,10 +2,12 @@ import { createClient } from "@supabase/supabase-js";
 import { fmtDate } from "@/lib/dates";
 import { bookingConfirmed, bookingUnavailable } from "@/lib/email/content.js";
 import { freeCancellationLine } from "@/lib/email/cancellation.js";
+import { adminClient, getCaller } from "@/lib/server/staff";
 
 // Notifies a customer that the operator has ACCEPTED or REJECTED their website
-// booking. Email first (via Resend), SMS fallback (enqueued for the external
-// notification processor) if the email can't be sent or there's no address.
+// booking. Email first (via Resend). If the email can't be sent or there's no
+// address, the text is added to Today → "Texts to send" (operator_sms_tasks)
+// for the operator to send from their own phone (Twilio is dormant).
 //
 // Accepted: "Booking confirmed" with the full journey details and, at the
 // bottom, the Payment section: a Pay Now link to the booking's page on the
@@ -14,9 +16,8 @@ import { freeCancellationLine } from "@/lib/email/cancellation.js";
 // Rejected: EV Exec cannot accommodate the journey, with an apology. No
 // payment link.
 //
-// No service-role key needed: the caller's token is verified with the anon key,
-// the booking is read as that operator (RLS), and the SMS fallback is written
-// through the queue_customer_sms RPC.
+// The caller must be staff (checked with the service role); the booking is read
+// as that operator (RLS), so only their own business's bookings are found.
 //
 // Env (Vercel project settings):
 //   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY — already set
@@ -71,6 +72,9 @@ export async function POST(req: Request) {
   });
   const { data: userData, error: userErr } = await db.auth.getUser(token);
   if (userErr || !userData?.user) return json({ error: "Not authorised." }, 401);
+  const admin = adminClient();
+  if (!admin) return json({ error: "not configured" }, 503);
+  if (!(await getCaller(req, admin))) return json({ error: "Not authorised." }, 403);
 
   let body: { ref?: string; decision?: string };
   try { body = await req.json(); } catch { return json({ error: "Invalid request body." }, 400); }
@@ -122,16 +126,18 @@ export async function POST(req: Request) {
     }
   }
 
-  // ── SMS fallback ───────────────────────────────────────────────────────────
+  // ── Text fallback: two-tap, sent from the operator's own phone ─────────────
   let smsQueued = false;
   if (!emailed && phone) {
-    const { error: smsErr } = await db.rpc("queue_customer_sms", {
-      p_ref: ref, p_recipient: phone, p_body: smsText, p_type: `operator_${decision}`,
-    });
-    smsQueued = !smsErr;
+    const { error: taskErr } = await admin.from("operator_sms_tasks").upsert({
+      tenant_id: b.tenant_id, booking_id: b.id, kind: accepted ? "confirmation" : "rejection",
+      customer_name: str(b.customer_name) || null, customer_phone: phone, message: smsText, status: "pending",
+    }, { onConflict: "booking_id,kind", ignoreDuplicates: true });
+    smsQueued = !taskErr;
   }
+  const smsHref = smsQueued ? `sms:${phone.replace(/[^\d+]/g, "")}?&body=${encodeURIComponent(smsText)}` : null;
 
-  const channel = emailed ? "email" : smsQueued ? "sms" : null;
+  const channel = emailed ? "email" : smsQueued ? "text" : null;
   if (!channel) {
     return json({
       ok: false,
@@ -141,5 +147,5 @@ export async function POST(req: Request) {
         : "No email or phone on file for this customer.",
     }, 200);
   }
-  return json({ ok: true, channel, emailed, smsQueued });
+  return json({ ok: true, channel, emailed, smsQueued, smsHref });
 }

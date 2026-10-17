@@ -7,7 +7,7 @@ import {
   Calendar, CreditCard, Gem, Phone, Mail, Globe, Loader2, Search,
 } from "lucide-react";
 import { useInvoices, computeTotals } from "@/hooks/operator/useInvoices";
-import { shapedBooking } from "@/hooks/operator/useBookings";
+import { shapedBooking, ukDateDaysAgo } from "@/hooks/operator/useBookings";
 import { useOperatorToast } from "@/components/operator/Toast";
 import { EV_EXEC_LOGO } from "@/lib/operator/brandLogo";
 import { supabase } from "@/lib/supabase";
@@ -53,7 +53,8 @@ function companyFrom(tenant) {
 }
 
 const money = (n) => `£${(Number(n) || 0).toFixed(2)}`;
-const today = () => new Date().toISOString().slice(0, 10);
+// UK calendar date (the UTC date is yesterday's between 00:00 and 01:00 in summer).
+const today = () => ukDateDaysAgo(0);
 
 function statusChip(status) {
   switch (status) {

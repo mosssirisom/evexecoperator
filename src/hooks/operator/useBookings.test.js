@@ -48,7 +48,7 @@ vi.mock("./useRealtimeBookings", () => ({
   useRealtimeDrivers:  vi.fn(),
 }));
 
-import { useBookings, shapedBooking, ukDateDaysAgo, OPERATIONAL_DAYS_BACK, isReturnLegOf } from "./useBookings";
+import { useBookings, shapedBooking, ukDateDaysAgo, OPERATIONAL_DAYS_BACK, isReturnLegOf, keepReturnLegMarker } from "./useBookings";
 
 // ─── Shared setup ─────────────────────────────────────────────────────────────
 
@@ -498,5 +498,29 @@ describe("useBookings — deleteBooking", () => {
     expect(caught?.message).toBe("Password verification failed.");
     expect(mockChain.delete).not.toHaveBeenCalled();
     expect(result.current.bookings.find((b) => b.id === "EVX-DEL1")).toBeDefined();
+  });
+});
+
+describe("keepReturnLegMarker", () => {
+  const marker = "Return leg created automatically from return booking. Original return fare: £160. Outbound ref: EVX-OUT1";
+
+  it("keeps a return leg's marker when the operator replaces the notes", () => {
+    expect(keepReturnLegMarker(marker, "Meet at arrivals, 3 bags")).toBe(`${marker}\nMeet at arrivals, 3 bags`);
+  });
+  it("keeps the marker when the notes are cleared", () => {
+    expect(keepReturnLegMarker(marker, "")).toBe(marker);
+  });
+  it("leaves notes that already start with the marker alone", () => {
+    expect(keepReturnLegMarker(marker, `${marker}\nGate 4`)).toBe(`${marker}\nGate 4`);
+  });
+  it("doesn't touch ordinary bookings", () => {
+    expect(keepReturnLegMarker("Child seat", "  No child seat  ")).toBe("No child seat");
+  });
+});
+
+describe("shapedBooking — price", () => {
+  it("keeps pence so edits and invoices don't round the fare", () => {
+    expect(shapedBooking({ id: 1, ref: "A", quoted_price: 87.5 }).price).toBe("£87.50");
+    expect(shapedBooking({ id: 2, ref: "B", quoted_price: 90 }).price).toBe("£90");
   });
 });
