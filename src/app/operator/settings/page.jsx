@@ -949,7 +949,7 @@ function SecuritySettings({ toast }) {
   async function handleChange() {
     setError(null);
     if (!form.current || !form.next) return setError("Enter your current and new password.");
-    if (form.next.length < 8) return setError("Use at least 8 characters for the new password.");
+    if (form.next.length < 8 || !/[A-Za-z]/.test(form.next) || !/[0-9]/.test(form.next)) return setError("Use at least 8 characters for the new password, with a letter and a number.");
     if (form.next !== form.confirm) return setError("The new passwords don't match.");
     if (form.next === form.current) return setError("The new password must be different.");
     setBusy(true);
@@ -974,7 +974,7 @@ function SecuritySettings({ toast }) {
     <div className="space-y-5">
       <p className="text-xs uppercase tracking-[0.28em] text-amber-600">Change password</p>
       <TextInput label="Current Password" value={form.current} onChange={set("current")} type="password" autoComplete="current-password" />
-      <TextInput label="New Password" value={form.next} onChange={set("next")} type="password" autoComplete="new-password" placeholder="At least 8 characters" />
+      <TextInput label="New Password" value={form.next} onChange={set("next")} type="password" autoComplete="new-password" placeholder="At least 8 characters, a letter and a number" />
       <TextInput label="Confirm New Password" value={form.confirm} onChange={set("confirm")} type="password" autoComplete="new-password" />
       {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
       <SaveButton onClick={handleChange} busy={busy} label="Change Password" />

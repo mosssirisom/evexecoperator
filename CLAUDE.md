@@ -139,3 +139,5 @@ User chose option A from five (headset, route, job board, signal tower, schedule
 ## Update — 2026-10-19: licence number in emails
 
 Private hire operator licence **PHO0079** (user, 19/10/2026) is in every email footer, HTML and plain text: `LICENCE` in `src/lib/email/template.js`, kept identical to the website's `lib/emailTemplate.js`.
+
+- **Password rule (19/10/2026):** Supabase Auth requires 8+ characters with a letter and a number (set by the user). Every password form checks the same rule first and says so.
