@@ -135,3 +135,7 @@ The delete password box is drawn outside the booking drawer, so the drawer's "ta
 User chose option A from five (headset, route, job board, signal tower, schedule): a gold dispatch headset (`#D7A23F`) on navy (`#0B132B`), same style as the Driver App's steering wheel. Before, `/favicon.ico` did not exist (404) and the home-screen icons were the EV Exec car logo with text.
 - Files in `public/`: `favicon.ico` (16/32/48), `favicon.svg` (tab; the 64×64 source of the headset), `apple-icon.png` (180), `icon-192.png`, `icon-512.png`, `icon-512-maskable.png` (headset inside the safe zone), `badge-96.png` (white on transparent, Android status bar). Regenerate the PNGs from `favicon.svg` if it changes.
 - Wired in `src/app/layout.tsx` `metadata.icons`, `src/app/manifest.ts` (unchanged paths) and `public/sw.js` (push icon `icon-192.png`, badge `badge-96.png`). The in-app logo (`ev-exec-badge.png`, `brandLogo.js`) is unchanged.
+
+## Update — 2026-10-19: licence number in emails
+
+Private hire operator licence **PHO0079** (user, 19/10/2026) is in every email footer, HTML and plain text: `LICENCE` in `src/lib/email/template.js`, kept identical to the website's `lib/emailTemplate.js`.
